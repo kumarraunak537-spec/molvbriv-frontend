@@ -24,6 +24,64 @@ export default function AdminPage() {
     p1: 24, p2: 30, p3: 12, p4: 6
   });
 
+  const [newProduct, setNewProduct] = useState({
+    title: '', category: '', price: '', material: '', stock: '', description: '', sku: ''
+  });
+
+  const handleAddProduct = async (status = 'live') => {
+    try {
+      const { data, error } = await supabase.from('products').insert([{
+        title: newProduct.title,
+        category: newProduct.category.toLowerCase(),
+        price: parseFloat(newProduct.price) || 0,
+        material: newProduct.material,
+        stock: parseInt(newProduct.stock) || 0,
+        description: newProduct.description,
+        sku: newProduct.sku,
+        status: status
+      }]).select();
+      
+      if (error) throw error;
+      setProductsData([...productsData, data[0]]);
+      showToast(status === 'live' ? 'Product published successfully' : 'Saved as draft');
+      setNewProduct({ title: '', category: '', price: '', material: '', stock: '', description: '', sku: '' });
+      nav('products');
+    } catch (err) {
+      console.error(err);
+      showToast('Error saving product');
+    }
+  };
+
+  const handleDeleteProduct = async (id) => {
+    try {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) throw error;
+      setProductsData(productsData.filter(p => p.id !== id));
+      showToast('Product deleted');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateProduct = async () => {
+    try {
+      if (!editingProduct.id) return showToast('Cannot update fallback product');
+      const { error } = await supabase.from('products').update({
+        title: editingProduct.name,
+        price: parseFloat(editingProduct.price),
+        category: editingProduct.cat.toLowerCase(),
+        material: editingProduct.mat
+      }).eq('id', editingProduct.id);
+      
+      if (error) throw error;
+      showToast('Product updated successfully');
+      setProductsData(productsData.map(p => p.id === editingProduct.id ? {...p, title: editingProduct.name, price: editingProduct.price, category: editingProduct.cat, material: editingProduct.mat } : p));
+    } catch (err) {
+      console.error(err);
+      showToast('Error updating product');
+    }
+  };
+
   const [productsData, setProductsData] = useState([]);
   const [ordersData, setOrdersData] = useState([]);
   
@@ -209,7 +267,7 @@ export default function AdminPage() {
               <div className="pt">
                 <div className="ph ph5"><span>PRODUCT NAME</span><span>CATEGORY</span><span>PRICE</span><span>STATUS</span><span>ACTIONS</span></div>
                 {productsData.length > 0 ? productsData.map(p => (
-                  <div key={p.id} className="pr pr5"><div><div className="pn">{p.title}</div><div className="pc">{p.material} · SKU: {p.sku || p.id.substring(0,8)}</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>{p.category || 'General'}</span><span className="pp">Rs {p.price}</span><span className={`bg ${p.status === 'live' ? 'bgn' : 'bgg'}`}>{p.status}</span><div className="rab"><button className="ab">Edit</button><button className="ab">Remove</button></div></div>
+                  <div key={p.id} className="pr pr5"><div><div className="pn">{p.title}</div><div className="pc">{p.material} · SKU: {p.sku || p.id?.substring(0,8)}</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>{p.category || 'General'}</span><span className="pp">Rs {p.price}</span><span className={`bg ${p.status === 'live' ? 'bgn' : 'bgg'}`}>{p.status}</span><div className="rab"><button className="ab" onClick={() => { setEditingProduct(p); nav('customize'); }}>Edit</button><button className="ab" onClick={() => handleDeleteProduct(p.id)}>Remove</button></div></div>
                 )) : (
                   <>
                     <div className="pr pr5"><div><div className="pn">Polki Jhumka Set</div><div className="pc">Gold Plated · SKU: MLV-JHM-001</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Jhumka</span><span className="pp">Rs 1,299</span><span className="bg bgn">Live</span><div className="rab"><button className="ab">Edit</button><button className="ab">Remove</button></div></div>
@@ -286,24 +344,24 @@ export default function AdminPage() {
             <div className={`pg ${activePage === 'add' ? 'active' : ''}`}>
               <div className="fs"><div className="fst">Basic Information</div>
                 <div className="fg2">
-                  <div className="fg"><label>PRODUCT NAME</label><input className="fi" type="text" placeholder="e.g. Polki Jhumka Set" /></div>
-                  <div className="fg"><label>CATEGORY</label><select className="fi"><option value="">Select</option><option>Jhumka</option><option>Earrings</option><option>Necklace</option><option>Bangles</option><option>Rings</option><option>Maang Tikka</option><option>Bridal Set</option></select></div>
-                  <div className="fg"><label>SELLING PRICE (Rs)</label><input className="fi" type="number" placeholder="0" /></div>
+                  <div className="fg"><label>PRODUCT NAME</label><input className="fi" type="text" placeholder="e.g. Polki Jhumka Set" value={newProduct.title} onChange={e => setNewProduct({...newProduct, title: e.target.value})} /></div>
+                  <div className="fg"><label>CATEGORY</label><select className="fi" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})}><option value="">Select</option><option>Jhumka</option><option>Earrings</option><option>Necklace</option><option>Bangles</option><option>Rings</option><option>Maang Tikka</option><option>Bridal Set</option></select></div>
+                  <div className="fg"><label>SELLING PRICE (Rs)</label><input className="fi" type="number" placeholder="0" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} /></div>
                   <div className="fg"><label>COMPARE PRICE (Rs)</label><input className="fi" type="number" placeholder="Optional" /></div>
-                  <div className="fg"><label>MATERIAL / FINISH</label><select className="fi"><option value="">Select</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option><option>Meenakari</option><option>Oxidised</option></select></div>
-                  <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" placeholder="0" /></div>
-                  <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Design, occasion, weight, size..."></textarea></div>
+                  <div className="fg"><label>MATERIAL / FINISH</label><select className="fi" value={newProduct.material} onChange={e => setNewProduct({...newProduct, material: e.target.value})}><option value="">Select</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option><option>Meenakari</option><option>Oxidised</option></select></div>
+                  <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} /></div>
+                  <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Design, occasion, weight, size..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}></textarea></div>
                 </div>
               </div>
               <div className="fs"><div className="fst">Images & Variants</div>
                 <div className="uz" style={{ marginBottom: '11px' }}><div className="ul">Click to upload product images</div><div className="uh">JPG, PNG, WEBP · Max 5MB each</div></div>
                 <div className="fg2">
                   <div className="fg"><label>AVAILABLE COLORS</label><input className="fi" type="text" placeholder="e.g. Gold, Silver, Rose Gold" /></div>
-                  <div className="fg"><label>SKU / PRODUCT CODE</label><input className="fi" type="text" placeholder="e.g. MLV-JHM-001" /></div>
+                  <div className="fg"><label>SKU / PRODUCT CODE</label><input className="fi" type="text" placeholder="e.g. MLV-JHM-001" value={newProduct.sku} onChange={e => setNewProduct({...newProduct, sku: e.target.value})} /></div>
                   <div className="fg full"><label>TAGS</label><input className="fi" type="text" placeholder="bridal, festive, traditional, bestseller" /></div>
                 </div>
               </div>
-              <div className="fa"><button className="btn btn-p" onClick={() => showToast('Product published successfully')}>Publish Product</button><button className="btn" onClick={() => showToast('Saved as draft')}>Save as Draft</button></div>
+              <div className="fa"><button className="btn btn-p" onClick={() => handleAddProduct('live')}>Publish Product</button><button className="btn" onClick={() => handleAddProduct('draft')}>Save as Draft</button></div>
             </div>
 
             {/* CUSTOMIZE PRODUCT */}
@@ -317,20 +375,28 @@ export default function AdminPage() {
                 <button className={`cet ${customizeFilter === 'bangles' ? 'active' : ''}`} onClick={() => setCustomizeFilter('bangles')}>Bangles</button>
               </div>
               <div className="peg">
-                {[
-                  { name: 'Polki Jhumka Set', cat: 'jhumka', mat: 'Gold Plated', price: '1299' },
-                  { name: 'Kundan Necklace', cat: 'necklace', mat: 'Kundan', price: '2899' },
-                  { name: 'Floral Ear Studs', cat: 'earrings', mat: 'Silver', price: '649' },
-                  { name: 'Chandbali Jhumka', cat: 'jhumka', mat: 'Antique', price: '1599' },
-                  { name: 'Pearl Drop Earrings', cat: 'earrings', mat: 'Pearl', price: '899' },
-                  { name: 'Rani Haar Set', cat: 'necklace', mat: 'Bridal', price: '4999' }
-                ].filter(p => customizeFilter === 'all' || p.cat === customizeFilter).map(p => (
-                  <div key={p.name} className={`pec ${editingProduct.name === p.name ? 'sel' : ''}`} onClick={() => setEditingProduct(p)}>
-                    <div className="pen">{p.name}</div>
-                    <div className="pec2">{p.cat.charAt(0).toUpperCase() + p.cat.slice(1)} · {p.mat}</div>
+                {productsData.length > 0 ? productsData.filter(p => customizeFilter === 'all' || p.category === customizeFilter).map(p => (
+                  <div key={p.id} className={`pec ${editingProduct.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price })}>
+                    <div className="pen">{p.title}</div>
+                    <div className="pec2">{(p.category || 'General').charAt(0).toUpperCase() + (p.category || 'General').slice(1)} · {p.material}</div>
                     <div className="pep">Rs {p.price}</div>
                   </div>
-                ))}
+                )) : (
+                  [
+                    { name: 'Polki Jhumka Set', cat: 'jhumka', mat: 'Gold Plated', price: '1299' },
+                    { name: 'Kundan Necklace', cat: 'necklace', mat: 'Kundan', price: '2899' },
+                    { name: 'Floral Ear Studs', cat: 'earrings', mat: 'Silver', price: '649' },
+                    { name: 'Chandbali Jhumka', cat: 'jhumka', mat: 'Antique', price: '1599' },
+                    { name: 'Pearl Drop Earrings', cat: 'earrings', mat: 'Pearl', price: '899' },
+                    { name: 'Rani Haar Set', cat: 'necklace', mat: 'Bridal', price: '4999' }
+                  ].filter(p => customizeFilter === 'all' || p.cat === customizeFilter).map(p => (
+                    <div key={p.name} className={`pec ${editingProduct.name === p.name ? 'sel' : ''}`} onClick={() => setEditingProduct(p)}>
+                      <div className="pen">{p.name}</div>
+                      <div className="pec2">{p.cat.charAt(0).toUpperCase() + p.cat.slice(1)} · {p.mat}</div>
+                      <div className="pep">Rs {p.price}</div>
+                    </div>
+                  ))
+                )}
               </div>
 
               <div className="ep">
@@ -361,7 +427,7 @@ export default function AdminPage() {
                   <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" defaultValue="24" /></div>
                 </div>
                 <div className="fa" style={{ marginTop: '13px' }}>
-                  <button className="btn btn-p" onClick={() => showToast('Product updated successfully')}>Save Changes</button>
+                  <button className="btn btn-p" onClick={handleUpdateProduct}>Save Changes</button>
                   <button className="btn">Discard</button>
                 </div>
               </div>
