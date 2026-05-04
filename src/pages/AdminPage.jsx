@@ -4,9 +4,7 @@ import './AdminPage.css';
 
 export default function AdminPage() {
   // Login gate state
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem('molvbriv_admin_auth') === 'true';
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -14,30 +12,65 @@ export default function AdminPage() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  const ADMIN_EMAIL = 'admin@molvbriv.in';
-  const ADMIN_PASSWORD = 'molvbriv2026';
+  // Check existing session on mount
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        if (profile?.role === 'admin') {
+          setIsAuthenticated(true);
+        }
+      }
+      setAuthChecked(true);
+    };
+    checkSession();
+  }, []);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoggingIn(true);
     setLoginError('');
-    
-    setTimeout(() => {
-      if (loginEmail.toLowerCase() === ADMIN_EMAIL && loginPassword === ADMIN_PASSWORD) {
-        sessionStorage.setItem('molvbriv_admin_auth', 'true');
-        setIsAuthenticated(true);
-      } else if (loginEmail.toLowerCase() !== ADMIN_EMAIL) {
-        setLoginError('Email not recognized.');
-      } else {
-        setLoginError('Invalid password. Access denied.');
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
+
+      if (error) {
+        setLoginError('Invalid email or password.');
+        setIsLoggingIn(false);
+        return;
       }
-      setIsLoggingIn(false);
-    }, 800);
+
+      const user = data.user;
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profile?.role === 'admin') {
+        setIsAuthenticated(true);
+      } else {
+        await supabase.auth.signOut();
+        setLoginError('Access denied. Admin privileges required.');
+      }
+    } catch (err) {
+      setLoginError('Something went wrong. Try again.');
+    }
+    setIsLoggingIn(false);
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('molvbriv_admin_auth');
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsAuthenticated(false);
     setLoginEmail('');
     setLoginPassword('');
@@ -52,17 +85,12 @@ export default function AdminPage() {
   const [selectedCollection, setSelectedCollection] = useState('Jhumka');
 
   const [editingProduct, setEditingProduct] = useState({
-    name: 'Polki Jhumka Set',
-    price: '1299',
-    cat: 'Jhumka',
-    material: 'Gold Plated'
+    name: '', price: '', cat: '', mat: ''
   });
   const [activeColor, setActiveColor] = useState(0);
 
   // Quantities state for Collections page
-  const [quantities, setQuantities] = useState({
-    p1: 24, p2: 30, p3: 12, p4: 6
-  });
+  const [quantities, setQuantities] = useState({});
 
   const [newProduct, setNewProduct] = useState({
     title: '', category: '', price: '', material: '', stock: '', description: '', sku: ''
@@ -172,30 +200,34 @@ export default function AdminPage() {
     return 'var(--tx)';
   };
 
-  // SVG Graph logic
-  const dailyData = [3, 5, 2, 8, 6, 11, 4, 7, 9, 5, 12, 8, 6, 10];
-  const dailyLabels = ['Apr 13', 'Apr 14', 'Apr 15', 'Apr 16', 'Apr 17', 'Apr 18', 'Apr 19', 'Apr 20', 'Apr 21', 'Apr 22', 'Apr 23', 'Apr 24', 'Apr 25', 'Apr 26'];
-  const monthlyData = [18, 25, 32, 21, 38, 44, 29, 51, 36, 42, 55, 48];
-  const monthlyLabels = ['May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr'];
+  // SVG Graph logic - uses real orders data when available
+  const dailyData = ordersData.length > 0 ? [ordersData.length] : [0];
+  const dailyLabels = ['Today'];
+  const monthlyData = [0];
+  const monthlyLabels = ['This Month'];
 
   const data = graphMode === 'daily' ? dailyData : monthlyData;
   const labels = graphMode === 'daily' ? dailyLabels : monthlyLabels;
-  const max = Math.max(...data);
-  const n = data.length;
+  const max = Math.max(...data, 1);
+  const n = Math.max(data.length, 1);
   const W = 560;
   const H = 150;
   const pad = 10;
   const bpad = 20;
-  const step = W / (n - 1);
-  const pts = data.map((v, i) => [i * step, H - bpad - (v / max) * (H - pad - bpad)]);
+  const step = n > 1 ? W / (n - 1) : W;
+  const pts = data.map((v, i) => [n > 1 ? i * step : W / 2, H - bpad - (v / max) * (H - pad - bpad)]);
 
   const areaPath = 'M' + pts.map(([x, y]) => x + ',' + y).join(' L') + ' L' + W + ',' + (H - bpad) + ' L0,' + (H - bpad) + ' Z';
   const linePath = 'M' + pts.map(([x, y]) => x + ',' + y).join(' L');
-  const showLabelsIndices = graphMode === 'daily' ? [0, 3, 6, 9, 13] : labels.map((_, i) => i);
+  const showLabelsIndices = labels.map((_, i) => i);
 
   return (
     <div className="admin-root">
-      {!isAuthenticated ? (
+      {!authChecked ? (
+        <div className="admin-login-overlay">
+          <div className="admin-login-spinner" style={{ width: 28, height: 28, borderWidth: 3 }}></div>
+        </div>
+      ) : !isAuthenticated ? (
         /* LOGIN SCREEN */
         <div className="admin-login-overlay">
           <div className="admin-login-card">
@@ -259,7 +291,12 @@ export default function AdminPage() {
                   <span>Reset link sent to {forgotEmail}</span>
                 </div>
               ) : (
-                <button className="admin-login-btn" onClick={() => { if (forgotEmail) setForgotSent(true); }}>
+                <button className="admin-login-btn" onClick={async () => { 
+                  if (forgotEmail) {
+                    await supabase.auth.resetPasswordForEmail(forgotEmail);
+                    setForgotSent(true);
+                  }
+                }}>
                   Send Reset Link
                 </button>
               )}
@@ -337,38 +374,43 @@ export default function AdminPage() {
           </div>
           <div className="mn">
 
-            {/* DASHBOARD */}
             <div className={`pg ${activePage === 'dashboard' ? 'active' : ''}`}>
               <div className="kg">
-                <div className="kc"><div className="kl">TOTAL REVENUE</div><div className="kv">48,200</div><div className="ks ku">+12.4% this month</div></div>
-                <div className="kc"><div className="kl">PRODUCTS LISTED</div><div className="kv">24</div><div className="ks ku">+3 added this week</div></div>
-                <div className="kc"><div className="kl">ORDERS THIS MONTH</div><div className="kv">138</div><div className="ks kd">-4 from last month</div></div>
-                <div className="kc"><div className="kl">PENDING DISPATCH</div><div className="kv">7</div><div className="ks" style={{ color: 'var(--mu)' }}>Needs attention</div></div>
+                <div className="kc"><div className="kl">TOTAL REVENUE</div><div className="kv">{ordersData.reduce((sum, o) => sum + (parseFloat(o.total_price) || 0), 0).toLocaleString()}</div><div className="ks ku">From {ordersData.length} orders</div></div>
+                <div className="kc"><div className="kl">PRODUCTS LISTED</div><div className="kv">{productsData.length}</div><div className="ks ku">Active in catalogue</div></div>
+                <div className="kc"><div className="kl">TOTAL ORDERS</div><div className="kv">{ordersData.length}</div><div className="ks" style={{ color: 'var(--mu)' }}>All time</div></div>
+                <div className="kc"><div className="kl">PENDING DISPATCH</div><div className="kv">{ordersData.filter(o => o.status === 'Processing').length}</div><div className="ks" style={{ color: 'var(--mu)' }}>{ordersData.filter(o => o.status === 'Processing').length > 0 ? 'Needs attention' : 'All clear'}</div></div>
               </div>
               <div className="dg">
                 <div className="cd">
                   <div className="ch"><div className="ctl">Recent Orders</div><div className="ca" onClick={() => nav('orders')}>View all</div></div>
-                  <div className="tr"><div><div className="tm">#MLV-1041 — Priya Sharma</div><div className="ts">Kundan Necklace · Apr 25</div></div><span className="bg bgn">Delivered</span></div>
-                  <div className="tr"><div><div className="tm">#MLV-1040 — Ananya R.</div><div className="ts">Polki Jhumka · Apr 24</div></div><span className="bg bga">Shipped</span></div>
-                  <div className="tr"><div><div className="tm">#MLV-1039 — Meera V.</div><div className="ts">Rani Haar Set · Apr 23</div></div><span className="bg bgg">Processing</span></div>
-                  <div className="tr"><div><div className="tm">#MLV-1038 — Divya K.</div><div className="ts">Pearl Drop Earrings · Apr 22</div></div><span className="bg bgn">Delivered</span></div>
+                  {ordersData.length > 0 ? ordersData.slice(0, 4).map(o => (
+                    <div key={o.id} className="tr"><div><div className="tm">{o.order_number} — {o.customer_name}</div><div className="ts">{o.product_name}</div></div><span className={`bg ${o.status === 'Delivered' ? 'bgn' : (o.status === 'Processing' ? 'bgg' : 'bga')}`}>{o.status}</span></div>
+                  )) : (
+                    <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No orders yet</div>
+                  )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div className="cd">
-                    <div className="ch"><div className="ctl">Sales by Category</div></div>
+                    <div className="ch"><div className="ctl">Products by Category</div></div>
                     <div className="br">
-                      <div className="bi"><div className="bl"><span className="bn">Necklace</span><span className="bv">38%</span></div><div className="btr"><div className="bf" style={{ width: '38%' }}></div></div></div>
-                      <div className="bi"><div className="bl"><span className="bn">Jhumka</span><span className="bv">29%</span></div><div className="btr"><div className="bf" style={{ width: '29%' }}></div></div></div>
-                      <div className="bi"><div className="bl"><span className="bn">Earrings</span><span className="bv">21%</span></div><div className="btr"><div className="bf" style={{ width: '21%' }}></div></div></div>
-                      <div className="bi"><div className="bl"><span className="bn">Bangles</span><span className="bv">12%</span></div><div className="btr"><div className="bf" style={{ width: '12%' }}></div></div></div>
+                      {productsData.length > 0 ? [...new Set(productsData.map(p => p.category))].map(cat => {
+                        const count = productsData.filter(p => p.category === cat).length;
+                        const pct = Math.round((count / productsData.length) * 100);
+                        return (
+                          <div key={cat} className="bi"><div className="bl"><span className="bn">{(cat || 'Other').charAt(0).toUpperCase() + (cat || 'Other').slice(1)}</span><span className="bv">{pct}%</span></div><div className="btr"><div className="bf" style={{ width: pct + '%' }}></div></div></div>
+                        );
+                      }) : (
+                        <div style={{ padding: '10px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No products yet</div>
+                      )}
                     </div>
                   </div>
                   <div className="cd">
-                    <div className="ch"><div className="ctl">Recent Activity</div></div>
+                    <div className="ch"><div className="ctl">Quick Stats</div></div>
                     <div className="al">
-                      <div className="ai"><div className="ad"></div><div><div className="at">New product "Chandbali Set" added</div><div className="ati">2 hours ago</div></div></div>
-                      <div className="ai"><div className="ad" style={{ background: 'var(--gn)' }}></div><div><div className="at">Order #1041 marked delivered</div><div className="ati">5 hours ago</div></div></div>
-                      <div className="ai"><div className="ad" style={{ background: 'var(--am)' }}></div><div><div className="at">Stock low: Floral Studs (2 left)</div><div className="ati">Yesterday</div></div></div>
+                      <div className="ai"><div className="ad"></div><div><div className="at">{productsData.length} products in catalogue</div><div className="ati">Total listed</div></div></div>
+                      <div className="ai"><div className="ad" style={{ background: 'var(--gn)' }}></div><div><div className="at">{ordersData.filter(o => o.status === 'Delivered').length} orders delivered</div><div className="ati">Completed</div></div></div>
+                      <div className="ai"><div className="ad" style={{ background: 'var(--am)' }}></div><div><div className="at">{ordersData.filter(o => o.status === 'Shipped').length} orders in transit</div><div className="ati">Shipped</div></div></div>
                     </div>
                   </div>
                 </div>
@@ -394,73 +436,42 @@ export default function AdminPage() {
                 {productsData.length > 0 ? productsData.map(p => (
                   <div key={p.id} className="pr pr5"><div><div className="pn">{p.title}</div><div className="pc">{p.material} · SKU: {p.sku || p.id?.substring(0,8)}</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>{p.category || 'General'}</span><span className="pp">Rs {p.price}</span><span className={`bg ${p.status === 'live' ? 'bgn' : 'bgg'}`}>{p.status}</span><div className="rab"><button className="ab" onClick={() => { setEditingProduct(p); nav('customize'); }}>Edit</button><button className="ab" onClick={() => handleDeleteProduct(p.id)}>Remove</button></div></div>
                 )) : (
-                  <>
-                    <div className="pr pr5"><div><div className="pn">Polki Jhumka Set</div><div className="pc">Gold Plated · SKU: MLV-JHM-001</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Jhumka</span><span className="pp">Rs 1,299</span><span className="bg bgn">Live</span><div className="rab"><button className="ab">Edit</button><button className="ab">Remove</button></div></div>
-                    <div className="pr pr5"><div><div className="pn">Kundan Necklace</div><div className="pc">Kundan · SKU: MLV-NCK-002</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Necklace</span><span className="pp">Rs 2,899</span><span className="bg bgn">Live</span><div className="rab"><button className="ab">Edit</button><button className="ab">Remove</button></div></div>
-                    <div className="pr pr5"><div><div className="pn">Floral Ear Studs</div><div className="pc">Silver · SKU: MLV-EAR-003</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Earrings</span><span className="pp">Rs 649</span><span className="bg bga" style={{ background: 'rgba(224,82,82,.12)', color: 'var(--rd)' }}>Low Stock</span><div className="rab"><button className="ab">Edit</button><button className="ab">Remove</button></div></div>
-                    <div className="pr pr5"><div><div className="pn">Chandbali Jhumka</div><div className="pc">Antique · SKU: MLV-JHM-004</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Jhumka</span><span className="pp">Rs 1,599</span><span className="bg bgg">Draft</span><div className="rab"><button className="ab">Edit</button><button className="ab">Remove</button></div></div>
-                    <div className="pr pr5"><div><div className="pn">Pearl Drop Earrings</div><div className="pc">Pearl · SKU: MLV-EAR-005</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Earrings</span><span className="pp">Rs 899</span><span className="bg bgn">Live</span><div className="rab"><button className="ab">Edit</button><button className="ab">Remove</button></div></div>
-                    <div className="pr pr5"><div><div className="pn">Rani Haar Set</div><div className="pc">Bridal · SKU: MLV-NCK-006</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Necklace</span><span className="pp">Rs 4,999</span><span className="bg bgn">Live</span><div className="rab"><button className="ab">Edit</button><button className="ab">Remove</button></div></div>
-                  </>
+                  <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No products yet. Click "+ Add Product" to get started.</div>
                 )}
               </div>
             </div>
 
-            {/* COLLECTIONS */}
             <div className={`pg ${activePage === 'collections' ? 'active' : ''}`}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                 <div style={{ fontSize: '12px', color: 'var(--mu)' }}>Select a collection to manage stock quantities.</div>
                 <button className="btn btn-p" onClick={() => showToast('New collection created')}>+ New Collection</button>
               </div>
               <div className="col-grid">
-                <div className={`col-card ${selectedCollection === 'Jhumka' ? 'sel' : ''}`} onClick={() => setSelectedCollection('Jhumka')}>
-                  <div className="col-name">Jhumka</div>
-                  <div className="col-count">4 products</div>
-                  <div className="col-bar"><div className="col-fill" style={{ width: '72%' }}></div></div>
-                  <div className="col-stock"><span>Total stock</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>72 units</span></div>
-                </div>
-                <div className={`col-card ${selectedCollection === 'Earrings' ? 'sel' : ''}`} onClick={() => setSelectedCollection('Earrings')}>
-                  <div className="col-name">Earrings</div>
-                  <div className="col-count">5 products</div>
-                  <div className="col-bar"><div className="col-fill" style={{ width: '48%' }}></div></div>
-                  <div className="col-stock"><span>Total stock</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>48 units</span></div>
-                </div>
-                <div className={`col-card ${selectedCollection === 'Necklace' ? 'sel' : ''}`} onClick={() => setSelectedCollection('Necklace')}>
-                  <div className="col-name">Necklace</div>
-                  <div className="col-count">3 products</div>
-                  <div className="col-bar"><div className="col-fill" style={{ width: '35%' }}></div></div>
-                  <div className="col-stock"><span>Total stock</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>35 units</span></div>
-                </div>
-                <div className={`col-card ${selectedCollection === 'Bangles' ? 'sel' : ''}`} onClick={() => setSelectedCollection('Bangles')}>
-                  <div className="col-name">Bangles</div>
-                  <div className="col-count">2 products</div>
-                  <div className="col-bar"><div className="col-fill" style={{ width: '60%' }}></div></div>
-                  <div className="col-stock"><span>Total stock</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>60 units</span></div>
-                </div>
-                <div className={`col-card ${selectedCollection === 'Bridal Set' ? 'sel' : ''}`} onClick={() => setSelectedCollection('Bridal Set')}>
-                  <div className="col-name">Bridal Set</div>
-                  <div className="col-count">2 products</div>
-                  <div className="col-bar"><div className="col-fill" style={{ width: '20%' }}></div></div>
-                  <div className="col-stock"><span>Total stock</span><span style={{ color: 'var(--rd)', fontWeight: 500 }}>8 units</span></div>
-                </div>
-                <div className={`col-card ${selectedCollection === 'Maang Tikka' ? 'sel' : ''}`} onClick={() => setSelectedCollection('Maang Tikka')}>
-                  <div className="col-name">Maang Tikka</div>
-                  <div className="col-count">2 products</div>
-                  <div className="col-bar"><div className="col-fill" style={{ width: '55%' }}></div></div>
-                  <div className="col-stock"><span>Total stock</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>55 units</span></div>
-                </div>
+                {[...new Set(productsData.map(p => p.category))].map(cat => {
+                  const catProducts = productsData.filter(p => p.category === cat);
+                  const totalStock = catProducts.reduce((sum, p) => sum + (p.stock || 0), 0);
+                  return (
+                    <div key={cat} className={`col-card ${selectedCollection === cat ? 'sel' : ''}`} onClick={() => setSelectedCollection(cat)}>
+                      <div className="col-name">{(cat || 'Other').charAt(0).toUpperCase() + (cat || 'Other').slice(1)}</div>
+                      <div className="col-count">{catProducts.length} products</div>
+                      <div className="col-bar"><div className="col-fill" style={{ width: Math.min(totalStock, 100) + '%' }}></div></div>
+                      <div className="col-stock"><span>Total stock</span><span style={{ color: totalStock < 10 ? 'var(--rd)' : 'var(--tx)', fontWeight: 500 }}>{totalStock} units</span></div>
+                    </div>
+                  );
+                })}
+                {productsData.length === 0 && <div style={{ gridColumn: '1/-1', padding: '30px', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No collections yet. Add products first.</div>}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tx)' }}>{selectedCollection} — Stock Management</div>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tx)' }}>{selectedCollection ? (selectedCollection.charAt(0).toUpperCase() + selectedCollection.slice(1)) : 'Select a collection'} — Stock Management</div>
                 <button className="btn btn-p" onClick={() => showToast('Stock updated successfully')}>Save Stock</button>
               </div>
               <div className="stock-table">
                 <div className="sth"><span>PRODUCT</span><span>CATEGORY</span><span>PRICE</span><span>STOCK</span><span>STATUS</span></div>
                 <div>
-                  <div className="str"><div><div className="pn">Polki Jhumka Set</div><div className="pc">Gold Plated</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Jhumka</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>Rs 1,299</span><div className="sq"><button className="sq-btn" onClick={() => handleQtyAdj('p1', -1)}>-</button><span className="sq-val" style={{ color: getQtyColor(quantities.p1) }}>{quantities.p1}</span><button className="sq-btn" onClick={() => handleQtyAdj('p1', 1)}>+</button></div><span className="bg bgn">Live</span></div>
-                  <div className="str"><div><div className="pn">Chandbali Jhumka</div><div className="pc">Antique</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Jhumka</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>Rs 1,599</span><div className="sq"><button className="sq-btn" onClick={() => handleQtyAdj('p2', -1)}>-</button><span className="sq-val" style={{ color: getQtyColor(quantities.p2) }}>{quantities.p2}</span><button className="sq-btn" onClick={() => handleQtyAdj('p2', 1)}>+</button></div><span className="bg bgn">Live</span></div>
-                  <div className="str"><div><div className="pn">Temple Jhumka</div><div className="pc">Oxidised</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Jhumka</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>Rs 1,099</span><div className="sq"><button className="sq-btn" onClick={() => handleQtyAdj('p3', -1)}>-</button><span className="sq-val" style={{ color: getQtyColor(quantities.p3) }}>{quantities.p3}</span><button className="sq-btn" onClick={() => handleQtyAdj('p3', 1)}>+</button></div><span className="bg bgg">Draft</span></div>
-                  <div className="str"><div><div className="pn">Meenakari Jhumka</div><div className="pc">Meenakari</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>Jhumka</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>Rs 1,349</span><div className="sq"><button className="sq-btn" onClick={() => handleQtyAdj('p4', -1)}>-</button><span className="sq-val" style={{ color: getQtyColor(quantities.p4) }}>{quantities.p4}</span><button className="sq-btn" onClick={() => handleQtyAdj('p4', 1)}>+</button></div><span className="bg bga" style={{ background: 'rgba(224,82,82,.12)', color: 'var(--rd)' }}>Low Stock</span></div>
+                  {productsData.filter(p => p.category === selectedCollection).map(p => (
+                    <div key={p.id} className="str"><div><div className="pn">{p.title}</div><div className="pc">{p.material}</div></div><span style={{ color: 'var(--mu)', fontSize: '12px' }}>{(p.category || '').charAt(0).toUpperCase() + (p.category || '').slice(1)}</span><span style={{ color: 'var(--tx)', fontWeight: 500 }}>Rs {p.price}</span><div className="sq"><button className="sq-btn" onClick={() => handleQtyAdj(p.id, -1)}>-</button><span className="sq-val" style={{ color: getQtyColor(quantities[p.id] ?? p.stock ?? 0) }}>{quantities[p.id] ?? p.stock ?? 0}</span><button className="sq-btn" onClick={() => handleQtyAdj(p.id, 1)}>+</button></div><span className={`bg ${p.status === 'live' ? 'bgn' : 'bgg'}`}>{p.status}</span></div>
+                  ))}
+                  {productsData.filter(p => p.category === selectedCollection).length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No products in this collection</div>}
                 </div>
               </div>
             </div>
@@ -507,20 +518,7 @@ export default function AdminPage() {
                     <div className="pep">Rs {p.price}</div>
                   </div>
                 )) : (
-                  [
-                    { name: 'Polki Jhumka Set', cat: 'jhumka', mat: 'Gold Plated', price: '1299' },
-                    { name: 'Kundan Necklace', cat: 'necklace', mat: 'Kundan', price: '2899' },
-                    { name: 'Floral Ear Studs', cat: 'earrings', mat: 'Silver', price: '649' },
-                    { name: 'Chandbali Jhumka', cat: 'jhumka', mat: 'Antique', price: '1599' },
-                    { name: 'Pearl Drop Earrings', cat: 'earrings', mat: 'Pearl', price: '899' },
-                    { name: 'Rani Haar Set', cat: 'necklace', mat: 'Bridal', price: '4999' }
-                  ].filter(p => customizeFilter === 'all' || p.cat === customizeFilter).map(p => (
-                    <div key={p.name} className={`pec ${editingProduct.name === p.name ? 'sel' : ''}`} onClick={() => setEditingProduct(p)}>
-                      <div className="pen">{p.name}</div>
-                      <div className="pec2">{p.cat.charAt(0).toUpperCase() + p.cat.slice(1)} · {p.mat}</div>
-                      <div className="pep">Rs {p.price}</div>
-                    </div>
-                  ))
+                  <div style={{ gridColumn: '1/-1', padding: '30px', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No products to customize. Add products first.</div>
                 )}
               </div>
 
@@ -549,7 +547,7 @@ export default function AdminPage() {
                   </div>
                   <div className="fg full"><label>PRODUCT IMAGES</label><div className="ig"><div className="isl">+</div><div className="isl">+</div><div className="isl">+</div><div className="isl">+</div></div></div>
                   <div className="fg"><label>STATUS</label><select className="fi"><option>Live</option><option>Draft</option><option>Out of Stock</option></select></div>
-                  <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" defaultValue="24" /></div>
+                  <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" defaultValue="0" /></div>
                 </div>
                 <div className="fa" style={{ marginTop: '13px' }}>
                   <button className="btn btn-p" onClick={handleUpdateProduct}>Save Changes</button>
@@ -593,10 +591,10 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="o-filter">
-                <button className={`of ${orderFilter === 'all' ? 'active' : ''}`} onClick={() => setOrderFilter('all')}>All (12)</button>
-                <button className={`of ${orderFilter === 'processing' ? 'active' : ''}`} onClick={() => setOrderFilter('processing')}>Processing (3)</button>
-                <button className={`of ${orderFilter === 'shipped' ? 'active' : ''}`} onClick={() => setOrderFilter('shipped')}>Shipped (2)</button>
-                <button className={`of ${orderFilter === 'delivered' ? 'active' : ''}`} onClick={() => setOrderFilter('delivered')}>Delivered (7)</button>
+                <button className={`of ${orderFilter === 'all' ? 'active' : ''}`} onClick={() => setOrderFilter('all')}>All ({ordersData.length})</button>
+                <button className={`of ${orderFilter === 'processing' ? 'active' : ''}`} onClick={() => setOrderFilter('processing')}>Processing ({ordersData.filter(o => o.status === 'Processing').length})</button>
+                <button className={`of ${orderFilter === 'shipped' ? 'active' : ''}`} onClick={() => setOrderFilter('shipped')}>Shipped ({ordersData.filter(o => o.status === 'Shipped').length})</button>
+                <button className={`of ${orderFilter === 'delivered' ? 'active' : ''}`} onClick={() => setOrderFilter('delivered')}>Delivered ({ordersData.filter(o => o.status === 'Delivered').length})</button>
               </div>
               <div className="ot">
                 <div className="oh"><span>ORDER ID</span><span>CUSTOMER</span><span>PRODUCT</span><span>AMOUNT</span><span>STATUS</span></div>
@@ -609,24 +607,7 @@ export default function AdminPage() {
                     <span className={`bg ${o.status === 'Delivered' ? 'bgn' : (o.status === 'Processing' ? 'bgg' : 'bga')}`}>{o.status}</span>
                   </div>
                 )) : (
-                  <>
-                  {[
-                    { id: '#MLV-1041', name: 'Priya Sharma', item: 'Kundan Necklace', amt: 'Rs 2,899', st: 'Delivered', c: 'bgn' },
-                    { id: '#MLV-1040', name: 'Ananya R.', item: 'Polki Jhumka', amt: 'Rs 1,299', st: 'Shipped', c: 'bga' },
-                    { id: '#MLV-1039', name: 'Meera V.', item: 'Rani Haar Set', amt: 'Rs 4,999', st: 'Processing', c: 'bgg' },
-                    { id: '#MLV-1038', name: 'Divya K.', item: 'Pearl Drop Earrings', amt: 'Rs 899', st: 'Delivered', c: 'bgn' },
-                    { id: '#MLV-1037', name: 'Ritu M.', item: 'Floral Ear Studs', amt: 'Rs 649', st: 'Delivered', c: 'bgn' },
-                    { id: '#MLV-1036', name: 'Sunita P.', item: 'Chandbali Jhumka', amt: 'Rs 1,599', st: 'Processing', c: 'bgg' }
-                  ].filter(o => orderFilter === 'all' || o.st.toLowerCase() === orderFilter).map(o => (
-                    <div key={o.id} className="or">
-                      <span style={{ color: 'var(--tx)', fontWeight: 500 }}>{o.id}</span>
-                      <span style={{ color: 'var(--mu)' }}>{o.name}</span>
-                      <span style={{ color: 'var(--mu)' }}>{o.item}</span>
-                      <span style={{ color: 'var(--tx)' }}>{o.amt}</span>
-                      <span className={`bg ${o.c}`}>{o.st}</span>
-                    </div>
-                  ))}
-                  </>
+                  <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No orders yet</div>
                 )}
               </div>
             </div>
