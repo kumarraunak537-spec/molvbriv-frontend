@@ -13,6 +13,7 @@ export default function AdminPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [adminUser, setAdminUser] = useState({ name: '', email: '' });
 
   // Check existing session on mount
   useEffect(() => {
@@ -26,6 +27,10 @@ export default function AdminPage() {
           .single();
         if (profile?.role === 'admin') {
           setIsAuthenticated(true);
+          setAdminUser({
+            name: profile.full_name || session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+            email: session.user.email
+          });
         }
       }
       setAuthChecked(true);
@@ -59,6 +64,10 @@ export default function AdminPage() {
 
       if (profile?.role === 'admin') {
         setIsAuthenticated(true);
+        setAdminUser({
+          name: profile.full_name || user.user_metadata?.full_name || user.email.split('@')[0],
+          email: user.email
+        });
       } else {
         await supabase.auth.signOut();
         setLoginError('Access denied. Admin privileges required.');
@@ -353,10 +362,10 @@ export default function AdminPage() {
           <div className="sbf">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div className="av">M</div>
+                <div className="av">{(adminUser.name || 'A').charAt(0).toUpperCase()}</div>
                 <div>
-                  <div style={{ fontSize: '12px', color: 'var(--tx)', fontWeight: 500 }}>Admin</div>
-                  <div style={{ fontSize: '10px', color: 'var(--mu)' }}>molvbriv.in</div>
+                  <div style={{ fontSize: '12px', color: 'var(--tx)', fontWeight: 500 }}>{adminUser.name || 'Admin'}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--mu)' }}>{adminUser.email || 'molvbriv.in'}</div>
                 </div>
               </div>
               <button className="admin-logout-btn" onClick={handleLogout} title="Logout">
