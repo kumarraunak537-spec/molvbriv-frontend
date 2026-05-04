@@ -2,7 +2,6 @@ import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import heroVideo from '../assets/video.mp4'
 
 export default function HomePage() {
   useEffect(() => {
@@ -17,7 +16,7 @@ export default function HomePage() {
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0">
           <video autoPlay loop muted playsInline className="w-full h-full object-cover scale-105">
-            <source src={heroVideo} type="video/mp4" />
+            <source src="/video.mp4" type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-primary/20"></div>
         </div>
