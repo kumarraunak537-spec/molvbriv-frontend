@@ -5,12 +5,6 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: true,
-    fs: {
-      allow: [
-        // Allow serving files from one level up to the project root
-        '../../../../../'
-      ]
-    }
+    open: true
   }
 })
