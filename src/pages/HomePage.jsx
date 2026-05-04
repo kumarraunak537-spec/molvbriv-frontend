@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import heroVideo from '../../../../../Downloads/stitch_molvbriv_cart_checkout (1)/website video .mp4'
+import heroVideo from '../assets/video.mp4'
 
 export default function HomePage() {
   useEffect(() => {
