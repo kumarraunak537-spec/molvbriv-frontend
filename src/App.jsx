@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import HomePage from './pages/HomePage.jsx'
 import CollectionsPage from './pages/CollectionsPage.jsx'
 import ProductPage from './pages/ProductPage.jsx'
@@ -42,6 +43,7 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </div>
+      <SpeedInsights />
     </CartProvider>
   )
 }
