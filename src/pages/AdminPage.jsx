@@ -22,7 +22,7 @@ export default function AdminPage() {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, full_name')
+          .select('role')
           .eq('id', session.user.id)
           .single();
         if (profile?.role === 'admin') {
@@ -58,7 +58,7 @@ export default function AdminPage() {
       const user = data.user;
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, full_name')
+        .select('role')
         .eq('id', user.id)
         .single();
 
