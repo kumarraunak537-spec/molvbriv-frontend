@@ -3,6 +3,46 @@ import { supabase } from '../supabaseClient';
 import './AdminPage.css';
 
 export default function AdminPage() {
+  // Login gate state
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return sessionStorage.getItem('molvbriv_admin_auth') === 'true';
+  });
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+
+  const ADMIN_EMAIL = 'admin@molvbriv.in';
+  const ADMIN_PASSWORD = 'molvbriv2026';
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError('');
+    
+    setTimeout(() => {
+      if (loginEmail.toLowerCase() === ADMIN_EMAIL && loginPassword === ADMIN_PASSWORD) {
+        sessionStorage.setItem('molvbriv_admin_auth', 'true');
+        setIsAuthenticated(true);
+      } else if (loginEmail.toLowerCase() !== ADMIN_EMAIL) {
+        setLoginError('Email not recognized.');
+      } else {
+        setLoginError('Invalid password. Access denied.');
+      }
+      setIsLoggingIn(false);
+    }, 800);
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('molvbriv_admin_auth');
+    setIsAuthenticated(false);
+    setLoginEmail('');
+    setLoginPassword('');
+  };
+
   const [activePage, setActivePage] = useState('dashboard');
   const [toastMsg, setToastMsg] = useState('Saved');
   const [isToastVisible, setIsToastVisible] = useState(false);
@@ -155,6 +195,86 @@ export default function AdminPage() {
 
   return (
     <div className="admin-root">
+      {!isAuthenticated ? (
+        /* LOGIN SCREEN */
+        <div className="admin-login-overlay">
+          <div className="admin-login-card">
+            <div className="admin-login-logo">
+              <div className="admin-login-brand">MOLVBRIV</div>
+              <div className="admin-login-subtitle">ADMIN PANEL</div>
+            </div>
+            <div className="admin-login-divider"></div>
+            <h2 className="admin-login-title">Welcome back</h2>
+            <p className="admin-login-desc">Sign in with your admin credentials</p>
+            {!showForgotPassword ? (
+            <form onSubmit={handleLogin} className="admin-login-form">
+              <div className="admin-login-field">
+                <label className="admin-login-label">EMAIL</label>
+                <input
+                  type="email"
+                  className={`admin-login-input ${loginError && loginError.includes('Email') ? 'error' : ''}`}
+                  placeholder="admin@molvbriv.in"
+                  value={loginEmail}
+                  onChange={(e) => { setLoginEmail(e.target.value); setLoginError(''); }}
+                  autoFocus
+                />
+              </div>
+              <div className="admin-login-field">
+                <label className="admin-login-label">PASSWORD</label>
+                <input
+                  type="password"
+                  className={`admin-login-input ${loginError && !loginError.includes('Email') ? 'error' : ''}`}
+                  placeholder="Enter admin password"
+                  value={loginPassword}
+                  onChange={(e) => { setLoginPassword(e.target.value); setLoginError(''); }}
+                />
+                {loginError && <div className="admin-login-error">{loginError}</div>}
+              </div>
+              <button type="submit" className="admin-login-btn" disabled={isLoggingIn}>
+                {isLoggingIn ? (
+                  <span className="admin-login-spinner"></span>
+                ) : 'Access Dashboard'}
+              </button>
+              <div className="admin-login-forgot" onClick={() => { setShowForgotPassword(true); setLoginError(''); }}>
+                Forgot password?
+              </div>
+            </form>
+            ) : (
+            <div className="admin-login-form">
+              <p className="admin-forgot-info">Enter your admin email and we'll send a password reset link.</p>
+              <div className="admin-login-field">
+                <label className="admin-login-label">EMAIL ADDRESS</label>
+                <input
+                  type="email"
+                  className="admin-login-input"
+                  placeholder="admin@molvbriv.in"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              {forgotSent ? (
+                <div className="admin-forgot-success">
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M3 8.5l3 3 7-7"/></svg>
+                  <span>Reset link sent to {forgotEmail}</span>
+                </div>
+              ) : (
+                <button className="admin-login-btn" onClick={() => { if (forgotEmail) setForgotSent(true); }}>
+                  Send Reset Link
+                </button>
+              )}
+              <div className="admin-login-forgot" onClick={() => { setShowForgotPassword(false); setForgotSent(false); setForgotEmail(''); }}>
+                ← Back to login
+              </div>
+            </div>
+            )}
+            <div className="admin-login-footer">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="7" width="10" height="8" rx="1.5"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg>
+              <span>Secured access · molvbriv.in</span>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="w" style={{ position: 'relative' }}>
         {/* SIDEBAR */}
         <div className="sb">
@@ -194,12 +314,17 @@ export default function AdminPage() {
             </div>
           </div>
           <div className="sbf">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div className="av">M</div>
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--tx)', fontWeight: 500 }}>Admin</div>
-                <div style={{ fontSize: '10px', color: 'var(--mu)' }}>molvbriv.com</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div className="av">M</div>
+                <div>
+                  <div style={{ fontSize: '12px', color: 'var(--tx)', fontWeight: 500 }}>Admin</div>
+                  <div style={{ fontSize: '10px', color: 'var(--mu)' }}>molvbriv.in</div>
+                </div>
               </div>
+              <button className="admin-logout-btn" onClick={handleLogout} title="Logout">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M6 2H3a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3M11 11l3-3-3-3M6 8h8"/></svg>
+              </button>
             </div>
           </div>
         </div>
@@ -513,6 +638,7 @@ export default function AdminPage() {
           <span>{toastMsg}</span>
         </div>
       </div>
+      )}
     </div>
   );
 }
