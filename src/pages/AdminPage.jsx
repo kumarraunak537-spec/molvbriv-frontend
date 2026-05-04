@@ -22,13 +22,13 @@ export default function AdminPage() {
       if (session?.user) {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, full_name')
           .eq('id', session.user.id)
           .single();
         if (profile?.role === 'admin') {
           setIsAuthenticated(true);
           setAdminUser({
-            name: profile.full_name || session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+            name: session.user.email.split('@')[0],
             email: session.user.email
           });
         }
@@ -58,14 +58,14 @@ export default function AdminPage() {
       const user = data.user;
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name')
         .eq('id', user.id)
         .single();
 
       if (profile?.role === 'admin') {
         setIsAuthenticated(true);
         setAdminUser({
-          name: profile.full_name || user.user_metadata?.full_name || user.email.split('@')[0],
+          name: user.email.split('@')[0],
           email: user.email
         });
       } else {
