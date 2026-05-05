@@ -35,7 +35,7 @@ export default function AllProductsPage() {
       <Navbar />
 
       <div className="pt-28 md:pt-24 min-h-screen">
-        <section className="py-12 md:py-32 px-5 md:px-12 bg-surface border-t border-black/5">
+        <section className="py-12 md:py-32 px-5 md:px-12 bg-surface">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-16 gap-4 md:gap-6">
               <div className="max-w-xl">
