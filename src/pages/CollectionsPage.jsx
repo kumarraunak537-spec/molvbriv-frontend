@@ -10,8 +10,7 @@ export default function CollectionsPage() {
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [sortBy, setSortBy] = useState('newest')
-  const [materials, setMaterials] = useState([])
-  const [gemstones, setGemstones] = useState([])
+  const [categories, setCategories] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
 
@@ -33,21 +32,15 @@ export default function CollectionsPage() {
     }
   }
 
-  const toggleMaterial = (m) => {
-    setMaterials(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m])
-  }
-  const toggleGemstone = (g) => {
-    setGemstones(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])
+  const toggleCategory = (c) => {
+    setCategories(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])
   }
 
   const filteredProducts = useMemo(() => {
     let result = [...products]
 
-    if (materials.length > 0) {
-      result = result.filter(p => materials.includes(p.material))
-    }
-    if (gemstones.length > 0) {
-      result = result.filter(p => gemstones.includes(p.gemstone))
+    if (categories.length > 0) {
+      result = result.filter(p => categories.some(c => c.toLowerCase() === (p.category || '').toLowerCase()))
     }
 
     if (sortBy === 'high') result.sort((a, b) => (b.price || 0) - (a.price || 0))
@@ -55,7 +48,7 @@ export default function CollectionsPage() {
     else result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
     return result
-  }, [products, sortBy, materials, gemstones])
+  }, [products, sortBy, categories])
 
   return (
     <div className="bg-cream min-h-screen">
@@ -100,42 +93,21 @@ export default function CollectionsPage() {
             </div>
 
             <div>
-              <h3 className="font-inter text-[13px] font-medium text-primary mb-4">Material</h3>
+              <h3 className="font-inter text-[13px] font-medium text-primary mb-4">Category</h3>
               <div className="space-y-3">
-                {['18k Yellow Gold', '18k Rose Gold', 'Platinum 950'].map(m => (
-                  <label key={m} className="flex items-center gap-3 cursor-pointer group">
+                {['Jhumka', 'Earrings', 'Necklace', 'Bangles', 'Rings', 'Maang Tikka', 'Bridal Set'].map(c => (
+                  <label key={c} className="flex items-center gap-3 cursor-pointer group">
                     <div className={`w-4 h-4 border-2 rounded-sm flex items-center justify-center transition-colors
-                      ${materials.includes(m) ? 'border-primary bg-primary' : 'border-[#C0B8A8] group-hover:border-primary'}`}>
-                      {materials.includes(m) && (
+                      ${categories.includes(c) ? 'border-primary bg-primary' : 'border-[#C0B8A8] group-hover:border-primary'}`}>
+                      {categories.includes(c) && (
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
                           <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                       )}
                     </div>
-                    <span className={`font-inter text-[12px] ${materials.includes(m) ? 'text-primary font-medium' : 'text-[#A0A090]'}`}>{m}</span>
-                    <input type="checkbox" checked={materials.includes(m)}
-                      onChange={() => toggleMaterial(m)} className="hidden" />
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-inter text-[13px] font-medium text-primary mb-4">Gemstone</h3>
-              <div className="space-y-3">
-                {['White Diamond', 'Champagne Diamond', 'No Gemstone'].map(g => (
-                  <label key={g} className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-4 h-4 border-2 rounded-sm flex items-center justify-center transition-colors
-                      ${gemstones.includes(g) ? 'border-primary bg-primary' : 'border-[#C0B8A8] group-hover:border-primary'}`}>
-                      {gemstones.includes(g) && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      )}
-                    </div>
-                    <span className={`font-inter text-[12px] ${gemstones.includes(g) ? 'text-primary font-medium' : 'text-[#A0A090]'}`}>{g}</span>
-                    <input type="checkbox" checked={gemstones.includes(g)}
-                      onChange={() => toggleGemstone(g)} className="hidden" />
+                    <span className={`font-inter text-[12px] ${categories.includes(c) ? 'text-primary font-medium' : 'text-[#A0A090]'}`}>{c}</span>
+                    <input type="checkbox" checked={categories.includes(c)}
+                      onChange={() => toggleCategory(c)} className="hidden" />
                   </label>
                 ))}
               </div>
