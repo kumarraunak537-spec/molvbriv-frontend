@@ -210,6 +210,12 @@ export default function AdminPage() {
 
     setIsUploadingFavicon(true);
     try {
+      // Ensure bucket exists
+      const { data: buckets } = await supabase.storage.listBuckets();
+      if (!buckets?.find(b => b.name === 'product-images')) {
+        await supabase.storage.createBucket('product-images', { public: true });
+      }
+
       const fileName = `favicon-${Date.now()}.${file.name.split('.').pop()}`;
       const { data, error } = await supabase.storage.from('product-images').upload(`assets/${fileName}`, file, { upsert: true });
       if (error) throw error;
