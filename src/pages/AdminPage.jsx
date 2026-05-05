@@ -119,6 +119,34 @@ export default function AdminPage() {
   const [newProduct, setNewProduct] = useState({
     title: '', category: '', price: '', material: '', stock: '', description: '', sku: ''
   });
+  const [productImages, setProductImages] = useState([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+
+  const handleProductImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    setIsUploadingImages(true);
+    const uploaded = [];
+    for (const file of files) {
+      if (file.size > 5 * 1024 * 1024) { showToast('File too large: ' + file.name); continue; }
+      if (!file.type.startsWith('image/')) { showToast('Not an image: ' + file.name); continue; }
+      try {
+        const fileName = `products/${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+        const { data, error } = await supabase.storage.from('product-images').upload(fileName, file);
+        if (error) { showToast('Upload failed: ' + error.message); continue; }
+        const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+        uploaded.push(urlData.publicUrl);
+      } catch (err) {
+        showToast('Error: ' + err.message);
+      }
+    }
+    if (uploaded.length > 0) {
+      setProductImages(prev => [...prev, ...uploaded]);
+      showToast(uploaded.length + ' image(s) uploaded');
+    }
+    setIsUploadingImages(false);
+    e.target.value = '';
+  };
 
   const handleAddProduct = async (status = 'live') => {
     try {
@@ -130,13 +158,15 @@ export default function AdminPage() {
         stock: parseInt(newProduct.stock) || 0,
         description: newProduct.description,
         sku: newProduct.sku,
-        status: status
+        status: status,
+        images: productImages.length > 0 ? productImages : null
       }]).select();
       
       if (error) throw error;
       setProductsData([...productsData, data[0]]);
       showToast(status === 'live' ? 'Product published successfully' : 'Saved as draft');
       setNewProduct({ title: '', category: '', price: '', material: '', stock: '', description: '', sku: '' });
+      setProductImages([]);
       nav('products');
     } catch (err) {
       console.error(err);
@@ -572,7 +602,24 @@ export default function AdminPage() {
                 </div>
               </div>
               <div className="fs"><div className="fst">Images & Variants</div>
-                <div className="uz" style={{ marginBottom: '11px' }}><div className="ul">Click to upload product images</div><div className="uh">JPG, PNG, WEBP · Max 5MB each</div></div>
+                <input type="file" id="productImageUpload" accept="image/*" multiple style={{ display: 'none' }} onChange={handleProductImageUpload} />
+                <label htmlFor="productImageUpload" className="uz" style={{ marginBottom: '11px', cursor: 'pointer', display: 'block' }}>
+                  {isUploadingImages ? (
+                    <div className="ul">Uploading...</div>
+                  ) : (
+                    <><div className="ul">Click to upload product images</div><div className="uh">JPG, PNG, WEBP · Max 5MB each</div></>
+                  )}
+                </label>
+                {productImages.length > 0 && (
+                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    {productImages.map((img, i) => (
+                      <div key={i} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--b1)' }}>
+                        <img src={img} alt={`Product ${i+1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button onClick={() => setProductImages(prev => prev.filter((_, idx) => idx !== i))} style={{ position: 'absolute', top: '2px', right: '2px', width: '18px', height: '18px', borderRadius: '50%', background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="fg2">
                   <div className="fg"><label>AVAILABLE COLORS</label><input className="fi" type="text" placeholder="e.g. Gold, Silver, Rose Gold" /></div>
                   <div className="fg"><label>SKU / PRODUCT CODE</label><input className="fi" type="text" placeholder="e.g. MLV-JHM-001" value={newProduct.sku} onChange={e => setNewProduct({...newProduct, sku: e.target.value})} /></div>
