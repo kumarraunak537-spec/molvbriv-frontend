@@ -150,17 +150,25 @@ export default function AdminPage() {
 
   const handleAddProduct = async (status = 'live') => {
     try {
-      const { data, error } = await supabase.from('products').insert([{
+      if (!newProduct.title) return showToast('Product name is required');
+      
+      // Auto-generate slug from title
+      const slug = newProduct.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+      
+      const productData = {
         title: newProduct.title,
+        slug: slug,
         category: newProduct.category.toLowerCase(),
         price: parseFloat(newProduct.price) || 0,
         material: newProduct.material,
         stock: parseInt(newProduct.stock) || 0,
         description: newProduct.description,
-        sku: newProduct.sku,
+        sku: newProduct.sku || null,
         status: status,
-        images: productImages.length > 0 ? productImages : null
-      }]).select();
+        images: productImages.length > 0 ? productImages : []
+      };
+      
+      const { data, error } = await supabase.from('products').insert([productData]).select();
       
       if (error) throw error;
       setProductsData([...productsData, data[0]]);
@@ -169,8 +177,8 @@ export default function AdminPage() {
       setProductImages([]);
       nav('products');
     } catch (err) {
-      console.error(err);
-      showToast('Error saving product');
+      console.error('Product Add Error:', err);
+      showToast('Error: ' + (err.message || 'Failed to save product'));
     }
   };
 
