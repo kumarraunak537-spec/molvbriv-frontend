@@ -223,8 +223,12 @@ export default function AdminPage() {
       setFaviconUrl(url);
       showToast('Favicon updated successfully');
     } catch (err) {
-      console.error(err);
-      showToast('Error uploading favicon');
+      console.error('Favicon Upload Error:', err);
+      if (err.message && err.message.includes('relation "public.site_settings" does not exist')) {
+        showToast('Error: Create site_settings table in Supabase first!');
+      } else {
+        showToast('Error: ' + (err.message || 'Failed to upload'));
+      }
     }
     setIsUploadingFavicon(false);
   };
