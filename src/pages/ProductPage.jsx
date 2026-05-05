@@ -12,6 +12,7 @@ export default function ProductPage() {
   const [product, setProduct] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [addedToCart, setAddedToCart] = useState(false)
+  const [selectedImage, setSelectedImage] = useState(0)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -31,11 +32,14 @@ export default function ProductPage() {
       setProduct(data)
     } catch (err) {
       console.error('Error fetching product:', err.message)
-      // If product not found, we can stay on page or redirect
     } finally {
       setIsLoading(false)
     }
   }
+
+  const productImages = product?.images && product.images.length > 0 
+    ? product.images 
+    : ['https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=800&h=900&fit=crop']
 
   const handleAddToCart = () => {
     if (!product) return
@@ -43,8 +47,8 @@ export default function ProductPage() {
       id: product.id,
       name: product.title,
       price: product.price,
-      description: 'Crafted from responsibly sourced materials with timeless precision.',
-      image: (product.images && product.images[0]),
+      description: product.description || '',
+      image: productImages[0],
     })
     setAddedToCart(true)
     setTimeout(() => setAddedToCart(false), 2000)
@@ -56,10 +60,10 @@ export default function ProductPage() {
       id: product.id,
       name: product.title,
       price: product.price,
-      description: 'Crafted from responsibly sourced materials with timeless precision.',
-      image: (product.images && product.images[0]),
+      description: product.description || '',
+      image: productImages[0],
     })
-    navigate('/cart') // Redirecting to cart for checkout flow
+    navigate('/cart')
   }
 
   if (isLoading) {
@@ -89,20 +93,29 @@ export default function ProductPage() {
 
       <main className="pt-24 md:pt-32 pb-12 md:pb-20 max-w-7xl mx-auto px-5 md:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 mb-16 md:mb-24">
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-4">
+            {/* Main Image */}
             <div className="relative aspect-[4/5] bg-surface-container-low overflow-hidden group rounded-xl">
               <img 
                 alt={product.title} 
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=800&h=900&fit=crop'} 
+                src={productImages[selectedImage]} 
               />
-              <div className="absolute top-6 right-6">
-                <button className="px-4 py-2 bg-white/20 backdrop-blur-lg border border-white/10 text-white text-[10px] uppercase tracking-widest flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm">360</span>
-                  View 360°
-                </button>
-              </div>
             </div>
+            {/* Thumbnail Gallery */}
+            {productImages.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {productImages.map((img, i) => (
+                  <button 
+                    key={i} 
+                    onClick={() => setSelectedImage(i)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${selectedImage === i ? 'border-secondary opacity-100' : 'border-transparent opacity-60 hover:opacity-90'}`}
+                  >
+                    <img src={img} alt={`${product.title} ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="lg:col-span-5 flex flex-col">
@@ -116,27 +129,22 @@ export default function ProductPage() {
             </div>
 
             <div className="space-y-8 mb-10">
-              <div className="p-6 bg-surface-container-low border-l-2 border-secondary/20">
-                <p className="text-sm text-on-surface-variant leading-relaxed font-inter">
-                  Crafted from responsibly sourced {product.material || 'precious metal'}, the {product.title} features exceptional craftsmanship and precision. A testament to quiet luxury and timeless elegance.
-                </p>
-              </div>
+              {/* Product Description from DB */}
+              {product.description && (
+                <div className="p-6 bg-surface-container-low border-l-2 border-secondary/20">
+                  <p className="text-sm text-on-surface-variant leading-relaxed font-inter whitespace-pre-line">
+                    {product.description}
+                  </p>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-y-6 gap-x-12">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-outline mb-1">Material</p>
-                  <p className="font-body text-sm font-medium capitalize">{product.material || '18k Gold'}</p>
+                  <p className="font-body text-sm font-medium capitalize">{product.material || 'Gold Plated'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest text-outline mb-1">Category</p>
-                  <p className="font-body text-sm font-medium capitalize">{product.category || 'Jewelry'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-outline mb-1">Clarity</p>
-                  <p className="font-body text-sm font-medium">VVS1 - Exceptional</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-outline mb-1">Provenance</p>
-                  <p className="font-body text-sm font-medium">Atelier Handcrafted</p>
+                  <p className="text-[10px] uppercase tracking-widest text-outline mb-1">Stock</p>
+                  <p className="font-body text-sm font-medium">{product.stock > 0 ? `${product.stock} available` : 'Out of stock'}</p>
                 </div>
               </div>
             </div>
@@ -167,34 +175,10 @@ export default function ProductPage() {
             </div>
           </div>
         </div>
-
-        <section className="mb-16 md:mb-32">
-          <h2 className="text-2xl font-manrope text-primary mb-12 text-center">Styling &amp; Provenance</h2>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 h-auto md:h-[600px]">
-            <div className="md:col-span-8 relative overflow-hidden bg-surface-container-low p-8 md:p-12 flex flex-col justify-end group min-h-[300px] md:min-h-0">
-              <img alt="Styling context" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-1000" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwUeZA8mdm1H6cnnCHjcwoXMvXsGdI-y1ZqkqVkwx8ajizi1ASgGCuz4HdK4CXPc8uMaX1fTHk-YS84ZYUxvIIpTYWUe_nq74oyzZakmWzTAgHirdbecSinsQ5OXa8xLUKFr5f6Cn2ocwOOFT3J1R218N7_nDXKMFLC-mMr9DZSgFVh-_e2zTlMXdZdoeLJ3YLF3CSfRWXNJ9etyOuc28PGA3wJL2t2Oi_H1Y-PAWAHcOfOjC2GLkiu8QMjzfNo5Zw6DfqVu1PFZk" />
-              <div className="relative z-10 max-w-md">
-                <span className="text-secondary text-[10px] uppercase tracking-widest mb-4 block">The Curator's Journal</span>
-                <h3 className="text-3xl font-manrope text-primary mb-4 italic">The Art of Layering: Gold &amp; Light</h3>
-                <p className="text-sm text-on-surface-variant mb-6 font-inter">Explore how the {product.title} interacts with different necklines and textures in our latest editorial feature.</p>
-                <Link to="#" className="text-[10px] font-bold uppercase tracking-widest border-b border-primary pb-1">Read the entry</Link>
-              </div>
-            </div>
-            <div className="md:col-span-4 bg-[#1F3D2B] p-6 md:p-10 flex flex-col justify-between text-white min-h-[250px] md:min-h-0">
-              <div>
-                <span className="material-symbols-outlined text-secondary-container text-4xl mb-6">auto_awesome</span>
-                <h3 className="text-xl font-manrope mb-4">Certified GIA Excellence</h3>
-                <p className="text-sm text-on-primary-container leading-relaxed font-inter">Each Molvbriv diamond over 0.5ct is accompanied by a GIA grading report and a digital certificate of origin, recorded on our private blockchain for absolute provenance.</p>
-              </div>
-              <button className="text-[10px] uppercase tracking-[0.2em] font-bold border border-white/20 py-4 hover:bg-white/10 transition-colors">
-                View Certificate Specimen
-              </button>
-            </div>
-          </div>
-        </section>
       </main>
 
       <Footer />
     </div>
   )
 }
+

@@ -178,6 +178,7 @@ export default function AdminPage() {
       nav('products');
     } catch (err) {
       console.error('Product Add Error:', err);
+      window.alert('PUBLISH ERROR:\n' + (err.message || JSON.stringify(err)) + '\n\nCode: ' + (err.code || 'N/A') + '\nDetails: ' + (err.details || 'N/A') + '\nHint: ' + (err.hint || 'N/A'));
       showToast('Error: ' + (err.message || 'Failed to save product'));
     }
   };
