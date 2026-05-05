@@ -206,7 +206,7 @@ export default function AdminPage() {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) return showToast('File too large. Max 2MB.');
-    if (!['image/png', 'image/x-icon', 'image/vnd.microsoft.icon'].includes(file.type)) return showToast('Only PNG or ICO allowed.');
+    if (!file.type.startsWith('image/') && !file.name.endsWith('.ico')) return showToast('Please upload a valid image file.');
 
     setIsUploadingFavicon(true);
     try {
@@ -705,8 +705,8 @@ export default function AdminPage() {
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontSize: '14px', color: 'var(--tx)', marginBottom: '8px' }}>Upload a new favicon</p>
-                    <p style={{ fontSize: '12px', color: 'var(--mu)', marginBottom: '16px' }}>This icon appears in browser tabs and bookmarks. PNG or ICO formats only, recommended 32x32px.</p>
-                    <input type="file" id="faviconUpload" accept=".png,.ico" style={{ display: 'none' }} onChange={handleFaviconUpload} />
+                    <p style={{ fontSize: '12px', color: 'var(--mu)', marginBottom: '16px' }}>This icon appears in browser tabs and bookmarks. Supports JPG, PNG, WEBP, ICO.</p>
+                    <input type="file" id="faviconUpload" accept="image/*,.ico" style={{ display: 'none' }} onChange={handleFaviconUpload} />
                     <label htmlFor="faviconUpload" className="btn btn-p" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px 16px' }}>
                       {isUploadingFavicon ? 'Uploading...' : 'Upload Favicon'}
                     </label>
