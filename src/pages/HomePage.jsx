@@ -15,8 +15,16 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
-        <div className="absolute inset-0">
-          <video autoPlay loop muted playsInline className="w-full h-full object-cover scale-105">
+        <div className="absolute inset-0 bg-surface-container-highest">
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            preload="auto"
+            poster="https://lh3.googleusercontent.com/aida-public/AB6AXuDXQ6zcurXAOej9mhjvSGFNmlDBD3HK514mpbrAPnRvfVrglITD7GDf202_jsgER-RiXjLEDKnDTIMFToHmaamANJz_1ZqWUcTlbElyLenm43O7kCTUJTdvIM_3YhxcSzBo1KFtFMxdUYoZ9TaiPShPUqvUc9CtfjOSqMIZwZ5dGQlQmRgOsJKESFRptFzmsBoi00kFqBKLrTKL_iQxns2BiBv0189R7PMRDSn5X-DbiVz_Zxb_KG-Dcciv9C0SD5lXWcvRhZB7itc"
+            className="w-full h-full object-cover scale-105"
+          >
             <source src={heroVideo} type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-primary/20"></div>

@@ -56,13 +56,30 @@ export default function AdminPage() {
       }
 
       const user = data.user;
-      const { data: profile } = await supabase
+      let { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
 
-      if (profile?.role === 'admin') {
+      // Fallback: If no profile exists but it's the primary admin email, create it
+      if (profileError && profileError.code === 'PGRST116' && user.email === 'roy839693@gmail.com') {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([{ id: user.id, email: user.email, role: 'admin' }])
+          .select()
+          .single();
+        
+        if (!createError) {
+          profile = newProfile;
+          profileError = null;
+        }
+      }
+
+      if (profileError) {
+        await supabase.auth.signOut();
+        setLoginError(`Access denied: Profile not found or database error.`);
+      } else if (profile?.role === 'admin') {
         setIsAuthenticated(true);
         setAdminUser({
           name: user.email.split('@')[0],
@@ -70,7 +87,7 @@ export default function AdminPage() {
         });
       } else {
         await supabase.auth.signOut();
-        setLoginError('Access denied. Admin privileges required.');
+        setLoginError(`Access denied: You do not have admin privileges.`);
       }
     } catch (err) {
       setLoginError('Something went wrong. Try again.');
@@ -93,9 +110,7 @@ export default function AdminPage() {
   const [customizeFilter, setCustomizeFilter] = useState('all');
   const [selectedCollection, setSelectedCollection] = useState('Jhumka');
 
-  const [editingProduct, setEditingProduct] = useState({
-    name: '', price: '', cat: '', mat: ''
-  });
+  const [editingProduct, setEditingProduct] = useState(null);
   const [activeColor, setActiveColor] = useState(0);
 
   // Quantities state for Collections page
@@ -142,17 +157,20 @@ export default function AdminPage() {
 
   const handleUpdateProduct = async () => {
     try {
-      if (!editingProduct.id) return showToast('Cannot update fallback product');
+      if (!editingProduct.id) return showToast('Cannot update product: Missing ID');
       const { error } = await supabase.from('products').update({
-        title: editingProduct.name,
+        title: editingProduct.title || editingProduct.name, // Handle both name/title mapping
         price: parseFloat(editingProduct.price),
-        category: editingProduct.cat.toLowerCase(),
-        material: editingProduct.mat
+        category: editingProduct.category || editingProduct.cat,
+        material: editingProduct.material || editingProduct.mat,
       }).eq('id', editingProduct.id);
       
       if (error) throw error;
-      showToast('Product updated successfully');
-      setProductsData(productsData.map(p => p.id === editingProduct.id ? {...p, title: editingProduct.name, price: editingProduct.price, category: editingProduct.cat, material: editingProduct.mat } : p));
+      showToast('Product updated');
+      setEditingProduct(null);
+      // Refresh data
+      const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+      if (data) setProductsData(data);
     } catch (err) {
       console.error(err);
       showToast('Error updating product');
@@ -165,17 +183,19 @@ export default function AdminPage() {
   useEffect(() => {
     async function loadSupabaseData() {
       try {
-        const { data: pData } = await supabase.from('products').select('*');
-        if (pData && pData.length > 0) setProductsData(pData);
+        const { data: pData, error: pErr } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+        if (pData) setProductsData(pData);
+        if (pErr) throw pErr;
 
-        const { data: oData } = await supabase.from('orders').select('*');
-        if (oData && oData.length > 0) setOrdersData(oData);
+        const { data: oData, error: oErr } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+        if (oData) setOrdersData(oData);
+        if (oErr) throw oErr;
       } catch (err) {
-        console.warn("Supabase not fully configured yet, using fallback data.");
+        console.error("Error loading data:", err.message);
       }
     }
-    loadSupabaseData();
-  }, []);
+    if (isAuthenticated) loadSupabaseData();
+  }, [isAuthenticated]);
 
   const titles = {
     dashboard: 'Dashboard',
@@ -196,11 +216,20 @@ export default function AdminPage() {
     setActivePage(page);
   };
 
-  const handleQtyAdj = (id, delta) => {
-    setQuantities(prev => ({
-      ...prev,
-      [id]: Math.max(0, prev[id] + delta)
-    }));
+  const handleQtyAdj = async (id, delta) => {
+    const currentQty = productsData.find(p => p.id === id)?.stock || 0;
+    const newQty = Math.max(0, currentQty + delta);
+    
+    try {
+      const { error } = await supabase.from('products').update({ stock: newQty }).eq('id', id);
+      if (error) throw error;
+      
+      setProductsData(prev => prev.map(p => p.id === id ? { ...p, stock: newQty } : p));
+      showToast(`Stock updated to ${newQty}`);
+    } catch (err) {
+      console.error("Stock update error:", err.message);
+      showToast('Failed to update stock');
+    }
   };
 
   const getQtyColor = (q) => {
@@ -521,7 +550,7 @@ export default function AdminPage() {
               </div>
               <div className="peg">
                 {productsData.length > 0 ? productsData.filter(p => customizeFilter === 'all' || p.category === customizeFilter).map(p => (
-                  <div key={p.id} className={`pec ${editingProduct.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price })}>
+                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price })}>
                     <div className="pen">{p.title}</div>
                     <div className="pec2">{(p.category || 'General').charAt(0).toUpperCase() + (p.category || 'General').slice(1)} · {p.material}</div>
                     <div className="pep">Rs {p.price}</div>
@@ -531,38 +560,44 @@ export default function AdminPage() {
                 )}
               </div>
 
-              <div className="ep">
-                <div className="en">Editing: {editingProduct.name}</div>
-                <div className="fg2">
-                  <div className="fg"><label>PRODUCT NAME</label><input className="fi" type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} /></div>
-                  <div className="fg"><label>PRICE (Rs)</label><input className="fi" type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })} /></div>
-                  <div className="fg"><label>CATEGORY</label>
-                    <select className="fi" value={editingProduct.cat.charAt(0).toUpperCase() + editingProduct.cat.slice(1)} onChange={(e) => setEditingProduct({ ...editingProduct, cat: e.target.value.toLowerCase() })}>
-                      <option>Jhumka</option><option>Earrings</option><option>Necklace</option><option>Bangles</option>
-                    </select>
-                  </div>
-                  <div className="fg"><label>MATERIAL</label>
-                    <select className="fi" value={editingProduct.mat} onChange={(e) => setEditingProduct({ ...editingProduct, mat: e.target.value })}>
-                      <option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option>
-                    </select>
-                  </div>
-                  <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Update product description..."></textarea></div>
-                  <div className="fg full"><label>COLOR VARIANTS</label>
-                    <div className="clo">
-                      {['#C9A84C', '#C0C0C0', '#B76E79', '#1C1C1C', '#8B6914'].map((color, idx) => (
-                        <div key={color} className={`cl ${activeColor === idx ? 'active' : ''}`} style={{ background: color }} onClick={() => setActiveColor(idx)}></div>
-                      ))}
+              {editingProduct ? (
+                <div className="ep">
+                  <div className="en">Editing: {editingProduct.name}</div>
+                  <div className="fg2">
+                    <div className="fg"><label>PRODUCT NAME</label><input className="fi" type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} /></div>
+                    <div className="fg"><label>PRICE (Rs)</label><input className="fi" type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })} /></div>
+                    <div className="fg"><label>CATEGORY</label>
+                      <select className="fi" value={(editingProduct.cat || 'General').charAt(0).toUpperCase() + (editingProduct.cat || 'General').slice(1)} onChange={(e) => setEditingProduct({ ...editingProduct, cat: e.target.value.toLowerCase() })}>
+                        <option>Jhumka</option><option>Earrings</option><option>Necklace</option><option>Bangles</option><option>General</option>
+                      </select>
                     </div>
+                    <div className="fg"><label>MATERIAL</label>
+                      <select className="fi" value={editingProduct.mat || ''} onChange={(e) => setEditingProduct({ ...editingProduct, mat: e.target.value })}>
+                        <option value="">Select Material</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option>
+                      </select>
+                    </div>
+                    <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Update product description..."></textarea></div>
+                    <div className="fg full"><label>COLOR VARIANTS</label>
+                      <div className="clo">
+                        {['#C9A84C', '#C0C0C0', '#B76E79', '#1C1C1C', '#8B6914'].map((color, idx) => (
+                          <div key={color} className={`cl ${activeColor === idx ? 'active' : ''}`} style={{ background: color }} onClick={() => setActiveColor(idx)}></div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="fg full"><label>PRODUCT IMAGES</label><div className="ig"><div className="isl">+</div><div className="isl">+</div><div className="isl">+</div><div className="isl">+</div></div></div>
+                    <div className="fg"><label>STATUS</label><select className="fi"><option>Live</option><option>Draft</option><option>Out of Stock</option></select></div>
+                    <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" defaultValue="0" /></div>
                   </div>
-                  <div className="fg full"><label>PRODUCT IMAGES</label><div className="ig"><div className="isl">+</div><div className="isl">+</div><div className="isl">+</div><div className="isl">+</div></div></div>
-                  <div className="fg"><label>STATUS</label><select className="fi"><option>Live</option><option>Draft</option><option>Out of Stock</option></select></div>
-                  <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" defaultValue="0" /></div>
+                  <div className="fa" style={{ marginTop: '13px' }}>
+                    <button className="btn btn-p" onClick={handleUpdateProduct}>Save Changes</button>
+                    <button className="btn" onClick={() => setEditingProduct(null)}>Discard</button>
+                  </div>
                 </div>
-                <div className="fa" style={{ marginTop: '13px' }}>
-                  <button className="btn btn-p" onClick={handleUpdateProduct}>Save Changes</button>
-                  <button className="btn">Discard</button>
+              ) : (
+                <div style={{ padding: '30px', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>
+                  Click on a product above to customize its details.
                 </div>
-              </div>
+              )}
             </div>
 
             {/* VIEW ORDERS */}

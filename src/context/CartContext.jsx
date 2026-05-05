@@ -2,27 +2,8 @@ import React, { createContext, useContext, useState, useCallback } from 'react'
 
 const CartContext = createContext()
 
-const initialCartItems = [
-  {
-    id: 'etoile-diamond-solitaire',
-    name: 'Etoile Diamond Solitaire',
-    price: 12400,
-    quantity: 1,
-    description: '1.5 Carat Round Brilliant Cut, Platinum Band. Internally Flawless. Includes GIA Certification.',
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&h=400&fit=crop'
-  },
-  {
-    id: 'aurora-hoop-earrings',
-    name: 'Aurora Hoop Earrings',
-    price: 4200,
-    quantity: 1,
-    description: '18k Hand-Polished Yellow Gold. Sculptural design inspired by celestial orbits.',
-    image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=400&fit=crop'
-  }
-]
-
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState(initialCartItems)
+  const [cartItems, setCartItems] = useState([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [wishlist, setWishlist] = useState([])
 
@@ -45,6 +26,10 @@ export function CartProvider({ children }) {
     setCartItems(prev => prev.map(i => i.id === id ? { ...i, quantity } : i))
   }, [])
 
+  const clearCart = useCallback(() => {
+    setCartItems([])
+  }, [])
+
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
   const taxes = Math.round(subtotal * 0.08)
@@ -64,7 +49,7 @@ export function CartProvider({ children }) {
 
   return (
     <CartContext.Provider value={{
-      cartItems, addToCart, removeFromCart, updateQuantity,
+      cartItems, addToCart, removeFromCart, updateQuantity, clearCart,
       cartCount, subtotal, taxes, grandTotal,
       isLoggedIn, setIsLoggedIn,
       wishlist, toggleWishlist, isInWishlist

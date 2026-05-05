@@ -777,7 +777,7 @@ export default function CartPage() {
             <div className="space-y-4 text-sm mb-8">
               <div className="flex justify-between">
                 <span className="text-white/70">Subtotal</span>
-                <span>${subtotal.toLocaleString()}.00</span>
+                <span>₹{subtotal.toLocaleString()}.00</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-white/70">Shipping</span>
@@ -785,7 +785,7 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-white/70">Taxes</span>
-                <span>${taxes.toLocaleString()}.00</span>
+                <span>₹{taxes.toLocaleString()}.00</span>
               </div>
             </div>
 
@@ -796,7 +796,7 @@ export default function CartPage() {
 
             <div className="flex justify-between items-end mb-8 pt-4">
               <span className="text-[10px] font-label uppercase tracking-widest text-white/70">Grand Total</span>
-              <span className="font-headline text-3xl text-[#d4af37]">${grandTotal.toLocaleString()}.00</span>
+              <span className="font-headline text-3xl text-[#d4af37]">₹{grandTotal.toLocaleString()}.00</span>
             </div>
 
             <button onClick={completePurchase} className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold">

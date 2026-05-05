@@ -1,99 +1,37 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import Footer from '../components/Footer.jsx'
 import { useCart } from '../context/CartContext.jsx'
-
-const allProducts = [
-  {
-    id: 'aurelia-ring',
-    name: 'The Aurelia Ring',
-    price: 4200,
-    category: 'BESPOKE DIAMOND',
-    tag: 'Gold',
-    material: '18k Yellow Gold',
-    gemstone: 'White Diamond',
-    image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=500&h=600&fit=crop',
-    bgColor: 'bg-[#E8E4DC]',
-    filterTags: ['gold', 'diamond', 'bridal'],
-  },
-  {
-    id: 'lunar-hoops',
-    name: 'Lunar Crescent Hoops',
-    price: 1850,
-    category: '18K YELLOW GOLD',
-    tag: 'Gold',
-    material: '18k Yellow Gold',
-    gemstone: 'No Gemstone',
-    image: 'https://images.unsplash.com/photo-1630019852942-f89202989a59?w=500&h=600&fit=crop',
-    bgColor: 'bg-white',
-    filterTags: ['gold', 'everyday'],
-  },
-  {
-    id: 'solace-band',
-    name: 'Solace Pave Band',
-    price: 2100,
-    category: 'ROSE GOLD',
-    tag: 'Gold',
-    material: '18k Rose Gold',
-    gemstone: 'Champagne Diamond',
-    image: 'https://images.unsplash.com/photo-1603561591411-07134e71a2a9?w=500&h=600&fit=crop',
-    bgColor: 'bg-primary-dark',
-    filterTags: ['gold', 'bridal', 'diamond'],
-  },
-  {
-    id: 'ethera-drops',
-    name: 'Ethera Drop Earrings',
-    price: 3500,
-    category: 'BRIDAL COLLECTION',
-    tag: 'Bridal',
-    material: 'Platinum 950',
-    gemstone: 'White Diamond',
-    image: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=500&h=600&fit=crop',
-    bgColor: 'bg-black',
-    filterTags: ['bridal', 'diamond'],
-  },
-  {
-    id: 'vertex-signet',
-    name: 'Vertex Signet',
-    price: 2450,
-    category: "MEN'S CAPSULE",
-    tag: "Men's",
-    material: '18k Yellow Gold',
-    gemstone: 'No Gemstone',
-    image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=500&h=600&fit=crop',
-    bgColor: 'bg-[#F0EDE5]',
-    filterTags: ['mens', 'gold', 'everyday'],
-  },
-  {
-    id: 'infinity-necklace',
-    name: 'Infinity Link Necklace',
-    price: 5800,
-    category: 'ESSENTIAL GOLD',
-    tag: 'Gold',
-    material: '18k Yellow Gold',
-    gemstone: 'No Gemstone',
-    image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=500&h=600&fit=crop',
-    bgColor: 'bg-white',
-    filterTags: ['gold', 'everyday'],
-  },
-]
-
-const categoryTabs = [
-  { name: 'Bridal', key: 'bridal', icon: '💍' },
-  { name: 'Gold', key: 'gold', icon: '✦' },
-  { name: 'Diamond', key: 'diamond', icon: '💎' },
-  { name: 'Everyday', key: 'everyday', icon: '☀️' },
-  { name: "Men's", key: 'mens', icon: '♛' },
-]
+import { supabase } from '../supabaseClient'
 
 export default function CollectionsPage() {
   const { wishlist, toggleWishlist } = useCart()
+  const [products, setProducts] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [sortBy, setSortBy] = useState('newest')
   const [materials, setMaterials] = useState([])
   const [gemstones, setGemstones] = useState([])
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    fetchProducts()
+  }, [])
+
+  const fetchProducts = async () => {
+    setIsLoading(true)
+    try {
+      const { data, error } = await supabase.from('products').select('*')
+      if (error) throw error
+      setProducts(data || [])
+    } catch (err) {
+      console.error('Error fetching products:', err.message)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const toggleMaterial = (m) => {
     setMaterials(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m])
@@ -103,7 +41,7 @@ export default function CollectionsPage() {
   }
 
   const filteredProducts = useMemo(() => {
-    let result = [...allProducts]
+    let result = [...products]
 
     if (materials.length > 0) {
       result = result.filter(p => materials.includes(p.material))
@@ -112,24 +50,19 @@ export default function CollectionsPage() {
       result = result.filter(p => gemstones.includes(p.gemstone))
     }
 
-    if (sortBy === 'high') result.sort((a, b) => b.price - a.price)
-    else if (sortBy === 'low') result.sort((a, b) => a.price - b.price)
+    if (sortBy === 'high') result.sort((a, b) => (b.price || 0) - (a.price || 0))
+    else if (sortBy === 'low') result.sort((a, b) => (a.price || 0) - (b.price || 0))
+    else result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 
     return result
-  }, [sortBy, materials, gemstones])
-
-  const applyFilters = () => {
-    setCurrentPage(1)
-  }
+  }, [products, sortBy, materials, gemstones])
 
   return (
     <div className="bg-cream min-h-screen">
       <Navbar />
 
-      {/* Main content */}
       <div className="pt-28 md:pt-32 max-w-[1440px] mx-auto px-5 lg:px-12 pb-6 lg:pb-8">
         
-        {/* Simple Text Header (Like New Arrivals) */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-12 gap-4 md:gap-6">
           <div className="max-w-xl">
             <h2 className="text-2xl md:text-4xl font-manrope text-primary mb-3 md:mb-6">Our Collections</h2>
@@ -137,7 +70,6 @@ export default function CollectionsPage() {
           </div>
         </div>
 
-        {/* Mobile Filter Toggle */}
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="lg:hidden flex items-center gap-2 mb-6 text-sm font-inter text-primary border border-outline-variant/30 px-4 py-2.5 w-full justify-center"
@@ -147,9 +79,7 @@ export default function CollectionsPage() {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 lg:gap-10">
-          {/* Sidebar */}
           <aside className={`space-y-8 ${showFilters ? 'block' : 'hidden lg:block'}`}>
-            {/* Sort By */}
             <div>
               <h3 className="font-inter text-[13px] font-medium text-primary mb-4">Sort By</h3>
               <div className="space-y-3">
@@ -169,7 +99,6 @@ export default function CollectionsPage() {
               </div>
             </div>
 
-            {/* Material */}
             <div>
               <h3 className="font-inter text-[13px] font-medium text-primary mb-4">Material</h3>
               <div className="space-y-3">
@@ -191,7 +120,6 @@ export default function CollectionsPage() {
               </div>
             </div>
 
-            {/* Gemstone */}
             <div>
               <h3 className="font-inter text-[13px] font-medium text-primary mb-4">Gemstone</h3>
               <div className="space-y-3">
@@ -212,69 +140,50 @@ export default function CollectionsPage() {
                 ))}
               </div>
             </div>
-
-            <button
-              onClick={applyFilters}
-              className="w-full bg-primary text-white font-inter text-[10px] uppercase tracking-widest py-3.5 hover:bg-[#1f3d2b] transition-colors"
-            >
-              APPLY FILTERS
-            </button>
           </aside>
 
-          {/* Product Grid */}
           <div>
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              {filteredProducts.map(product => (
-                <Link to={`/product/${product.id}`} key={product.id} className="group">
-                  <div className={`relative aspect-[4/5] ${product.bgColor} rounded-lg overflow-hidden`}>
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    {/* Heart icon */}
-                    <button
-                      onClick={(e) => { e.preventDefault(); toggleWishlist(product.id) }}
-                      className="absolute top-4 right-4 text-white hover:text-gold transition-colors"
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24"
-                        fill={wishlist.includes(product.id) ? 'currentColor' : 'none'}
-                        stroke="currentColor" strokeWidth="2">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                      </svg>
-                    </button>
-                  </div>
-                  <div className="mt-4 text-center">
-                    <p className="font-inter text-[9px] uppercase tracking-[0.15em] text-gold mb-1">{product.category}</p>
-                    <h3 className="font-cormorant text-[18px] text-primary-dark italic">{product.name}</h3>
-                    <p className="font-inter text-[13px] text-text-muted mt-1">₹{product.price.toLocaleString()}.00</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {filteredProducts.length === 0 && (
-              <div className="text-center py-20">
-                <p className="font-cormorant text-[24px] text-text-muted italic">No pieces match your criteria</p>
-                <p className="font-inter text-[12px] text-text-muted mt-2">Try adjusting your filters</p>
+            {isLoading ? (
+              <div className="flex justify-center py-20">
+                <div className="w-10 h-10 border-4 border-secondary border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                {filteredProducts.map(product => (
+                  <Link to={`/product/${product.id}`} key={product.id} className="group">
+                    <div className={`relative aspect-[4/5] bg-surface-container-low rounded-lg overflow-hidden`}>
+                      <img
+                        src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop'}
+                        alt={product.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <button
+                        onClick={(e) => { e.preventDefault(); toggleWishlist(product.id) }}
+                        className="absolute top-4 right-4 text-white hover:text-gold transition-colors"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24"
+                          fill={wishlist.includes(product.id) ? 'currentColor' : 'none'}
+                          stroke="currentColor" strokeWidth="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                      </button>
+                    </div>
+                    <div className="mt-4 text-center">
+                      <p className="font-inter text-[9px] uppercase tracking-[0.15em] text-secondary mb-1">{product.category}</p>
+                      <h3 className="font-manrope text-[16px] text-primary font-semibold">{product.title}</h3>
+                      <p className="font-inter text-[13px] text-on-surface-variant mt-1">₹{(product.price || 0).toLocaleString()}</p>
+                    </div>
+                  </Link>
+                ))}
               </div>
             )}
 
-            {/* Pagination */}
-            <div className="flex items-center justify-center gap-4 mt-12">
-              <button className="font-inter text-[12px] text-text-muted hover:text-primary-dark transition-colors">&lt;</button>
-              {[1, 2, 3].map(page => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`font-inter text-[12px] w-8 h-8 rounded transition-colors
-                    ${currentPage === page ? 'bg-primary-dark text-white' : 'text-text-muted hover:text-primary-dark'}`}
-                >
-                  {String(page).padStart(2, '0')}
-                </button>
-              ))}
-              <button className="font-inter text-[12px] text-text-muted hover:text-primary-dark transition-colors">&gt;</button>
-            </div>
+            {!isLoading && filteredProducts.length === 0 && (
+              <div className="text-center py-20">
+                <p className="font-manrope text-[24px] text-on-surface-variant italic">No pieces match your criteria</p>
+                <p className="font-inter text-[12px] text-on-surface-variant mt-2">Try adjusting your filters</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
