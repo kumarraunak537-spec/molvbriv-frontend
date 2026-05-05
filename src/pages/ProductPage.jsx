@@ -124,19 +124,14 @@ export default function ProductPage() {
               <h1 className="text-3xl md:text-5xl font-manrope text-primary mt-3 md:mt-4 mb-2 leading-tight">{product.title}</h1>
               <div className="flex items-center gap-4 mt-6">
                 <span className="text-2xl md:text-3xl font-body text-secondary">₹{(product.price || 0).toLocaleString()}</span>
+                {product.compare_price && product.compare_price > product.price && (
+                  <span className="text-lg md:text-xl font-body text-on-surface-variant line-through opacity-60">₹{product.compare_price.toLocaleString()}</span>
+                )}
                 <span className="px-3 py-1 bg-secondary-container/30 text-on-secondary-container text-[10px] uppercase tracking-widest font-bold">Limited Release</span>
               </div>
             </div>
 
             <div className="space-y-8 mb-10">
-              {/* Product Description from DB */}
-              {product.description && (
-                <div className="p-6 bg-surface-container-low border-l-2 border-secondary/20">
-                  <p className="text-sm text-on-surface-variant leading-relaxed font-inter whitespace-pre-line">
-                    {product.description}
-                  </p>
-                </div>
-              )}
               <div className="grid grid-cols-2 gap-y-6 gap-x-12">
                 <div>
                   <p className="text-[10px] uppercase tracking-widest text-outline mb-1">Material</p>
@@ -162,6 +157,15 @@ export default function ProductPage() {
                 BUY NOW
               </button>
             </div>
+
+            {/* Product Description from DB */}
+            {product.description && (
+              <div className="mb-12 p-6 bg-surface-container-low border-l-2 border-secondary/20">
+                <p className="text-sm text-on-surface-variant leading-relaxed font-inter whitespace-pre-line">
+                  {product.description}
+                </p>
+              </div>
+            )}
 
             <div className="pt-6 md:pt-8 border-t border-surface-variant flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center gap-3">

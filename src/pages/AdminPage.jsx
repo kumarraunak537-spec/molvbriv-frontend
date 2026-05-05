@@ -117,7 +117,7 @@ export default function AdminPage() {
   const [quantities, setQuantities] = useState({});
 
   const [newProduct, setNewProduct] = useState({
-    title: '', category: '', price: '', material: '', stock: '', description: '', sku: ''
+    title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: ''
   });
   const [productImages, setProductImages] = useState([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -160,6 +160,7 @@ export default function AdminPage() {
         slug: slug,
         category: newProduct.category.toLowerCase(),
         price: parseFloat(newProduct.price) || 0,
+        compare_price: parseFloat(newProduct.comparePrice) || null,
         material: newProduct.material,
         stock: parseInt(newProduct.stock) || 0,
         description: newProduct.description,
@@ -173,7 +174,7 @@ export default function AdminPage() {
       if (error) throw error;
       setProductsData([...productsData, data[0]]);
       showToast(status === 'live' ? 'Product published successfully' : 'Saved as draft');
-      setNewProduct({ title: '', category: '', price: '', material: '', stock: '', description: '', sku: '' });
+      setNewProduct({ title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: '' });
       setProductImages([]);
       nav('products');
     } catch (err) {
@@ -604,7 +605,7 @@ export default function AdminPage() {
                   <div className="fg"><label>PRODUCT NAME</label><input className="fi" type="text" placeholder="e.g. Polki Jhumka Set" value={newProduct.title} onChange={e => setNewProduct({...newProduct, title: e.target.value})} /></div>
                   <div className="fg"><label>CATEGORY</label><select className="fi" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})}><option value="">Select</option><option>Jhumka</option><option>Earrings</option><option>Necklace</option><option>Bangles</option><option>Rings</option><option>Maang Tikka</option><option>Bridal Set</option></select></div>
                   <div className="fg"><label>SELLING PRICE (Rs)</label><input className="fi" type="number" placeholder="0" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} /></div>
-                  <div className="fg"><label>COMPARE PRICE (Rs)</label><input className="fi" type="number" placeholder="Optional" /></div>
+                  <div className="fg"><label>COMPARE PRICE (Rs)</label><input className="fi" type="number" placeholder="Optional" value={newProduct.comparePrice} onChange={e => setNewProduct({...newProduct, comparePrice: e.target.value})} /></div>
                   <div className="fg"><label>MATERIAL / FINISH</label><select className="fi" value={newProduct.material} onChange={e => setNewProduct({...newProduct, material: e.target.value})}><option value="">Select</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option><option>Meenakari</option><option>Oxidised</option></select></div>
                   <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} /></div>
                   <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Design, occasion, weight, size..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}></textarea></div>
