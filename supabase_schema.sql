@@ -58,6 +58,32 @@ CREATE TABLE IF NOT EXISTS public.orders (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 6. Create Site Settings Table
+CREATE TABLE IF NOT EXISTS public.site_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS for Site Settings
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+
+-- Allow public read access to settings
+CREATE POLICY "Public profiles are viewable by everyone."
+  ON public.site_settings FOR SELECT
+  USING ( true );
+
+-- Allow admins to insert/update settings
+CREATE POLICY "Admins can insert site settings."
+  ON public.site_settings FOR INSERT
+  WITH CHECK ( EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin') );
+
+CREATE POLICY "Admins can update site settings."
+  ON public.site_settings FOR UPDATE
+  USING ( EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin') );
+
+
 -- 6. Create Order Items Table
 CREATE TABLE IF NOT EXISTS public.order_items (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

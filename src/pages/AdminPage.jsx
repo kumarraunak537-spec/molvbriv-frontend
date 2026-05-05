@@ -179,6 +179,8 @@ export default function AdminPage() {
 
   const [productsData, setProductsData] = useState([]);
   const [ordersData, setOrdersData] = useState([]);
+  const [faviconUrl, setFaviconUrl] = useState('');
+  const [isUploadingFavicon, setIsUploadingFavicon] = useState(false);
   
   useEffect(() => {
     async function loadSupabaseData() {
@@ -190,6 +192,9 @@ export default function AdminPage() {
         const { data: oData, error: oErr } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
         if (oData) setOrdersData(oData);
         if (oErr) throw oErr;
+
+        const { data: sData } = await supabase.from('site_settings').select('value').eq('key', 'favicon_url').single();
+        if (sData) setFaviconUrl(sData.value);
       } catch (err) {
         console.error("Error loading data:", err.message);
       }
@@ -197,13 +202,41 @@ export default function AdminPage() {
     if (isAuthenticated) loadSupabaseData();
   }, [isAuthenticated]);
 
+  const handleFaviconUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) return showToast('File too large. Max 2MB.');
+    if (!['image/png', 'image/x-icon', 'image/vnd.microsoft.icon'].includes(file.type)) return showToast('Only PNG or ICO allowed.');
+
+    setIsUploadingFavicon(true);
+    try {
+      const fileName = `favicon-${Date.now()}.${file.name.split('.').pop()}`;
+      const { data, error } = await supabase.storage.from('product-images').upload(`assets/${fileName}`, file, { upsert: true });
+      if (error) throw error;
+      
+      const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(`assets/${fileName}`);
+      const url = publicUrlData.publicUrl + '?v=' + Date.now();
+      
+      const { error: dbError } = await supabase.from('site_settings').upsert({ key: 'favicon_url', value: url });
+      if (dbError) throw dbError;
+
+      setFaviconUrl(url);
+      showToast('Favicon updated successfully');
+    } catch (err) {
+      console.error(err);
+      showToast('Error uploading favicon');
+    }
+    setIsUploadingFavicon(false);
+  };
+
   const titles = {
     dashboard: 'Dashboard',
     products: 'All Products',
     collections: 'Collections',
     add: 'Add Product',
     customize: 'Customize Product',
-    orders: 'View Orders'
+    orders: 'View Orders',
+    settings: 'Website Settings'
   };
 
   const showToast = (msg) => {
@@ -386,6 +419,12 @@ export default function AdminPage() {
             <div className={`ni ${activePage === 'orders' ? 'active' : ''}`} onClick={() => nav('orders')}>
               <svg className="nic" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1.5" y="3" width="13" height="11" rx="1" /><path d="M5 3V2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M4 8h8M4 11h5" /></svg>
               View Orders
+            </div>
+            
+            <div className="nl">SYSTEM</div>
+            <div className={`ni ${activePage === 'settings' ? 'active' : ''}`} onClick={() => nav('settings')}>
+              <svg className="nic" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="3"/><path d="M14 8h-1m-1 3.5l1 1M11.5 14v-1M4.5 14v-1M2 8h1M3 4.5l-1-1M8 2v1M13 4.5l-1-1M4.5 3l-1-1" /></svg>
+              Settings
             </div>
           </div>
           <div className="sbf">
@@ -653,6 +692,26 @@ export default function AdminPage() {
                 )) : (
                   <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No orders yet</div>
                 )}
+              </div>
+            </div>
+
+            {/* SETTINGS */}
+            <div className={`pg ${activePage === 'settings' ? 'active' : ''}`}>
+              <div className="cd" style={{ maxWidth: '600px', margin: '0 auto' }}>
+                <div className="ch"><div className="ctl">Favicon Settings</div></div>
+                <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', marginTop: '16px' }}>
+                  <div style={{ width: '120px', height: '120px', background: 'var(--s2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--b1)' }}>
+                    {faviconUrl ? <img src={faviconUrl} alt="Favicon preview" style={{ maxWidth: '64px', maxHeight: '64px' }} /> : <span style={{color: 'var(--mu)', fontSize: '12px'}}>No Favicon</span>}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: '14px', color: 'var(--tx)', marginBottom: '8px' }}>Upload a new favicon</p>
+                    <p style={{ fontSize: '12px', color: 'var(--mu)', marginBottom: '16px' }}>This icon appears in browser tabs and bookmarks. PNG or ICO formats only, recommended 32x32px.</p>
+                    <input type="file" id="faviconUpload" accept=".png,.ico" style={{ display: 'none' }} onChange={handleFaviconUpload} />
+                    <label htmlFor="faviconUpload" className="btn btn-p" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '10px 16px' }}>
+                      {isUploadingFavicon ? 'Uploading...' : 'Upload Favicon'}
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
 

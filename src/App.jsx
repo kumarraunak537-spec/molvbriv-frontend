@@ -21,8 +21,30 @@ function ScrollToTop() {
   return null
 }
 
+import { supabase } from './supabaseClient'
+
 function App() {
   const location = useLocation()
+
+  useEffect(() => {
+    async function loadFavicon() {
+      try {
+        const { data } = await supabase.from('site_settings').select('value').eq('key', 'favicon_url').single()
+        if (data && data.value) {
+          let link = document.querySelector("link[rel~='icon']");
+          if (!link) {
+            link = document.createElement('link');
+            link.rel = 'icon';
+            document.head.appendChild(link);
+          }
+          link.href = data.value;
+        }
+      } catch (err) {
+        // Silently fail if favicon not set
+      }
+    }
+    loadFavicon();
+  }, [])
 
   return (
     <CartProvider>
