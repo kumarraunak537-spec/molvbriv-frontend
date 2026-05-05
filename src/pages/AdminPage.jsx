@@ -211,7 +211,7 @@ export default function AdminPage() {
     setIsUploadingFavicon(true);
     try {
       const fileName = `favicon-${Date.now()}.${file.name.split('.').pop()}`;
-      const { data, error } = await supabase.storage.from('product-images').upload(`assets/${fileName}`, file, { upsert: true });
+      const { data, error } = await supabase.storage.from('product-images').upload(`assets/${fileName}`, file);
       if (error) throw error;
       
       const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(`assets/${fileName}`);
@@ -224,6 +224,7 @@ export default function AdminPage() {
       showToast('Favicon updated successfully');
     } catch (err) {
       console.error('Favicon Upload Error:', err);
+      window.alert('ERROR: ' + err.message + '\n\nDetails: ' + JSON.stringify(err));
       if (err.message && err.message.includes('relation "public.site_settings" does not exist')) {
         showToast('Error: Create site_settings table in Supabase first!');
       } else {
