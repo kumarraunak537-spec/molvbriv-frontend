@@ -50,7 +50,7 @@ export default function Navbar() {
 
       <nav
         className={`fixed top-0 w-full z-40 transition-all duration-700 ease-out
-        ${isScrolled ? 'bg-[#FDFBF7] py-3 md:py-3 shadow-sm' : 'bg-transparent py-4 md:py-5'}
+        ${isScrolled ? 'bg-[#FDFBF7] py-3 md:py-3' : 'bg-transparent py-4 md:py-5'}
         ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}
         `}
       >
