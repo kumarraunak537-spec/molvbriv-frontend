@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
+import { supabase } from '../supabaseClient'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -11,6 +12,8 @@ export default function LoginPage() {
   const [name, setName] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [errors, setErrors] = useState({})
+  const [authError, setAuthError] = useState('')
+  const [loading, setLoading] = useState(false)
   const [forgotMessage, setForgotMessage] = useState(false)
 
   const validateLogin = () => {
@@ -31,25 +34,78 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault()
+    setAuthError('')
     if (validateLogin()) {
-      setIsLoggedIn(true)
-      navigate('/')
+      setLoading(true)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) {
+        setAuthError(error.message)
+        setLoading(false)
+      } else {
+        navigate('/')
+      }
     }
   }
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault()
+    setAuthError('')
     if (validateRegister()) {
-      setIsLoggedIn(true)
-      navigate('/')
+      setLoading(true)
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          }
+        }
+      })
+      if (error) {
+        setAuthError(error.message)
+        setLoading(false)
+      } else {
+        if (data?.user?.identities?.length === 0) {
+           setAuthError('This email is already registered. Please sign in.')
+           setLoading(false)
+        } else {
+           navigate('/')
+        }
+      }
     }
   }
 
-  const handleForgotPassword = () => {
-    setForgotMessage(true)
-    setTimeout(() => setForgotMessage(false), 4000)
+  const handleForgotPassword = async () => {
+    setAuthError('')
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setErrors({ email: 'Please enter a valid email first' })
+      return
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email)
+    if (error) {
+      setAuthError(error.message)
+    } else {
+      setForgotMessage(true)
+      setTimeout(() => setForgotMessage(false), 4000)
+    }
+  }
+
+  const handleOAuthLogin = async (provider) => {
+    setAuthError('')
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: window.location.origin,
+      }
+    })
+    if (error) {
+      setAuthError(error.message)
+    }
   }
 
   return (
@@ -94,6 +150,8 @@ export default function LoginPage() {
               <div className="flex justify-center mb-10">
                 <span className="text-text-muted text-[14px]">◇</span>
               </div>
+              
+              {authError && <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-manrope text-center rounded">{authError}</div>}
 
               <form onSubmit={handleSignIn} className="space-y-8">
                 <div>
@@ -134,9 +192,10 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-primary text-white font-manrope text-[11px] uppercase tracking-nav py-4 hover:bg-[#244a39] transition-colors"
+                  disabled={loading}
+                  className="w-full bg-primary text-white font-manrope text-[11px] uppercase tracking-nav py-4 hover:bg-[#244a39] transition-colors disabled:opacity-70"
                 >
-                  SIGN IN
+                  {loading ? 'SIGNING IN...' : 'SIGN IN'}
                 </button>
               </form>
 
@@ -149,7 +208,7 @@ export default function LoginPage() {
 
               {/* Social Sign In */}
               <div className="space-y-3">
-                <button className="w-full border border-[#D0C8B8] bg-white font-manrope text-[11px] uppercase tracking-nav py-4 flex items-center justify-center gap-3 hover:bg-[#F5F0E8] transition-colors">
+                <button type="button" onClick={() => handleOAuthLogin('google')} className="w-full border border-[#D0C8B8] bg-white font-manrope text-[11px] uppercase tracking-nav py-4 flex items-center justify-center gap-3 hover:bg-[#F5F0E8] transition-colors">
                   <svg width="16" height="16" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -159,14 +218,14 @@ export default function LoginPage() {
                   CONTINUE WITH GOOGLE
                 </button>
 
-                <button className="w-full border border-[#D0C8B8] bg-white font-manrope text-[11px] uppercase tracking-nav py-4 flex items-center justify-center gap-3 hover:bg-[#F5F0E8] transition-colors">
+                <button type="button" onClick={() => handleOAuthLogin('facebook')} className="w-full border border-[#D0C8B8] bg-white font-manrope text-[11px] uppercase tracking-nav py-4 flex items-center justify-center gap-3 hover:bg-[#F5F0E8] transition-colors">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#1877F2">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                   </svg>
                   CONTINUE WITH FACEBOOK
                 </button>
 
-                <button className="w-full border border-[#D0C8B8] bg-white font-manrope text-[11px] uppercase tracking-nav py-4 flex items-center justify-center gap-3 hover:bg-[#F5F0E8] transition-colors">
+                <button type="button" onClick={() => handleOAuthLogin('apple')} className="w-full border border-[#D0C8B8] bg-white font-manrope text-[11px] uppercase tracking-nav py-4 flex items-center justify-center gap-3 hover:bg-[#F5F0E8] transition-colors">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#000000">
                     <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.641-.026 2.669-1.48 3.665-2.94 1.16-1.64 1.636-3.227 1.664-3.322-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.56-1.702z"/>
                   </svg>
@@ -192,6 +251,8 @@ export default function LoginPage() {
               <div className="flex justify-center mb-10">
                 <span className="text-text-muted text-[14px]">◇</span>
               </div>
+              
+              {authError && <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-manrope text-center rounded">{authError}</div>}
 
               <form onSubmit={handleRegister} className="space-y-6">
                 <div>
@@ -244,9 +305,10 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-primary text-white font-manrope text-[11px] uppercase tracking-nav py-4 hover:bg-[#244a39] transition-colors"
+                  disabled={loading}
+                  className="w-full bg-primary text-white font-manrope text-[11px] uppercase tracking-nav py-4 hover:bg-[#244a39] transition-colors disabled:opacity-70"
                 >
-                  CREATE ACCOUNT
+                  {loading ? 'CREATING ACCOUNT...' : 'CREATE ACCOUNT'}
                 </button>
               </form>
 

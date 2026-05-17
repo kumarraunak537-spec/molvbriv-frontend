@@ -1,18 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
+import { supabase } from '../supabaseClient';
 
 export default function OrderTrackingPage() {
   const [orderId, setOrderId] = useState('');
   const [email, setEmail] = useState('');
   const [isTracking, setIsTracking] = useState(false);
   const [trackingStep, setTrackingStep] = useState(0);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [orderDetails, setOrderDetails] = useState(null);
 
-  const handleTrack = (e) => {
+  const getStepFromStatus = (status) => {
+    switch(status?.toLowerCase()) {
+      case 'processing': return 1;
+      case 'shipped': return 2;
+      case 'delivered': return 3;
+      default: return 0;
+    }
+  };
+
+  useEffect(() => {
+    let subscription;
+    if (isTracking && orderDetails && orderDetails.id) {
+      subscription = supabase
+        .channel(`order:${orderDetails.id}`, {
+          config: {
+            private: true,
+          },
+        })
+        .on('broadcast', { event: 'INSERT' }, (payload) => {
+          if (payload.payload?.status) {
+            setTrackingStep(getStepFromStatus(payload.payload.status));
+          }
+        })
+        .on('broadcast', { event: 'UPDATE' }, (payload) => {
+          if (payload.payload?.status) {
+            setTrackingStep(getStepFromStatus(payload.payload.status));
+          }
+        })
+        .on('broadcast', { event: 'DELETE' }, (payload) => {
+          setTrackingStep(0);
+          setErrorMsg("This order has been removed or cancelled.");
+        })
+        .subscribe();
+    }
+
+    return () => {
+      if (subscription) {
+        supabase.removeChannel(subscription);
+      }
+    };
+  }, [isTracking, orderDetails]);
+
+  const handleTrack = async (e) => {
     e.preventDefault();
+    setErrorMsg('');
     if (orderId && email) {
-      setIsTracking(true);
-      // Simulate API call for tracking
-      setTimeout(() => setTrackingStep(2), 1500); // 0=Placed, 1=Processing, 2=Shipped, 3=Delivered
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('order_number', orderId)
+          .single();
+
+        if (error || !data) {
+          setErrorMsg("We couldn't find an order with that ID.");
+          return;
+        }
+
+        setOrderDetails(data);
+        setTrackingStep(getStepFromStatus(data.status));
+        setIsTracking(true);
+      } catch (err) {
+        setErrorMsg("Failed to track order. Please try again.");
+      }
     }
   };
 
@@ -59,6 +120,12 @@ export default function OrderTrackingPage() {
                   required
                 />
               </div>
+
+              {errorMsg && (
+                <div className="text-error text-sm text-center py-2">
+                  {errorMsg}
+                </div>
+              )}
 
               <button
                 type="submit"

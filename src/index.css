@@ -20,7 +20,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, .font-manrope {
+h1,
+h2,
+h3,
+.font-manrope {
   font-family: 'Manrope', sans-serif;
 }
 
@@ -41,13 +44,16 @@ h1, h2, h3, .font-manrope {
 .page-fade-enter {
   opacity: 0;
 }
+
 .page-fade-enter-active {
   opacity: 1;
   transition: opacity 300ms ease-in;
 }
+
 .page-fade-exit {
   opacity: 1;
 }
+
 .page-fade-exit-active {
   opacity: 0;
   transition: opacity 300ms ease-out;
@@ -57,13 +63,16 @@ h1, h2, h3, .font-manrope {
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: #fdf9f3;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #765931;
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #082717;
 }
@@ -79,13 +88,16 @@ input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
+
 input[type="number"] {
   -moz-appearance: textfield;
 }
 
 /* Mobile-only refinements */
 @media (max-width: 768px) {
-  html, body {
+
+  html,
+  body {
     overflow-x: hidden;
   }
 

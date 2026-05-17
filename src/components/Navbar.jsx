@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import { supabase } from '../supabaseClient'
 
 export default function Navbar() {
-  const { cartCount } = useCart()
+  const { cartCount, isLoggedIn, user, setIsLoggedIn } = useCart()
+  const navigate = useNavigate()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -39,6 +41,13 @@ export default function Navbar() {
     { label: 'About', path: '/about' },
     { label: 'Track Order', path: '/track-order' }
   ]
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setIsLoggedIn(false)
+    setIsMenuOpen(false)
+    navigate('/')
+  }
 
   return (
     <>
@@ -242,22 +251,47 @@ export default function Navbar() {
 
           {/* Bottom Section: Login / Account */}
           <div className={`px-6 pb-8 pt-6 border-t border-black/5 shrink-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: isMenuOpen ? '350ms' : '0ms' }}>
-            <Link
-              to="/login"
-              onClick={() => setIsMenuOpen(false)}
-              className="flex items-center justify-between text-[#2c2c2c] font-manrope font-light hover:text-primary transition-colors group w-full"
-            >
-              <div className="flex items-center gap-4">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" className="opacity-60 group-hover:opacity-100 transition-opacity">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <span className="text-[15px] tracking-wide relative">
-                  Login Account
-                  <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-primary transition-all duration-300 group-hover:w-full"></span>
-                </span>
+            {isLoggedIn ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4 text-[#2c2c2c]">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                    {user?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-manrope text-[13px] font-medium">{user?.user_metadata?.full_name || 'My Account'}</span>
+                    <span className="font-manrope text-[10px] text-text-muted">{user?.email}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-4 text-red-500/80 font-manrope font-light hover:text-red-500 transition-colors group w-full text-left"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                    <polyline points="16 17 21 12 16 7"></polyline>
+                    <line x1="21" y1="12" x2="9" y2="12"></line>
+                  </svg>
+                  <span className="text-[14px] tracking-wide relative">Logout</span>
+                </button>
               </div>
-            </Link>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex items-center justify-between text-[#2c2c2c] font-manrope font-light hover:text-primary transition-colors group w-full"
+              >
+                <div className="flex items-center gap-4">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" className="opacity-60 group-hover:opacity-100 transition-opacity">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span className="text-[15px] tracking-wide relative">
+                    Login Account
+                    <span className="absolute -bottom-1 left-0 w-0 h-[1px] bg-primary transition-all duration-300 group-hover:w-full"></span>
+                  </span>
+                </div>
+              </Link>
+            )}
           </div>
         </div>
       </div>

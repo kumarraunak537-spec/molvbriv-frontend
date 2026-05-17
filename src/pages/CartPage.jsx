@@ -134,7 +134,7 @@ export default function CartPage() {
                   cartItems.map((item) => (
                     <div key={item.id} className="flex flex-col md:flex-row gap-8 items-start">
                       <div className="w-full md:w-40 aspect-[4/5] bg-surface-container overflow-hidden shrink-0">
-                        <img alt={item.name} className="w-full h-full object-cover" src={item.image} />
+                        <img loading="lazy" alt={item.name} className="w-full h-full object-cover" src={item.image} />
                       </div>
                       <div className="flex-1 space-y-4">
                         <div className="flex justify-between">
@@ -524,7 +524,7 @@ export default function CartPage() {
               cartItems.map(item => (
                 <div key={item.id} className="flex gap-6 items-center">
                   <div className="w-24 aspect-square bg-black rounded-sm overflow-hidden shrink-0">
-                     <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                     <img loading="lazy" src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1">
                      <div className="flex justify-between items-start">

@@ -218,6 +218,18 @@ export default function AdminPage() {
     }
   };
 
+  const updateOrderStatus = async (id, newStatus) => {
+    try {
+      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', id);
+      if (error) throw error;
+      setOrdersData(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
+      showToast('Order status updated');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to update status');
+    }
+  };
+
   const [productsData, setProductsData] = useState([]);
   const [ordersData, setOrdersData] = useState([]);
   const [faviconUrl, setFaviconUrl] = useState('');
@@ -751,7 +763,16 @@ export default function AdminPage() {
                     <span style={{ color: 'var(--mu)' }}>{o.customer_name}</span>
                     <span style={{ color: 'var(--mu)' }}>{o.product_name}</span>
                     <span style={{ color: 'var(--tx)' }}>Rs {o.total_price}</span>
-                    <span className={`bg ${o.status === 'Delivered' ? 'bgn' : (o.status === 'Processing' ? 'bgg' : 'bga')}`}>{o.status}</span>
+                    <select 
+                      value={o.status} 
+                      onChange={(e) => updateOrderStatus(o.id, e.target.value)}
+                      className={`bg ${o.status === 'Delivered' ? 'bgn' : (o.status === 'Processing' ? 'bgg' : 'bga')}`}
+                      style={{ border: 'none', outline: 'none', cursor: 'pointer', appearance: 'none' }}
+                    >
+                      <option value="Processing">Processing</option>
+                      <option value="Shipped">Shipped</option>
+                      <option value="Delivered">Delivered</option>
+                    </select>
                   </div>
                 )) : (
                   <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No orders yet</div>

@@ -1,11 +1,27 @@
-import React, { createContext, useContext, useState, useCallback } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { supabase } from '../supabaseClient'
 
 const CartContext = createContext()
 
 export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState(null)
   const [wishlist, setWishlist] = useState([])
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session)
+      setUser(session?.user || null)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session)
+      setUser(session?.user || null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const addToCart = useCallback((item) => {
     setCartItems(prev => {
@@ -51,7 +67,7 @@ export function CartProvider({ children }) {
     <CartContext.Provider value={{
       cartItems, addToCart, removeFromCart, updateQuantity, clearCart,
       cartCount, subtotal, taxes, grandTotal,
-      isLoggedIn, setIsLoggedIn,
+      isLoggedIn, setIsLoggedIn, user,
       wishlist, toggleWishlist, isInWishlist
     }}>
       {children}
