@@ -201,6 +201,7 @@ export default function AdminPage() {
       const { error } = await supabase.from('products').update({
         title: editingProduct.title || editingProduct.name, // Handle both name/title mapping
         price: parseFloat(editingProduct.price),
+        compare_price: parseFloat(editingProduct.compare_price) || null,
         category: editingProduct.category || editingProduct.cat,
         material: editingProduct.material || editingProduct.mat,
       }).eq('id', editingProduct.id);
@@ -606,7 +607,7 @@ export default function AdminPage() {
                   <div className="fg"><label>CATEGORY</label><select className="fi" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})}><option value="">Select</option><option>Jhumka</option><option>Earrings</option><option>Necklace</option><option>Bangles</option><option>Rings</option><option>Maang Tikka</option><option>Bridal Set</option></select></div>
                   <div className="fg"><label>SELLING PRICE (Rs)</label><input className="fi" type="number" placeholder="0" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} /></div>
                   <div className="fg"><label>COMPARE PRICE (Rs)</label><input className="fi" type="number" placeholder="Optional" value={newProduct.comparePrice} onChange={e => setNewProduct({...newProduct, comparePrice: e.target.value})} /></div>
-                  <div className="fg"><label>MATERIAL / FINISH</label><select className="fi" value={newProduct.material} onChange={e => setNewProduct({...newProduct, material: e.target.value})}><option value="">Select</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option><option>Meenakari</option><option>Oxidised</option></select></div>
+                  <div className="fg"><label>MATERIAL / FINISH</label><select className="fi" value={newProduct.material} onChange={e => setNewProduct({...newProduct, material: e.target.value})}><option value="">Select</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option><option>Meenakari</option><option>Oxidised</option><option>Alloy</option></select></div>
                   <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} /></div>
                   <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Design, occasion, weight, size..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}></textarea></div>
                 </div>
@@ -651,7 +652,7 @@ export default function AdminPage() {
               </div>
               <div className="peg">
                 {productsData.length > 0 ? productsData.filter(p => customizeFilter === 'all' || p.category === customizeFilter).map(p => (
-                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price })}>
+                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price, compare_price: p.compare_price })}>
                     <div className="pen">{p.title}</div>
                     <div className="pec2">{(p.category || 'General').charAt(0).toUpperCase() + (p.category || 'General').slice(1)} · {p.material}</div>
                     <div className="pep">Rs {p.price}</div>
@@ -667,6 +668,7 @@ export default function AdminPage() {
                   <div className="fg2">
                     <div className="fg"><label>PRODUCT NAME</label><input className="fi" type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })} /></div>
                     <div className="fg"><label>PRICE (Rs)</label><input className="fi" type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })} /></div>
+                    <div className="fg"><label>COMPARE PRICE (Rs)</label><input className="fi" type="number" placeholder="Optional" value={editingProduct.compare_price || ''} onChange={(e) => setEditingProduct({ ...editingProduct, compare_price: e.target.value })} /></div>
                     <div className="fg"><label>CATEGORY</label>
                       <select className="fi" value={(editingProduct.cat || 'General').charAt(0).toUpperCase() + (editingProduct.cat || 'General').slice(1)} onChange={(e) => setEditingProduct({ ...editingProduct, cat: e.target.value.toLowerCase() })}>
                         <option>Jhumka</option><option>Earrings</option><option>Necklace</option><option>Bangles</option><option>General</option>
@@ -674,7 +676,7 @@ export default function AdminPage() {
                     </div>
                     <div className="fg"><label>MATERIAL</label>
                       <select className="fi" value={editingProduct.mat || ''} onChange={(e) => setEditingProduct({ ...editingProduct, mat: e.target.value })}>
-                        <option value="">Select Material</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option>
+                        <option value="">Select Material</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option><option>Alloy</option>
                       </select>
                     </div>
                     <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Update product description..."></textarea></div>
