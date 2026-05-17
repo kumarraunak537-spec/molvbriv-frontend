@@ -60,7 +60,6 @@ export default function NewArrivalsPage() {
                   <Link key={product.id} to={`/product/${product.id}`} className="group cursor-pointer">
                     <div className="relative overflow-hidden mb-6 bg-surface-container-low aspect-[3/4]">
                       <img 
-                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                         alt={product.title} 
                         src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop'}

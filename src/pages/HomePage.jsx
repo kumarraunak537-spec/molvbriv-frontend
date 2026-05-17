@@ -70,14 +70,14 @@ export default function HomePage() {
             <div className="md:col-span-7 relative">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-4 pt-12">
-                  <img loading="lazy" className="w-full aspect-[4/5] object-cover" alt="Gold diamond ring showcase" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXQ6zcurXAOej9mhjvSGFNmlDBD3HK514mpbrAPnRvfVrglITD7GDf202_jsgER-RiXjLEDKnDTIMFToHmaamANJz_1ZqWUcTlbElyLenm43O7kCTUJTdvIM_3YhxcSzBo1KFtFMxdUYoZ9TaiPShPUqvUc9CtfjOSqMIZwZ5dGQlQmRgOsJKESFRptFzmsBoi00kFqBKLrTKL_iQxns2BiBv0189R7PMRDSn5X-DbiVz_Zxb_KG-Dcciv9C0SD5lXWcvRhZB7itc"/>
+                  <img className="w-full aspect-[4/5] object-cover" alt="Gold diamond ring showcase" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXQ6zcurXAOej9mhjvSGFNmlDBD3HK514mpbrAPnRvfVrglITD7GDf202_jsgER-RiXjLEDKnDTIMFToHmaamANJz_1ZqWUcTlbElyLenm43O7kCTUJTdvIM_3YhxcSzBo1KFtFMxdUYoZ9TaiPShPUqvUc9CtfjOSqMIZwZ5dGQlQmRgOsJKESFRptFzmsBoi00kFqBKLrTKL_iQxns2BiBv0189R7PMRDSn5X-DbiVz_Zxb_KG-Dcciv9C0SD5lXWcvRhZB7itc"/>
                   <div className="p-8 bg-surface-container-highest">
                     <span className="font-manrope italic text-primary">"Jewelry is the exclamation point of a woman's outfit."</span>
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <img loading="lazy" className="w-full aspect-[4/6] object-cover shadow-2xl" alt="Pearl earring detail photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpOlOzUZ_jsi-E4ZLgKqgFdZQa2qUPPEfqZimkWu1fhZIwTpKbguBe9kbOPqMoTTdvo2YcqFptR7tF5xqcqoFQjEqN3mPKx0KutXcHrzHSLo7ZhR-yXSEEEAcz_TJUa5Yh6q4JJ4RkL6rYydCTj05as0vrfJ2vUzyn54EOSi-st1NJAfk3-6ZN4gFqym6ZfLsN8dOx46a3pGN95IS1RYpZo8M9l09GRQKOc85UEsyGa__pNWk4_XvkLttl4P_rNZab-hd59HIVzN0"/>
-                  <img loading="lazy" className="w-full aspect-[1/1] object-cover" alt="Craftsmanship detail macro shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgg2qdYJO_7aRr1wYOtpKhdwTTL4df6pVSZTzZPLICwy9Qmp6QPHWHVCIlHwk21IzxYaDS6Ddi3urJf-iXZi7MWVSXBVp32t2jSbb6RqbHOrISAFbla9HUJCzB-73fcEKdUzyhhwr8AP3z-E29V2r_b30YpF2rsmjmB_Q_VJAywR1s__a0vmPxcnodzQ9IsiIA6kh7DojFzViL0cbFJePb9S2HWVTFVixVvHRhKKYME2uV2IUOjJ7cBM8QZtQ6ClCgSZUMHpQPBqY"/>
+                  <img className="w-full aspect-[4/6] object-cover shadow-2xl" alt="Pearl earring detail photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpOlOzUZ_jsi-E4ZLgKqgFdZQa2qUPPEfqZimkWu1fhZIwTpKbguBe9kbOPqMoTTdvo2YcqFptR7tF5xqcqoFQjEqN3mPKx0KutXcHrzHSLo7ZhR-yXSEEEAcz_TJUa5Yh6q4JJ4RkL6rYydCTj05as0vrfJ2vUzyn54EOSi-st1NJAfk3-6ZN4gFqym6ZfLsN8dOx46a3pGN95IS1RYpZo8M9l09GRQKOc85UEsyGa__pNWk4_XvkLttl4P_rNZab-hd59HIVzN0"/>
+                  <img className="w-full aspect-[1/1] object-cover" alt="Craftsmanship detail macro shot" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBgg2qdYJO_7aRr1wYOtpKhdwTTL4df6pVSZTzZPLICwy9Qmp6QPHWHVCIlHwk21IzxYaDS6Ddi3urJf-iXZi7MWVSXBVp32t2jSbb6RqbHOrISAFbla9HUJCzB-73fcEKdUzyhhwr8AP3z-E29V2r_b30YpF2rsmjmB_Q_VJAywR1s__a0vmPxcnodzQ9IsiIA6kh7DojFzViL0cbFJePb9S2HWVTFVixVvHRhKKYME2uV2IUOjJ7cBM8QZtQ6ClCgSZUMHpQPBqY"/>
                 </div>
               </div>
             </div>

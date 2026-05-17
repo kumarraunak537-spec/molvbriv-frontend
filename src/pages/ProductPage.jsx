@@ -124,7 +124,6 @@ export default function ProductPage() {
             {/* Main Image */}
             <div className="relative aspect-[4/5] bg-surface-container-low overflow-hidden group rounded-xl">
               <img 
-                fetchpriority="high"
                 alt={product.title} 
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
                 src={productImages[selectedImage]} 
@@ -139,7 +138,7 @@ export default function ProductPage() {
                     onClick={() => setSelectedImage(i)}
                     className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 ${selectedImage === i ? 'border-secondary opacity-100' : 'border-transparent opacity-60 hover:opacity-90'}`}
                   >
-                    <img loading="lazy" src={img} alt={`${product.title} ${i + 1}`} className="w-full h-full object-cover" />
+                    <img src={img} alt={`${product.title} ${i + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -222,7 +221,6 @@ export default function ProductPage() {
                 <Link to={`/product/${rp.id}`} key={rp.id} className="group cursor-pointer">
                   <div className="aspect-[4/5] bg-surface-container-low overflow-hidden rounded-xl mb-4">
                     <img 
-                      loading="lazy"
                       src={rp.image} 
                       alt={rp.title} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 

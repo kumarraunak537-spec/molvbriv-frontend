@@ -20,7 +20,7 @@ export default function AboutUsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center">
             <div className="relative group overflow-hidden bg-surface-container-highest">
               <img 
-                src="/@fs/C:/Users/Rocky/.gemini/antigravity/brain/91b37c2b-be75-4d65-ad74-e4fbc1961bbf/media__1777835393246.jpg" 
+                src="/images/about/media__1777835393246.jpg" 
                 alt="Intricate Craftsmanship of Jhumkas" 
                 className="w-full aspect-square md:aspect-[4/5] object-cover hover:scale-105 transition-transform duration-1000"
               />
@@ -50,7 +50,7 @@ export default function AboutUsPage() {
       <section className="bg-primary py-24 md:py-40 px-5 md:px-12 text-white overflow-hidden relative">
         <div className="absolute inset-0 opacity-10">
           <img 
-            src="/@fs/C:/Users/Rocky/.gemini/antigravity/brain/91b37c2b-be75-4d65-ad74-e4fbc1961bbf/media__1777835401494.jpg" 
+            src="/images/about/media__1777835401494.jpg" 
             alt="Macro Texture of Red Jhumka" 
             className="w-full h-full object-cover"
           />
@@ -84,7 +84,7 @@ export default function AboutUsPage() {
             </div>
             <div className="relative group overflow-hidden order-1 md:order-2 bg-surface-container-highest">
               <img 
-                src="/@fs/C:/Users/Rocky/.gemini/antigravity/brain/91b37c2b-be75-4d65-ad74-e4fbc1961bbf/media__1777835386766.jpg" 
+                src="/images/about/media__1777835386766.jpg" 
                 alt="Modern Traditional Lifestyle" 
                 className="w-full aspect-square md:aspect-[4/5] object-cover hover:scale-105 transition-transform duration-1000"
               />
@@ -113,7 +113,7 @@ export default function AboutUsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center">
               <div className="relative overflow-hidden bg-surface-container-highest group">
                 <img 
-                  src="/@fs/C:/Users/Rocky/.gemini/antigravity/brain/91b37c2b-be75-4d65-ad74-e4fbc1961bbf/media__1777836171760.jpg" 
+                  src="/images/about/media__1777836171760.jpg" 
                   alt="Silver and Turquoise Jhumkas" 
                   className="w-full aspect-[4/5] md:aspect-square object-cover hover:scale-105 transition-transform duration-1000"
                 />
@@ -138,7 +138,7 @@ export default function AboutUsPage() {
               </div>
               <div className="relative overflow-hidden bg-surface-container-highest group order-1 md:order-2">
                 <img 
-                  src="/@fs/C:/Users/Rocky/.gemini/antigravity/brain/91b37c2b-be75-4d65-ad74-e4fbc1961bbf/media__1777836182696.jpg" 
+                  src="/images/about/media__1777836182696.jpg" 
                   alt="Bridal Red and Gold Jhumka" 
                   className="w-full aspect-[4/5] md:aspect-square object-cover hover:scale-105 transition-transform duration-1000"
                 />
@@ -149,7 +149,7 @@ export default function AboutUsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center">
               <div className="relative overflow-hidden bg-surface-container-highest group">
                 <img 
-                  src="/@fs/C:/Users/Rocky/.gemini/antigravity/brain/91b37c2b-be75-4d65-ad74-e4fbc1961bbf/media__1777836196080.jpg" 
+                  src="/images/about/media__1777836196080.jpg" 
                   alt="Square Teal Drop Jhumka" 
                   className="w-full aspect-[4/5] md:aspect-square object-cover hover:scale-105 transition-transform duration-1000"
                 />
@@ -174,7 +174,7 @@ export default function AboutUsPage() {
               </div>
               <div className="relative overflow-hidden bg-surface-container-highest group order-1 md:order-2">
                 <img 
-                  src="/@fs/C:/Users/Rocky/.gemini/antigravity/brain/91b37c2b-be75-4d65-ad74-e4fbc1961bbf/media__1777836204766.jpg" 
+                  src="/images/about/media__1777836204766.jpg" 
                   alt="Red Meenakari Golden Jhumka" 
                   className="w-full aspect-[4/5] md:aspect-square object-cover hover:scale-105 transition-transform duration-1000"
                 />
@@ -185,7 +185,7 @@ export default function AboutUsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-20 items-center">
               <div className="relative overflow-hidden bg-surface-container-highest group">
                 <img 
-                  src="/@fs/C:/Users/Rocky/.gemini/antigravity/brain/91b37c2b-be75-4d65-ad74-e4fbc1961bbf/media__1777836730752.jpg" 
+                  src="/images/about/media__1777836730752.jpg" 
                   alt="Multicolor Pearl Drop Silver Jhumka" 
                   className="w-full aspect-[4/5] md:aspect-square object-cover hover:scale-105 transition-transform duration-1000"
                 />

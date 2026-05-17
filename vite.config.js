@@ -6,18 +6,5 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true
-  },
-  build: {
-    target: 'esnext',
-    minify: 'esbuild',
-    cssMinify: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js']
-        }
-      }
-    }
   }
 })
