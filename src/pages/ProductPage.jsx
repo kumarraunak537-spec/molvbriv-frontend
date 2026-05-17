@@ -214,7 +214,7 @@ export default function ProductPage() {
 
         {/* Recently Viewed Products */}
         {recentProducts.filter(rp => rp.id !== id).length > 0 && (
-          <div className="pt-16 md:pt-24 border-t border-surface-variant">
+          <div className="pt-16 md:pt-24">
             <h2 className="text-2xl md:text-3xl font-manrope text-primary mb-8 text-center">Recently Viewed</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
               {recentProducts.filter(rp => rp.id !== id).slice(0, 4).map(rp => (
