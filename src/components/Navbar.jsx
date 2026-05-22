@@ -10,7 +10,21 @@ export default function Navbar() {
   const [isVisible, setIsVisible] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchVal, setSearchVal] = useState('')
   const location = useLocation()
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    setSearchVal(params.get('search') || '')
+  }, [location.search])
+
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault()
+    if (searchVal.trim()) {
+      navigate(`/all-products?search=${encodeURIComponent(searchVal.trim())}`)
+      setIsSearchOpen(false)
+    }
+  }
 
   useEffect(() => {
     // Subtle fade in and slide down animation on page load
@@ -91,7 +105,8 @@ export default function Navbar() {
           <div className="flex justify-end items-center gap-2 md:gap-5">
             {/* Desktop Expandable Search */}
             <div className="hidden md:flex relative items-center justify-end w-auto">
-              <div
+              <form
+                onSubmit={handleSearchSubmit}
                 className={`flex items-center overflow-hidden transition-all duration-[400ms] ease-out z-50
                 ${isSearchOpen
                     ? 'absolute right-0 w-[400px] bg-white/40 border border-black/10 shadow-[0_4px_15px_rgba(0,0,0,0.05)] rounded-[50px] backdrop-blur-[12px] focus-within:bg-white/60 focus-within:brightness-[1.02]'
@@ -102,19 +117,26 @@ export default function Navbar() {
                 <input
                   id="luxury-search-desktop"
                   type="text"
+                  value={searchVal}
+                  onChange={(e) => setSearchVal(e.target.value)}
                   placeholder="Search for luxury..."
                   className={`bg-transparent border-none outline-none focus:outline-none focus:ring-0 shadow-none text-black placeholder-gray-500 text-[15px] font-manrope transition-all duration-[400ms] ease-out
                   ${isSearchOpen ? 'w-full pl-6 pr-1 py-2.5 opacity-100 flex-1' : 'w-0 px-0 py-0 opacity-0 flex-none'}`}
                   style={{ boxShadow: 'none' }}
                   onBlur={(e) => {
-                    if (!e.target.value) setIsSearchOpen(false)
+                    if (!e.target.value) setTimeout(() => setIsSearchOpen(false), 200)
                   }}
                 />
                 <button
+                  type="button"
                   onClick={() => {
                     if (!isSearchOpen) {
                       setIsSearchOpen(true);
                       setTimeout(() => document.getElementById('luxury-search-desktop')?.focus(), 50);
+                    } else if (searchVal.trim()) {
+                      handleSearchSubmit();
+                    } else {
+                      setIsSearchOpen(false);
                     }
                   }}
                   className={`shrink-0 flex items-center justify-center transition-all duration-300 rounded-full
@@ -125,7 +147,7 @@ export default function Navbar() {
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
                 </button>
-              </div>
+              </form>
             </div>
 
             {/* Mobile Search Toggle Button */}
@@ -162,7 +184,8 @@ export default function Navbar() {
         </div>
 
         {/* Mobile Search Bar - Centered Overlay in Navbar */}
-        <div
+        <form
+          onSubmit={handleSearchSubmit}
           className={`md:hidden absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] z-50 transition-all duration-[400ms] ease-out
           ${isSearchOpen ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'}`}
         >
@@ -172,21 +195,23 @@ export default function Navbar() {
             <input
               id="luxury-search-mobile"
               type="text"
+              value={searchVal}
+              onChange={(e) => setSearchVal(e.target.value)}
               placeholder="Search for luxury..."
               className="flex-1 bg-transparent border-none outline-none focus:outline-none focus:ring-0 shadow-none text-black placeholder-gray-500 text-[14px] font-manrope pl-5 pr-1 py-3"
               style={{ boxShadow: 'none' }}
               onBlur={(e) => {
-                if (!e.target.value) setTimeout(() => setIsSearchOpen(false), 150)
+                if (!e.target.value) setTimeout(() => setIsSearchOpen(false), 200)
               }}
             />
-            <button className="shrink-0 w-10 h-10 flex items-center justify-center text-black">
+            <button type="submit" className="shrink-0 w-10 h-10 flex items-center justify-center text-black">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
               </svg>
             </button>
           </div>
-        </div>
+        </form>
       </nav>
 
       {/* Slide-out Menu Overlay */}

@@ -1,12 +1,19 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { supabase } from '../supabaseClient'
 
 export default function AllProductsPage() {
+  const location = useLocation()
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    setSearchQuery(params.get('search') || '')
+  }, [location.search])
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -30,6 +37,17 @@ export default function AllProductsPage() {
     }
   }
 
+  const filteredProducts = products.filter(product => {
+    if (!searchQuery) return true
+    const query = searchQuery.toLowerCase()
+    return (
+      product.title?.toLowerCase().includes(query) ||
+      product.description?.toLowerCase().includes(query) ||
+      product.tags?.some(tag => tag?.toLowerCase().includes(query)) ||
+      product.material?.toLowerCase().includes(query)
+    )
+  })
+
   return (
     <div className="bg-background text-on-background selection:bg-secondary/20 font-body">
       <Navbar />
@@ -39,8 +57,14 @@ export default function AllProductsPage() {
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-16 gap-4 md:gap-6">
               <div className="max-w-xl">
-                <h2 className="text-2xl md:text-4xl font-manrope text-primary mb-3 md:mb-6">All Products</h2>
-                <p className="text-on-surface-variant text-sm md:text-base">Explore our entire collection of rare stones and precision-crafted 18k gold pieces. Every item tells a story.</p>
+                <h2 className="text-2xl md:text-4xl font-manrope text-primary mb-3 md:mb-6">
+                  {searchQuery ? `Search Results for "${searchQuery}"` : 'All Products'}
+                </h2>
+                <p className="text-on-surface-variant text-sm md:text-base">
+                  {searchQuery 
+                    ? `Showing products that matched your search query.` 
+                    : 'Explore our entire collection of rare stones and precision-crafted 18k gold pieces. Every item tells a story.'}
+                </p>
               </div>
             </div>
             
@@ -48,13 +72,15 @@ export default function AllProductsPage() {
               <div className="flex justify-center py-20">
                 <div className="w-10 h-10 border-4 border-secondary border-t-transparent rounded-full animate-spin"></div>
               </div>
-            ) : products.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <div className="text-center py-20 bg-surface-container-low rounded-lg border border-dashed border-black/10">
-                <p className="text-on-surface-variant italic">Our new collection is coming soon.</p>
+                <p className="text-on-surface-variant italic">
+                  {searchQuery ? `No products found matching "${searchQuery}".` : 'Our new collection is coming soon.'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-                {products.map(product => (
+                {filteredProducts.map(product => (
                   <Link key={product.id} to={`/product/${product.id}`} className="group cursor-pointer">
                     <div className="relative overflow-hidden mb-6 bg-surface-container-low aspect-[3/4]">
                       <img 
