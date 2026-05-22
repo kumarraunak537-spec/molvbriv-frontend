@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
 import { supabase } from '../supabaseClient'
@@ -15,6 +15,14 @@ export default function LoginPage() {
   const [authError, setAuthError] = useState('')
   const [loading, setLoading] = useState(false)
   const [forgotMessage, setForgotMessage] = useState(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const err = params.get('error')
+    if (err) {
+      setAuthError(decodeURIComponent(err).replace(/\+/g, ' '))
+    }
+  }, [])
 
   const validateLogin = () => {
     const newErrors = {}

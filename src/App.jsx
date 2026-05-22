@@ -47,6 +47,19 @@ function App() {
     loadFavicon();
   }, [])
 
+  useEffect(() => {
+    // Catch OAuth errors in hash fragment (e.g. from Google login failure)
+    const hash = window.location.hash
+    if (hash && (hash.includes('error=') || hash.includes('error_description='))) {
+      const params = new URLSearchParams(hash.replace('#', '?'))
+      const errorMsg = params.get('error_description') || params.get('error') || 'Authentication failed'
+      // Clear the hash to prevent infinite redirect loops
+      window.location.hash = ''
+      // Redirect to login page with the parsed error description
+      window.location.href = `/login?error=${encodeURIComponent(errorMsg)}`
+    }
+  }, [location.pathname])
+
   return (
     <CartProvider>
       <ScrollToTop />
