@@ -157,56 +157,6 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
-
-            {/* User Profile & Session Controls */}
-            {isLoggedIn ? (
-              <div className="flex items-center gap-2 md:gap-3 ml-1 md:ml-2 border-l border-black/10 pl-2 md:pl-4">
-                {/* Avatar / Profile Logo */}
-                <div className="w-7 h-7 md:w-8 md:h-8 rounded-full overflow-hidden border border-black/10 flex items-center justify-center shrink-0 bg-[#1a4a35]/10">
-                  {user?.user_metadata?.avatar_url ? (
-                    <img 
-                      src={user.user_metadata.avatar_url} 
-                      alt={user.user_metadata.full_name || 'User'} 
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <span className="font-manrope text-[11px] md:text-[12px] font-semibold text-[#1a4a35] uppercase">
-                      {user?.user_metadata?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                    </span>
-                  )}
-                </div>
-                
-                {/* User First Name */}
-                <span className="hidden sm:inline font-manrope text-[11px] md:text-[12px] uppercase tracking-wider text-[#2c2c2c] max-w-[80px] md:max-w-[120px] truncate">
-                  {user?.user_metadata?.full_name?.split(' ')[0] || 'User'}
-                </span>
-
-                {/* Logout Button */}
-                <button
-                  onClick={handleLogout}
-                  title="Logout"
-                  className="p-1 md:p-1.5 opacity-60 hover:opacity-100 hover:text-red-600 transition-all duration-300 flex items-center justify-center rounded-full hover:bg-black/5"
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                  </svg>
-                </button>
-              </div>
-            ) : (
-              <Link 
-                to="/login" 
-                className="opacity-70 hover:opacity-100 transition-opacity duration-300 relative flex items-center justify-center w-9 h-9 ml-1"
-                title="Login"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-              </Link>
-            )}
           </div>
 
         </div>
