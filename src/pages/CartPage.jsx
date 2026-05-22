@@ -30,6 +30,7 @@ export default function CartPage() {
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [accordionOpen, setAccordionOpen] = useState(null)
   const [errors, setErrors] = useState({})
+  const [isPaymentLoading, setIsPaymentLoading] = useState(false)
 
   const taxes = Math.round(subtotal * 0.08)
   const grandTotal = subtotal - discount + taxes
@@ -46,17 +47,86 @@ export default function CartPage() {
     if (!firstName) newErrors.firstName = true
     if (!lastName) newErrors.lastName = true
     if (!address) newErrors.address = true
-    if (!cardNumber) newErrors.cardNumber = true
-    if (!expiry) newErrors.expiry = true
-    if (!cvv) newErrors.cvv = true
+    if (!phone) newErrors.phone = true
+    
+    // Only validate Card fields if Credit Card payment method is chosen
+    if (paymentMethod === 'visa') {
+      if (!cardNumber) newErrors.cardNumber = true
+      if (!expiry) newErrors.expiry = true
+      if (!cvv) newErrors.cvv = true
+    }
+    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const completePurchase = () => {
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true)
+        return
+      }
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
+
+  const completePurchase = async () => {
     if (validateForm()) {
-      setShowConfirmation(true)
-      window.scrollTo(0, 0)
+      if (paymentMethod === 'cod') {
+        setShowConfirmation(true)
+        window.scrollTo(0, 0)
+      } else {
+        setIsPaymentLoading(true)
+        const isLoaded = await loadRazorpayScript()
+        if (!isLoaded) {
+          alert('Razorpay SDK failed to load. Please check your internet connection.')
+          setIsPaymentLoading(false)
+          return
+        }
+
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_9rF2B2HwG22D2l',
+          amount: grandTotal * 100, // in paise
+          currency: 'INR',
+          name: 'MOLVBRIV',
+          description: 'Timeless Luxury Jewelry Sourcing & Purchase',
+          image: 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=200&h=200&fit=crop',
+          handler: function (response) {
+            setIsPaymentLoading(false)
+            setShowConfirmation(true)
+            window.scrollTo(0, 0)
+          },
+          prefill: {
+            name: `${firstName} ${lastName}`,
+            email: email,
+            contact: phone
+          },
+          notes: {
+            address: `${address}, ${apartment}, ${city}, ${state} - ${pinCode}`
+          },
+          theme: {
+            color: '#1a4a35'
+          },
+          modal: {
+            ondismiss: function () {
+              setIsPaymentLoading(false)
+            }
+          }
+        }
+
+        try {
+          const rzp = new window.Razorpay(options)
+          rzp.open()
+        } catch (err) {
+          console.error('Razorpay initialization error:', err)
+          alert('Failed to initialize Razorpay payment. Please try again.')
+          setIsPaymentLoading(false)
+        }
+      }
     } else {
       setActiveStep(activeStep > 1 ? activeStep : 1)
     }
@@ -435,9 +505,19 @@ export default function CartPage() {
                 </div>
               </div>
               
-              <button onClick={completePurchase} className="w-full mt-10 py-5 bg-secondary text-white font-label uppercase tracking-[0.3em] text-[11px] font-bold shadow-lg hover:bg-on-secondary-container transition-all flex items-center justify-center gap-3">
-                 Pay Now
-                 <span className="material-symbols-outlined text-sm">lock</span>
+              <button 
+                onClick={completePurchase} 
+                disabled={isPaymentLoading}
+                className="w-full mt-10 py-5 bg-secondary text-white font-label uppercase tracking-[0.3em] text-[11px] font-bold shadow-lg hover:bg-on-secondary-container transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPaymentLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    Pay Now
+                    <span className="material-symbols-outlined text-sm">lock</span>
+                  </>
+                )}
               </button>
               
               <p className="text-[10px] text-center mt-6 text-white/40 leading-relaxed font-label">
@@ -799,9 +879,19 @@ export default function CartPage() {
               <span className="font-headline text-3xl text-[#d4af37]">₹{grandTotal.toLocaleString()}.00</span>
             </div>
 
-            <button onClick={completePurchase} className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold">
-              Pay Now
-              <span className="material-symbols-outlined text-sm">lock</span>
+            <button 
+              onClick={completePurchase} 
+              disabled={isPaymentLoading}
+              className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPaymentLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  Pay Now
+                  <span className="material-symbols-outlined text-sm">lock</span>
+                </>
+              )}
             </button>
 
             <p className="text-[8px] font-label uppercase tracking-widest text-center mt-6 text-white/40 leading-relaxed">
