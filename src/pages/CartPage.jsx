@@ -4,6 +4,45 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 
+const INDIAN_STATES = [
+  "Andaman and Nicobar Islands",
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chandigarh",
+  "Chhattisgarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jammu and Kashmir",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Ladakh",
+  "Lakshadweep",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Puducherry",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal"
+];
+
 export default function CartPage() {
   const navigate = useNavigate()
   const { cartItems, removeFromCart, updateQuantity, subtotal } = useCart()
@@ -281,10 +320,9 @@ export default function CartPage() {
                     <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
                     <div className="relative">
                       <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                        <option>Delhi</option>
-                        <option>Maharashtra</option>
-                        <option>Karnataka</option>
-                        <option>Gujarat</option>
+                        {INDIAN_STATES.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
                       </select>
                       <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                     </div>
@@ -575,11 +613,9 @@ export default function CartPage() {
                   <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
                   <div className="relative">
                     <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                      <option>Delhi</option>
-                      <option>Maharashtra</option>
-                      <option>Karnataka</option>
-                      <option>Gujarat</option>
-                      {/* Add more states as needed */}
+                      {INDIAN_STATES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
                     </select>
                     <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                   </div>
