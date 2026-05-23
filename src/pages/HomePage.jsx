@@ -79,7 +79,7 @@ export default function HomePage() {
                   <p className="text-xs text-on-surface-variant">Minimalist silhouettes for the contemporary soul.</p>
                 </div>
               </div>
-              <button className="border-b border-secondary pb-1 text-secondary tracking-widest uppercase text-xs hover:tracking-[0.2em] transition-all">Explore Series</button>
+              <Link to="/collections" className="inline-block border-b border-secondary pb-1 text-secondary tracking-widest uppercase text-xs hover:tracking-[0.2em] transition-all">Explore Series</Link>
             </div>
             <div className="md:col-span-7 relative">
               <div className="grid grid-cols-2 gap-4">
