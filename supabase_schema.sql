@@ -48,9 +48,9 @@ CREATE TABLE IF NOT EXISTS public.orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   total_price DECIMAL(10,2) NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')),
+  status TEXT DEFAULT 'pending',
   shipping_address JSONB NOT NULL,
-  payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'paid', 'failed')),
+  payment_status TEXT DEFAULT 'pending',
   payment_method TEXT,
   razorpay_order_id TEXT,
   razorpay_payment_id TEXT,
@@ -250,4 +250,16 @@ CREATE POLICY "Admins can update orders" ON public.orders
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
   );
+
+-- 4. Secure public order tracking function (SECURITY DEFINER bypasses RLS safely)
+CREATE OR REPLACE FUNCTION public.track_order(p_order_id TEXT, p_email TEXT)
+RETURNS SETOF public.orders
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT * FROM public.orders
+  WHERE (razorpay_order_id = p_order_id OR id::text = p_order_id)
+    AND LOWER(customer_email) = LOWER(p_email);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 

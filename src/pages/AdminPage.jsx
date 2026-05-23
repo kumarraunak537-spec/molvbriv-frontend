@@ -229,7 +229,7 @@ export default function AdminPage() {
     try {
       const { error } = await supabase.from('orders').update({ 
         order_status: newStatus, 
-        status: newStatus 
+        status: newStatus.toLowerCase() 
       }).eq('id', id);
       if (error) throw error;
       setOrdersData(prev => prev.map(o => o.id === id ? { ...o, order_status: newStatus, status: newStatus } : o));

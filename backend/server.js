@@ -179,9 +179,9 @@ app.post('/api/payments/create-order', async (req, res) => {
           total_amount: parseFloat(amount),
           razorpay_order_id: razorpayOrder.id,
           payment_method: 'Online',
-          payment_status: 'Pending',
+          payment_status: 'pending',
           order_status: 'Pending',
-          status: 'Pending'
+          status: 'pending'
         }])
         .select()
         .single();
@@ -226,7 +226,7 @@ app.post('/api/payments/verify', async (req, res) => {
         await supabase
           .from('orders')
           .update({
-            payment_status: 'Failed',
+            payment_status: 'failed',
             order_status: 'Cancelled',
             status: 'cancelled',
             payment_id: razorpay_payment_id || 'Verification Failed'
@@ -253,9 +253,9 @@ app.post('/api/payments/verify', async (req, res) => {
       const { data, error } = await supabase
         .from('orders')
         .update({
-          payment_status: 'Paid',
+          payment_status: 'paid',
           order_status: 'Paid',
-          status: 'paid',
+          status: 'processing',
           payment_id: razorpay_payment_id,
           razorpay_payment_id: razorpay_payment_id
         })
@@ -281,9 +281,9 @@ app.post('/api/payments/verify', async (req, res) => {
             payment_id: razorpay_payment_id,
             razorpay_payment_id: razorpay_payment_id,
             payment_method: 'Online',
-            payment_status: 'Paid',
+            payment_status: 'paid',
             order_status: 'Paid',
-            status: 'paid'
+            status: 'processing'
           }])
           .select()
           .single();
@@ -343,7 +343,7 @@ app.post('/api/payments/cod', async (req, res) => {
           payment_id: 'COD',
           razorpay_payment_id: 'COD',
           payment_method: 'COD',
-          payment_status: 'Pending',
+          payment_status: 'pending',
           order_status: 'Pending',
           status: 'pending'
         }])
@@ -402,7 +402,7 @@ app.post('/api/payments/webhook', async (req, res) => {
       const paymentEntity = req.body.payload.payment.entity;
       const razorpayOrderId = paymentEntity.order_id;
       const razorpayPaymentId = paymentEntity.id;
-      const status = event === 'payment.captured' ? 'Paid' : 'Failed';
+      const isPaid = event === 'payment.captured';
 
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const { data: existing } = await supabase
@@ -411,13 +411,13 @@ app.post('/api/payments/webhook', async (req, res) => {
           .eq('razorpay_order_id', razorpayOrderId)
           .maybeSingle();
 
-        if (existing && existing.payment_status !== 'Paid') {
+        if (existing && existing.payment_status?.toLowerCase() !== 'paid') {
           const { data: updated } = await supabase
             .from('orders')
             .update({
-              payment_status: status,
-              order_status: status === 'Paid' ? 'Paid' : 'Failed',
-              status: status === 'Paid' ? 'paid' : 'failed',
+              payment_status: isPaid ? 'paid' : 'failed',
+              order_status: isPaid ? 'Paid' : 'Failed',
+              status: isPaid ? 'processing' : 'cancelled',
               payment_id: razorpayPaymentId,
               razorpay_payment_id: razorpayPaymentId
             })
@@ -440,7 +440,7 @@ app.post('/api/payments/webhook', async (req, res) => {
           .update({
             order_status: 'Cancelled',
             status: 'cancelled',
-            payment_status: 'Failed'
+            payment_status: 'failed'
           })
           .eq('payment_id', razorpayPaymentId);
       }

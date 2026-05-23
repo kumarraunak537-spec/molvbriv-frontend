@@ -52,19 +52,113 @@ export default function OrderTrackingPage() {
     };
   }, [isTracking, orderDetails]);
 
+  // Auto-track on mount if ID and Email exist in URL query params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlId = params.get('id') || params.get('orderId');
+    const urlEmail = params.get('email');
+    if (urlId && urlEmail) {
+      setOrderId(urlId);
+      setEmail(urlEmail);
+      
+      const autoTrack = async () => {
+        setErrorMsg('');
+        try {
+          // Method A: Secure RPC function (bypasses RLS)
+          const { data: rpcData, error: rpcErr } = await supabase
+            .rpc('track_order', {
+              p_order_id: urlId.trim(),
+              p_email: urlEmail.trim()
+            });
+
+          if (!rpcErr && rpcData && rpcData.length > 0) {
+            setOrderDetails(rpcData[0]);
+            setTrackingStep(getStepFromStatus(rpcData[0].status));
+            setIsTracking(true);
+            return;
+          }
+
+          // Method B: Direct database fallback
+          const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('razorpay_order_id', urlId.trim())
+            .eq('customer_email', urlEmail.trim())
+            .maybeSingle();
+
+          if (error || !data) {
+            // Try by primary key UUID id
+            const { data: uuidData, error: uuidErr } = await supabase
+              .from('orders')
+              .select('*')
+              .eq('id', urlId.trim())
+              .eq('customer_email', urlEmail.trim())
+              .maybeSingle();
+
+            if (uuidErr || !uuidData) {
+              setErrorMsg("We couldn't find an order with that ID and email.");
+              return;
+            }
+            setOrderDetails(uuidData);
+            setTrackingStep(getStepFromStatus(uuidData.status));
+            setIsTracking(true);
+            return;
+          }
+
+          setOrderDetails(data);
+          setTrackingStep(getStepFromStatus(data.status));
+          setIsTracking(true);
+        } catch (err) {
+          setErrorMsg("Failed to track order. Please try again.");
+        }
+      };
+      autoTrack();
+    }
+  }, []);
+
   const handleTrack = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setErrorMsg('');
     if (orderId && email) {
       try {
+        // Method A: Try secure RPC function (bypasses RLS)
+        const { data: rpcData, error: rpcErr } = await supabase
+          .rpc('track_order', {
+            p_order_id: orderId.trim(),
+            p_email: email.trim()
+          });
+
+        if (!rpcErr && rpcData && rpcData.length > 0) {
+          setOrderDetails(rpcData[0]);
+          setTrackingStep(getStepFromStatus(rpcData[0].status));
+          setIsTracking(true);
+          return;
+        }
+
+        // Method B: Fallback to direct database select
         const { data, error } = await supabase
           .from('orders')
           .select('*')
-          .eq('order_number', orderId)
-          .single();
+          .eq('razorpay_order_id', orderId.trim())
+          .eq('customer_email', email.trim())
+          .maybeSingle();
 
         if (error || !data) {
-          setErrorMsg("We couldn't find an order with that ID.");
+          // Fallback to checking by UUID id
+          const { data: uuidData, error: uuidErr } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', orderId.trim())
+            .eq('customer_email', email.trim())
+            .maybeSingle();
+
+          if (uuidErr || !uuidData) {
+            setErrorMsg("We couldn't find an order with that ID and email. Please make sure the SQL editor script has been run in your Supabase dashboard!");
+            return;
+          }
+          setOrderDetails(uuidData);
+          setTrackingStep(getStepFromStatus(uuidData.status));
+          setIsTracking(true);
           return;
         }
 
