@@ -199,7 +199,7 @@ export default function CartPage() {
           navigate('/payment-success', { state: { order: data } });
         } catch (dbErr) {
           console.error('Direct Supabase insert failed:', dbErr);
-          alert('Placing COD order failed. Please check your internet connection and try again.');
+          alert(`Placing COD order failed. Error: ${dbErr.message || 'Unknown database error'}. Please make sure you have executed the Supabase SQL script in your Supabase dashboard SQL Editor!`);
         }
       } finally {
         setIsPaymentLoading(false);
