@@ -55,7 +55,9 @@ export default function LoginPage() {
         setAuthError(error.message)
         setLoading(false)
       } else {
-        navigate('/')
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+        navigate(redirect ? `/${redirect}` : '/');
       }
     }
   }
@@ -82,7 +84,9 @@ export default function LoginPage() {
            setAuthError('This email is already registered. Please sign in.')
            setLoading(false)
         } else {
-           navigate('/')
+           const params = new URLSearchParams(window.location.search);
+           const redirect = params.get('redirect');
+           navigate(redirect ? `/${redirect}` : '/');
         }
       }
     }

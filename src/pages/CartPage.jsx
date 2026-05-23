@@ -71,6 +71,7 @@ export default function CartPage() {
   const [accordionOpen, setAccordionOpen] = useState(null)
   const [errors, setErrors] = useState({})
   const [isPaymentLoading, setIsPaymentLoading] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
 
   const taxes = Math.round(subtotal * 0.08)
   const onlineDiscount = paymentMethod === 'razorpay' ? Math.round(subtotal * 0.1) : 0
@@ -118,6 +119,11 @@ export default function CartPage() {
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const completePurchase = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
+    }
+
     if (!validateForm()) {
       setActiveStep(activeStep > 1 ? activeStep : 1);
       return;
@@ -471,138 +477,163 @@ export default function CartPage() {
               </div>
             </section>
 
-            {/* Personal Details */}
-            <section className="bg-surface p-8 md:p-12 space-y-6">
-              <h2 className="font-headline text-3xl text-primary mb-8">Personal Details</h2>
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
-                  <div className="relative">
-                    <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                      <option>India</option>
-                    </select>
-                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
-                  </div>
+            {!user ? (
+              <section className="p-8 md:p-12 shadow-sm rounded-none border border-white/10 text-center space-y-8" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)' }}>
+                <div className="w-16 h-16 rounded-full bg-[#765931]/10 flex items-center justify-center mx-auto text-[#765931]">
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>lock</span>
                 </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
-                  <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.email ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                  {errors.email && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
+                <div className="space-y-3">
+                  <span className="text-[10px] font-label uppercase tracking-[0.25em] text-[#765931] font-bold block">Secure Checkout Session</span>
+                  <h3 className="font-headline text-2xl md:text-3xl text-primary font-bold">Authentication Required</h3>
+                  <p className="text-sm text-on-surface-variant max-w-md mx-auto leading-relaxed">
+                    To complete your boutique order and secure your timeless luxury jewelry, please sign in or create a private account first.
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
-                    <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
-                    <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                  </div>
+                <div className="pt-4 max-w-sm mx-auto">
+                  <Link 
+                    to="/login?redirect=cart" 
+                    className="w-full inline-block bg-[#765931] text-white py-5 font-label uppercase tracking-[0.25em] text-[10px] font-bold hover:bg-primary transition-all shadow-md text-center"
+                  >
+                    Login or Create Account
+                  </Link>
                 </div>
+              </section>
+            ) : (
+              <>
+                {/* Personal Details */}
+                <section className="bg-surface p-8 md:p-12 space-y-6">
+                  <h2 className="font-headline text-3xl text-primary mb-8">Personal Details</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
+                      <div className="relative">
+                        <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                          <option>India</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                      </div>
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
-                  <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
+                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.email ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.email && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
+                    </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
-                  <input type="text" value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
+                        <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
+                        <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
-                    <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
-                    <div className="relative">
-                      <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                        {INDIAN_STATES.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                      <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
+                      <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
+                      <input type="text" value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
+                        <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
+                        <div className="relative">
+                          <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                            {INDIAN_STATES.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
+                        <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
+                        <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                    </div>
+
+                    <div className="pt-2 space-y-4">
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setSaveInfo(!saveInfo)}>
+                          {saveInfo && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
+                        </div>
+                        <span className="text-sm text-on-surface-variant">Save this information for next time</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 cursor-pointer group">
+                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setNewsOffers(!newsOffers)}>
+                          {newsOffers && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
+                        </div>
+                        <span className="text-sm text-on-surface-variant">Text me with news and offers</span>
+                      </label>
                     </div>
                   </div>
-                </div>
+                </section>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
-                    <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
-                    <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                  </div>
-                </div>
-
-                <div className="pt-2 space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setSaveInfo(!saveInfo)}>
-                      {saveInfo && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
-                    </div>
-                    <span className="text-sm text-on-surface-variant">Save this information for next time</span>
-                  </label>
-
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setNewsOffers(!newsOffers)}>
-                      {newsOffers && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
-                    </div>
-                    <span className="text-sm text-on-surface-variant">Text me with news and offers</span>
-                  </label>
-                </div>
-              </div>
-            </section>
-
-            {/* Payment Integration */}
-            <section className="bg-surface p-8 md:p-12 border-t border-on-surface/5 space-y-8">
-              <div className="flex justify-between items-center">
-                <h2 className="font-headline text-3xl text-primary">Secure Payment</h2>
-                <div className="flex items-center gap-1 text-on-surface-variant/50">
-                  <span className="material-symbols-outlined text-sm">lock</span>
-                  <span className="text-[10px] font-label uppercase tracking-widest">Encrypted</span>
-                </div>
-              </div>
-              
-              <div className="bg-[#f7f3ed] rounded-sm p-3 space-y-2">
-                {/* Razorpay Online Payment */}
-                <div onClick={() => setPaymentMethod('razorpay')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex items-center gap-4 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
-                    <div className="w-12 h-8 bg-[#0F1C3F] rounded-[3px] flex items-center justify-center text-white shrink-0">
-                      <span className="text-[10px] font-bold tracking-tight">Razorpay</span>
-                    </div>
-                    <div className="flex flex-col md:flex-row md:items-center gap-3">
-                      <span className="text-sm font-semibold">Online Payment (UPI, Card, NetBanking, Wallets)</span>
-                      <span className="bg-[#1a4a35] text-[#d4af37] text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-sm animate-pulse border border-[#d4af37]/30">
-                        ⚡ Save 10% Instantly
-                      </span>
+                {/* Payment Integration */}
+                <section className="bg-surface p-8 md:p-12 border-t border-on-surface/5 space-y-8">
+                  <div className="flex justify-between items-center">
+                    <h2 className="font-headline text-3xl text-primary">Secure Payment</h2>
+                    <div className="flex items-center gap-1 text-on-surface-variant/50">
+                      <span className="material-symbols-outlined text-sm">lock</span>
+                      <span className="text-[10px] font-label uppercase tracking-widest">Encrypted</span>
                     </div>
                   </div>
-                  <div className={`w-5 h-5 rounded-full ${paymentMethod === 'razorpay' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
-                </div>
-
-                {/* Cash on Delivery */}
-                <div onClick={() => setPaymentMethod('cod')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'cod' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex items-center gap-4 ${paymentMethod === 'cod' ? '' : 'opacity-50'}`}>
-                    <div className="w-12 h-8 bg-[#082717] rounded-[3px] flex items-center justify-center">
-                      <svg viewBox="0 0 40 24" width="40" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" fill="#d4af37" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="7">COD</text>
-                        <path d="M5 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
-                        <path d="M30 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
-                      </svg>
+                  
+                  <div className="bg-[#f7f3ed] rounded-sm p-3 space-y-2">
+                    {/* Razorpay Online Payment */}
+                    <div onClick={() => setPaymentMethod('razorpay')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
+                      <div className={`flex items-center gap-4 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
+                        <div className="w-12 h-8 bg-[#0F1C3F] rounded-[3px] flex items-center justify-center text-white shrink-0">
+                          <span className="text-[10px] font-bold tracking-tight">Razorpay</span>
+                        </div>
+                        <div className="flex flex-col md:flex-row md:items-center gap-3">
+                          <span className="text-sm font-semibold">Online Payment (UPI, Card, NetBanking, Wallets)</span>
+                          <span className="bg-[#1a4a35] text-[#d4af37] text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-sm animate-pulse border border-[#d4af37]/30">
+                            ⚡ Save 10% Instantly
+                          </span>
+                        </div>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full ${paymentMethod === 'razorpay' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
                     </div>
-                    <span className="text-sm font-semibold">Cash on Delivery</span>
+
+                    {/* Cash on Delivery */}
+                    <div onClick={() => setPaymentMethod('cod')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'cod' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
+                      <div className={`flex items-center gap-4 ${paymentMethod === 'cod' ? '' : 'opacity-50'}`}>
+                        <div className="w-12 h-8 bg-[#082717] rounded-[3px] flex items-center justify-center">
+                          <svg viewBox="0 0 40 24" width="40" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" fill="#d4af37" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="7">COD</text>
+                            <path d="M5 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
+                            <path d="M30 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
+                          </svg>
+                        </div>
+                        <span className="text-sm font-semibold">Cash on Delivery</span>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
+                    </div>
                   </div>
-                  <div className={`w-5 h-5 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
-                </div>
-              </div>
-            </section>
+                </section>
+              </>
+            )}
             
           </div>
 
@@ -985,6 +1016,56 @@ export default function CartPage() {
           </div>
         </main>
       </div>
+
+      {/* Premium Authentication Modal Overlay */}
+      {showAuthModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md transition-all duration-300">
+          <div className="relative w-full max-w-[480px] bg-[#082717] border border-[#d4af37]/30 p-8 md:p-10 shadow-2xl rounded-sm text-center space-y-8" style={{ backgroundImage: 'radial-gradient(circle at top, rgba(212,175,55,0.08) 0%, transparent 70%)' }}>
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowAuthModal(false)}
+              className="absolute right-6 top-6 text-white/50 hover:text-white transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-xl">close</span>
+            </button>
+
+            {/* Glowing Icon Container */}
+            <div className="relative w-20 h-20 mx-auto">
+              <div className="absolute inset-0 bg-[#d4af37]/10 rounded-full blur-md animate-pulse"></div>
+              <div className="relative w-20 h-20 rounded-full border border-[#d4af37]/40 flex items-center justify-center text-[#d4af37] bg-[#051c10]">
+                <span className="material-symbols-outlined" style={{ fontSize: '36px' }}>lock</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="space-y-3">
+              <span className="text-[10px] font-label uppercase tracking-[0.3em] text-[#d4af37] font-semibold block">Secure Checkout Protocol</span>
+              <h3 className="font-headline text-2xl md:text-3xl text-white font-bold tracking-tight">Authentication Required</h3>
+              <div className="h-px w-12 bg-[#d4af37]/30 mx-auto my-4"></div>
+              <p className="text-xs md:text-sm text-white/70 max-w-sm mx-auto leading-relaxed">
+                To complete your boutique order and secure your timeless luxury jewelry, please sign in or create a private account first.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-4 pt-2">
+              <Link 
+                to="/login?redirect=cart" 
+                className="w-full inline-block bg-[#765931] hover:bg-[#d4af37] text-white hover:text-[#082717] py-4.5 font-label uppercase tracking-[0.25em] text-[10px] font-extrabold transition-all duration-300 shadow-lg border border-[#765931] hover:border-[#d4af37]"
+              >
+                Login or Create Account
+              </Link>
+              
+              <button 
+                onClick={() => setShowAuthModal(false)}
+                className="w-full bg-transparent hover:bg-white/5 text-white/60 hover:text-white py-3.5 font-label uppercase tracking-[0.2em] text-[9px] font-bold transition-all border border-white/10"
+              >
+                Return to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
