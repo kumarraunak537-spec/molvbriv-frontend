@@ -1,13 +1,27 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import heroVideo from '../assets/video.mp4'
 
 export default function HomePage() {
+  const [email, setEmail] = useState('')
+  const [subscribed, setSubscribed] = useState(false)
+  const [error, setError] = useState('')
+
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+
+  const handleSubscribe = (e) => {
+    e.preventDefault()
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+      setError('Please enter a valid email address.')
+      return
+    }
+    setError('')
+    setSubscribed(true)
+  }
 
   return (
     <div className="bg-background text-on-background selection:bg-secondary/20 font-body">
@@ -119,11 +133,35 @@ export default function HomePage() {
       <section className="py-16 md:py-32 px-5 md:px-12 bg-surface">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-2xl md:text-3xl font-manrope text-primary mb-4 md:mb-6">Join The Circle</h2>
-          <p className="text-on-surface-variant mb-6 md:mb-10 text-sm md:text-base">Subscribe for early access to new collections and private boutique events.</p>
-          <form className="flex flex-col md:flex-row gap-4" onSubmit={(e) => e.preventDefault()}>
-            <input className="flex-grow bg-surface-container-low border-none focus:ring-1 focus:ring-secondary py-3.5 md:py-4 px-4 md:px-6 text-sm" placeholder="Email Address" type="email"/>
-            <button className="bg-primary text-white px-8 md:px-10 py-3.5 md:py-4 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors duration-500" type="submit">Subscribe</button>
-          </form>
+          
+          {subscribed ? (
+            <div className="p-8 md:p-10 border border-[#d4af37]/30 space-y-4 max-w-xl mx-auto rounded-sm animate-fade-in" style={{ background: 'rgba(26, 74, 53, 0.03)' }}>
+              <div className="w-12 h-12 rounded-full border border-[#765931]/30 flex items-center justify-center mx-auto text-[#765931]">
+                <span className="material-symbols-outlined text-xl">done</span>
+              </div>
+              <h3 className="font-manrope text-lg md:text-xl text-[#765931] tracking-wide font-semibold">Welcome to the Boutique Circle</h3>
+              <p className="text-xs md:text-sm text-on-surface-variant leading-relaxed">
+                An invitation with early access to new collections and private boutique events has been dispatched to <span className="font-semibold text-primary">{email}</span>.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p className="text-on-surface-variant mb-6 md:mb-10 text-sm md:text-base">Subscribe for early access to new collections and private boutique events.</p>
+              <form className="flex flex-col md:flex-row gap-4 max-w-xl mx-auto" onSubmit={handleSubscribe}>
+                <div className="flex-grow flex flex-col items-start gap-1">
+                  <input 
+                    className="w-full bg-surface-container-low border-none focus:ring-1 focus:ring-secondary py-3.5 md:py-4 px-4 md:px-6 text-sm" 
+                    placeholder="Email Address" 
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                  {error && <p className="text-[10px] text-red-500 ml-1 font-medium">{error}</p>}
+                </div>
+                <button className="bg-primary text-white px-8 md:px-10 py-3.5 md:py-4 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors duration-500 h-fit" type="submit">Subscribe</button>
+              </form>
+            </>
+          )}
         </div>
       </section>
 
