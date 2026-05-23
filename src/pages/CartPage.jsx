@@ -686,20 +686,30 @@ export default function CartPage() {
                 </div>
               </div>
               
-              <button 
-                onClick={completePurchase} 
-                disabled={isPaymentLoading}
-                className="w-full mt-10 py-5 bg-secondary text-white font-label uppercase tracking-[0.3em] text-[11px] font-bold shadow-lg hover:bg-on-secondary-container transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isPaymentLoading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <>
-                    Pay Now
-                    <span className="material-symbols-outlined text-sm">lock</span>
-                  </>
-                )}
-              </button>
+              {!user ? (
+                <Link 
+                  to="/login?redirect=cart"
+                  className="w-full mt-10 py-5 bg-secondary text-white font-label uppercase tracking-[0.3em] text-[11px] font-bold shadow-lg hover:bg-on-secondary-container transition-all flex items-center justify-center gap-3 text-center"
+                >
+                  Login to Checkout
+                  <span className="material-symbols-outlined text-sm">lock</span>
+                </Link>
+              ) : (
+                <button 
+                  onClick={completePurchase} 
+                  disabled={isPaymentLoading}
+                  className="w-full mt-10 py-5 bg-secondary text-white font-label uppercase tracking-[0.3em] text-[11px] font-bold shadow-lg hover:bg-on-secondary-container transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPaymentLoading ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      Pay Now
+                      <span className="material-symbols-outlined text-sm">lock</span>
+                    </>
+                  )}
+                </button>
+              )}
               
               <p className="text-[10px] text-center mt-6 text-white/40 leading-relaxed font-label">
                 Transactions are secured by 256-bit encryption. <br/>
@@ -809,140 +819,165 @@ export default function CartPage() {
              <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
           </div>
 
-          {/* Personal Details */}
-          <div className="mt-12 space-y-6">
-            <h2 className="font-headline text-2xl text-primary mb-6">Personal Details</h2>
-            
-            <div className="space-y-4">
+          {!user ? (
+            <div className="mt-12 p-8 shadow-sm rounded-none border border-[#765931]/20 text-center space-y-8 bg-white/40 backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.4)' }}>
+              <div className="w-14 h-14 rounded-full bg-[#765931]/10 flex items-center justify-center mx-auto text-[#765931]">
+                <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>lock</span>
+              </div>
               <div className="space-y-2">
-                <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
-                <div className="relative">
-                  <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                    <option>India</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
-                </div>
+                <span className="text-[9px] font-label uppercase tracking-[0.2em] text-[#765931] font-bold block">Secure Checkout Session</span>
+                <h3 className="font-headline text-xl text-primary font-bold">Authentication Required</h3>
+                <p className="text-xs text-on-surface-variant max-w-xs mx-auto leading-relaxed">
+                  To complete your boutique order and secure your timeless luxury jewelry, please sign in or create a private account first.
+                </p>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.email ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                {errors.email && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
-                  <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
-                  <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
-                <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
-                <input type="text" value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
-                  <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
-                  <div className="relative">
-                    <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                      {INDIAN_STATES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
-                  <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                </div>
-              </div>
-
-              <div className="pt-2 space-y-4">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setSaveInfo(!saveInfo)}>
-                    {saveInfo && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
-                  </div>
-                  <span className="text-sm text-on-surface-variant">Save this information for next time</span>
-                </label>
-
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setNewsOffers(!newsOffers)}>
-                    {newsOffers && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
-                  </div>
-                  <span className="text-sm text-on-surface-variant">Text me with news and offers</span>
-                </label>
+              <div className="pt-2 max-w-xs mx-auto">
+                <Link 
+                  to="/login?redirect=cart" 
+                  className="w-full inline-block bg-[#765931] text-white py-4 font-label uppercase tracking-[0.2em] text-[9px] font-bold hover:bg-primary transition-all shadow-md text-center"
+                >
+                  Login or Create Account
+                </Link>
               </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Personal Details */}
+              <div className="mt-12 space-y-6">
+                <h2 className="font-headline text-2xl text-primary mb-6">Personal Details</h2>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
+                    <div className="relative">
+                      <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                        <option>India</option>
+                      </select>
+                      <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                    </div>
+                  </div>
 
-          {/* Secure Payment */}
-          <div className="mt-12">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="font-headline text-2xl text-primary">Secure Payment</h2>
-              <div className="flex items-center gap-1 text-on-surface-variant/50">
-                <span className="material-symbols-outlined text-sm">lock</span>
-                <span className="text-[8px] font-label uppercase tracking-widest">Encrypted</span>
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
+                    <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.email ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                    {errors.email && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
+                  </div>
 
-             <div className="bg-[#f7f3ed] rounded-sm p-2 space-y-2">
-                {/* Razorpay Online Payment */}
-                <div onClick={() => setPaymentMethod('razorpay')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex flex-col gap-2 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-6 bg-[#0F1C3F] rounded-[2.5px] flex items-center justify-center text-white shrink-0">
-                        <span className="text-[9px] font-bold tracking-tight">Razorpay</span>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
+                      <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
+                      <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
+                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
+                    <input type="text" value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
+                      <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
+                      <div className="relative">
+                        <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                          {INDIAN_STATES.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                       </div>
-                      <span className="text-sm font-semibold">Online Payment (UPI, Cards, Wallets)</span>
-                    </div>
-                    <div className="self-start">
-                      <span className="bg-[#1a4a35] text-[#d4af37] text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-sm border border-[#d4af37]/30">
-                        ⚡ 10% Instant Discount Applied
-                      </span>
                     </div>
                   </div>
-                  <div className={`w-4 h-4 rounded-full ${paymentMethod === 'razorpay' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
+                      <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
+                      <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+                  </div>
+
+                  <div className="pt-2 space-y-4">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setSaveInfo(!saveInfo)}>
+                        {saveInfo && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
+                      </div>
+                      <span className="text-sm text-on-surface-variant">Save this information for next time</span>
+                    </label>
+
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setNewsOffers(!newsOffers)}>
+                        {newsOffers && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
+                      </div>
+                      <span className="text-sm text-on-surface-variant">Text me with news and offers</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Secure Payment */}
+              <div className="mt-12">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="font-headline text-2xl text-primary">Secure Payment</h2>
+                  <div className="flex items-center gap-1 text-on-surface-variant/50">
+                    <span className="material-symbols-outlined text-sm">lock</span>
+                    <span className="text-[8px] font-label uppercase tracking-widest">Encrypted</span>
+                  </div>
                 </div>
 
-                {/* Cash on Delivery */}
-                <div onClick={() => setPaymentMethod('cod')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'cod' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex items-center gap-4 ${paymentMethod === 'cod' ? '' : 'opacity-50'}`}>
-                    <div className="w-10 h-6 bg-[#082717] rounded-[2px] flex items-center justify-center">
-                      <svg viewBox="0 0 40 24" width="40" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" fill="#d4af37" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="7">COD</text>
-                        <path d="M5 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
-                        <path d="M30 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
-                      </svg>
+                <div className="bg-[#f7f3ed] rounded-sm p-2 space-y-2">
+                  {/* Razorpay Online Payment */}
+                  <div onClick={() => setPaymentMethod('razorpay')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
+                    <div className={`flex flex-col gap-2 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-6 bg-[#0F1C3F] rounded-[2.5px] flex items-center justify-center text-white shrink-0">
+                          <span className="text-[9px] font-bold tracking-tight">Razorpay</span>
+                        </div>
+                        <span className="text-sm font-semibold">Online Payment (UPI, Cards, Wallets)</span>
+                      </div>
+                      <div className="self-start">
+                        <span className="bg-[#1a4a35] text-[#d4af37] text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-sm border border-[#d4af37]/30">
+                          ⚡ 10% Instant Discount Applied
+                        </span>
+                      </div>
                     </div>
-                    <span className="text-sm">Cash on Delivery</span>
+                    <div className={`w-4 h-4 rounded-full ${paymentMethod === 'razorpay' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
                   </div>
-                  <div className={`w-4 h-4 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
+
+                  {/* Cash on Delivery */}
+                  <div onClick={() => setPaymentMethod('cod')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'cod' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
+                    <div className={`flex items-center gap-4 ${paymentMethod === 'cod' ? '' : 'opacity-50'}`}>
+                      <div className="w-10 h-6 bg-[#082717] rounded-[2px] flex items-center justify-center">
+                        <svg viewBox="0 0 40 24" width="40" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" fill="#d4af37" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="7">COD</text>
+                          <path d="M5 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
+                          <path d="M30 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
+                        </svg>
+                      </div>
+                      <span className="text-sm">Cash on Delivery</span>
+                    </div>
+                    <div className={`w-4 h-4 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
+                  </div>
                 </div>
-             </div>
-          </div>
+              </div>
+            </>
+          )}
 
           {/* Summary */}
           <div className="mt-12 bg-[#082717] text-white p-8 shadow-2xl rounded-sm">
@@ -979,20 +1014,30 @@ export default function CartPage() {
               <span className="font-headline text-3xl text-[#d4af37]">₹{grandTotal.toLocaleString()}.00</span>
             </div>
 
-            <button 
-              onClick={completePurchase} 
-              disabled={isPaymentLoading}
-              className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isPaymentLoading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  Pay Now
-                  <span className="material-symbols-outlined text-sm">lock</span>
-                </>
-              )}
-            </button>
+            {!user ? (
+              <Link 
+                to="/login?redirect=cart"
+                className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold text-center"
+              >
+                Login to Checkout
+                <span className="material-symbols-outlined text-sm">lock</span>
+              </Link>
+            ) : (
+              <button 
+                onClick={completePurchase} 
+                disabled={isPaymentLoading}
+                className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPaymentLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    Pay Now
+                    <span className="material-symbols-outlined text-sm">lock</span>
+                  </>
+                )}
+              </button>
+            )}
 
             <p className="text-[8px] font-label uppercase tracking-widest text-center mt-6 text-white/40 leading-relaxed">
               Transactions are secured by 256-bit encryption.<br/>
