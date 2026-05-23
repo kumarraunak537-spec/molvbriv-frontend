@@ -50,7 +50,8 @@ export default function AdminPage() {
       });
 
       if (error) {
-        setLoginError('Invalid email or password.');
+        console.error('Admin Auth Error:', error);
+        setLoginError(error.message || 'Invalid email or password.');
         setIsLoggingIn(false);
         return;
       }
@@ -77,8 +78,9 @@ export default function AdminPage() {
       }
 
       if (profileError) {
+        console.error('Admin Profile Fetch Error:', profileError);
         await supabase.auth.signOut();
-        setLoginError(`Access denied: Profile not found or database error.`);
+        setLoginError(`Access denied: Profile error (${profileError.message}).`);
       } else if (profile?.role === 'admin') {
         setIsAuthenticated(true);
         setAdminUser({
@@ -90,7 +92,8 @@ export default function AdminPage() {
         setLoginError(`Access denied: You do not have admin privileges.`);
       }
     } catch (err) {
-      setLoginError('Something went wrong. Try again.');
+      console.error('Admin Login Try/Catch Error:', err);
+      setLoginError(err.message || 'Something went wrong. Try again.');
     }
     setIsLoggingIn(false);
   };

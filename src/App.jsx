@@ -75,11 +75,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/about" element={<AboutUsPage />} />
           <Route path="/track-order" element={<OrderTrackingPage />} />
-          <Route path="/admin" element={
-            <ProtectedRoute requireAdmin={true}>
-              <AdminPage />
-            </ProtectedRoute>
-          } />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </div>
     </CartProvider>
