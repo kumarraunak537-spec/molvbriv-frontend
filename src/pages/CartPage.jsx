@@ -89,7 +89,7 @@ export default function CartPage() {
         }
 
         const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_9rF2B2HwG22D2l',
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_SsUdDbfNytrJV9',
           amount: grandTotal * 100, // in paise
           currency: 'INR',
           name: 'MOLVBRIV',
