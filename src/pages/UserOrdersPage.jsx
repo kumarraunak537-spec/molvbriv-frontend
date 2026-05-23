@@ -212,7 +212,7 @@ export default function UserOrdersPage() {
                       to={`/track-order?id=${order.razorpay_order_id || order.id}&email=${order.customer_email}`}
                       className="w-full sm:w-auto inline-block border border-primary/30 text-primary font-label uppercase tracking-widest text-[9px] px-6 py-3.5 hover:border-primary transition-all font-bold text-center"
                     >
-                      Track Order via Concierge
+                      Track Order
                     </Link>
                   </div>
                 </div>
