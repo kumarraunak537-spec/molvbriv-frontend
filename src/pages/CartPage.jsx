@@ -73,7 +73,8 @@ export default function CartPage() {
   const [isPaymentLoading, setIsPaymentLoading] = useState(false)
 
   const taxes = Math.round(subtotal * 0.08)
-  const grandTotal = subtotal - discount + taxes
+  const onlineDiscount = paymentMethod === 'razorpay' ? Math.round(subtotal * 0.1) : 0
+  const grandTotal = Math.max(0, subtotal - discount - onlineDiscount + taxes)
 
   const applyCode = () => {
     if (privilegeCode.toLowerCase() === 'molvbriv10') {
@@ -573,10 +574,15 @@ export default function CartPage() {
                 {/* Razorpay Online Payment */}
                 <div onClick={() => setPaymentMethod('razorpay')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
                   <div className={`flex items-center gap-4 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
-                    <div className="w-12 h-8 bg-[#0F1C3F] rounded-[3px] flex items-center justify-center text-white">
+                    <div className="w-12 h-8 bg-[#0F1C3F] rounded-[3px] flex items-center justify-center text-white shrink-0">
                       <span className="text-[10px] font-bold tracking-tight">Razorpay</span>
                     </div>
-                    <span className="text-sm font-semibold">Online Payment (UPI, Card, NetBanking, Wallets)</span>
+                    <div className="flex flex-col md:flex-row md:items-center gap-3">
+                      <span className="text-sm font-semibold">Online Payment (UPI, Card, NetBanking, Wallets)</span>
+                      <span className="bg-[#1a4a35] text-[#d4af37] text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-sm animate-pulse border border-[#d4af37]/30">
+                        ⚡ Save 10% Instantly
+                      </span>
+                    </div>
                   </div>
                   <div className={`w-5 h-5 rounded-full ${paymentMethod === 'razorpay' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
                 </div>
@@ -618,6 +624,15 @@ export default function CartPage() {
                   <span>Taxes</span>
                   <span className="text-white">₹{taxes.toLocaleString()}.00</span>
                 </div>
+                {onlineDiscount > 0 && (
+                  <div className="flex justify-between text-[#d4af37] font-semibold border-b border-white/10 pb-3 pt-2">
+                    <span className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-xs">percent</span>
+                      Online Payment 10% Off
+                    </span>
+                    <span>-₹{onlineDiscount.toLocaleString()}.00</span>
+                  </div>
+                )}
                 
                 {/* Discount Field */}
                 <div className="pt-6 pb-2">
@@ -865,11 +880,18 @@ export default function CartPage() {
              <div className="bg-[#f7f3ed] rounded-sm p-2 space-y-2">
                 {/* Razorpay Online Payment */}
                 <div onClick={() => setPaymentMethod('razorpay')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex items-center gap-4 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
-                    <div className="w-10 h-6 bg-[#0F1C3F] rounded-[2.5px] flex items-center justify-center text-white">
-                      <span className="text-[9px] font-bold tracking-tight">Razorpay</span>
+                  <div className={`flex flex-col gap-2 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-6 bg-[#0F1C3F] rounded-[2.5px] flex items-center justify-center text-white shrink-0">
+                        <span className="text-[9px] font-bold tracking-tight">Razorpay</span>
+                      </div>
+                      <span className="text-sm font-semibold">Online Payment (UPI, Cards, Wallets)</span>
                     </div>
-                    <span className="text-sm">Online Payment (UPI, Cards, Wallets)</span>
+                    <div className="self-start">
+                      <span className="bg-[#1a4a35] text-[#d4af37] text-[8px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-sm border border-[#d4af37]/30">
+                        ⚡ 10% Instant Discount Applied
+                      </span>
+                    </div>
                   </div>
                   <div className={`w-4 h-4 rounded-full ${paymentMethod === 'razorpay' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
                 </div>
@@ -908,6 +930,12 @@ export default function CartPage() {
                 <span className="text-white/70">Taxes</span>
                 <span>₹{taxes.toLocaleString()}.00</span>
               </div>
+              {onlineDiscount > 0 && (
+                <div className="flex justify-between text-[#d4af37] font-semibold text-sm border-b border-white/10 pb-3 pt-2">
+                  <span>Online Payment 10% Off</span>
+                  <span>-₹{onlineDiscount.toLocaleString()}.00</span>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-center border-t border-white/10 pt-6 mb-6">
