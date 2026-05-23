@@ -11,6 +11,9 @@ import BuyNowPage from './pages/BuyNowPage.jsx'
 import AboutUsPage from './pages/AboutUsPage.jsx'
 import OrderTrackingPage from './pages/OrderTrackingPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
+import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx'
+import PaymentFailedPage from './pages/PaymentFailedPage.jsx'
+import UserOrdersPage from './pages/UserOrdersPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { CartProvider } from './context/CartContext.jsx'
 
@@ -76,6 +79,9 @@ function App() {
           <Route path="/about" element={<AboutUsPage />} />
           <Route path="/track-order" element={<OrderTrackingPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/payment-success" element={<PaymentSuccessPage />} />
+          <Route path="/payment-failed" element={<PaymentFailedPage />} />
+          <Route path="/orders" element={<UserOrdersPage />} />
         </Routes>
       </div>
     </CartProvider>

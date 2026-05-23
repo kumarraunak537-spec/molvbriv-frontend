@@ -110,6 +110,10 @@ export default function AdminPage() {
   const [isToastVisible, setIsToastVisible] = useState(false);
   const [graphMode, setGraphMode] = useState('daily');
   const [orderFilter, setOrderFilter] = useState('all');
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('all');
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState('all');
+  const [selectedAdminOrder, setSelectedAdminOrder] = useState(null);
   const [customizeFilter, setCustomizeFilter] = useState('all');
   const [selectedCollection, setSelectedCollection] = useState('Jhumka');
 
@@ -223,10 +227,13 @@ export default function AdminPage() {
 
   const updateOrderStatus = async (id, newStatus) => {
     try {
-      const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', id);
+      const { error } = await supabase.from('orders').update({ 
+        order_status: newStatus, 
+        status: newStatus 
+      }).eq('id', id);
       if (error) throw error;
-      setOrdersData(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
-      showToast('Order status updated');
+      setOrdersData(prev => prev.map(o => o.id === id ? { ...o, order_status: newStatus, status: newStatus } : o));
+      showToast(`Order status updated to ${newStatus}`);
     } catch (err) {
       console.error(err);
       showToast('Failed to update status');
@@ -255,7 +262,26 @@ export default function AdminPage() {
         console.error("Error loading data:", err.message);
       }
     }
-    if (isAuthenticated) loadSupabaseData();
+
+    let subscription;
+    if (isAuthenticated) {
+      loadSupabaseData();
+
+      // Realtime listener for order modifications (anti-delay, realtime refresh)
+      subscription = supabase
+        .channel('admin-realtime-orders')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async (payload) => {
+          console.log('Realtime Order Event received:', payload);
+          const { data: newOrders } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
+          if (newOrders) setOrdersData(newOrders);
+          showToast('Live orders updated');
+        })
+        .subscribe();
+    }
+
+    return () => {
+      if (subscription) supabase.removeChannel(subscription);
+    };
   }, [isAuthenticated]);
 
   const handleFaviconUpload = async (e) => {
@@ -352,6 +378,23 @@ export default function AdminPage() {
   const areaPath = 'M' + pts.map(([x, y]) => x + ',' + y).join(' L') + ' L' + W + ',' + (H - bpad) + ' L0,' + (H - bpad) + ' Z';
   const linePath = 'M' + pts.map(([x, y]) => x + ',' + y).join(' L');
   const showLabelsIndices = labels.map((_, i) => i);
+
+  const filteredOrders = ordersData.filter(o => {
+    const matchesSearch = 
+      (o.razorpay_order_id || o.id || '').toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      (o.customer_name || '').toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      (o.customer_email || '').toLowerCase().includes(orderSearchQuery.toLowerCase()) ||
+      (o.customer_phone || '').includes(orderSearchQuery) ||
+      (o.payment_id || '').toLowerCase().includes(orderSearchQuery.toLowerCase());
+
+    const statusVal = o.order_status || o.status || 'Pending';
+    const matchesStatus = orderStatusFilter === 'all' || statusVal.toLowerCase() === orderStatusFilter.toLowerCase();
+
+    const payVal = o.payment_status || 'Pending';
+    const matchesPayment = orderPaymentFilter === 'all' || payVal.toLowerCase() === orderPaymentFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus && matchesPayment;
+  });
 
   return (
     <div className="admin-root">
@@ -720,6 +763,7 @@ export default function AdminPage() {
 
             {/* VIEW ORDERS */}
             <div className={`pg ${activePage === 'orders' ? 'active' : ''}`}>
+              {/* Sales Overview Graph */}
               <div className="graph-wrap">
                 <div className="graph-head">
                   <div className="ctl">Sales Overview</div>
@@ -752,35 +796,219 @@ export default function AdminPage() {
                   ))}
                 </div>
               </div>
-              <div className="o-filter">
-                <button className={`of ${orderFilter === 'all' ? 'active' : ''}`} onClick={() => setOrderFilter('all')}>All ({ordersData.length})</button>
-                <button className={`of ${orderFilter === 'processing' ? 'active' : ''}`} onClick={() => setOrderFilter('processing')}>Processing ({ordersData.filter(o => o.status === 'Processing').length})</button>
-                <button className={`of ${orderFilter === 'shipped' ? 'active' : ''}`} onClick={() => setOrderFilter('shipped')}>Shipped ({ordersData.filter(o => o.status === 'Shipped').length})</button>
-                <button className={`of ${orderFilter === 'delivered' ? 'active' : ''}`} onClick={() => setOrderFilter('delivered')}>Delivered ({ordersData.filter(o => o.status === 'Delivered').length})</button>
+
+              {/* Advanced Sourcing & Orders Toolbar */}
+              <div className="ctb" style={{ flexWrap: 'wrap', gap: '12px' }}>
+                <input 
+                  className="si si-search" 
+                  type="text" 
+                  placeholder="Search orders by customer name, email, phone, or order ID..." 
+                  value={orderSearchQuery}
+                  onChange={e => setOrderSearchQuery(e.target.value)}
+                />
+                
+                {/* Status Filter */}
+                <select 
+                  className="si si-sel" 
+                  style={{ width: '150px' }} 
+                  value={orderStatusFilter} 
+                  onChange={e => setOrderStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Order Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                  <option value="processing">Processing</option>
+                  <option value="shipped">Shipped</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+
+                {/* Payment Status Filter */}
+                <select 
+                  className="si si-sel" 
+                  style={{ width: '150px' }} 
+                  value={orderPaymentFilter} 
+                  onChange={e => setOrderPaymentFilter(e.target.value)}
+                >
+                  <option value="all">All Payments</option>
+                  <option value="Paid">Paid</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Failed">Failed</option>
+                </select>
               </div>
+
+              {/* Complete Visibility Orders List */}
               <div className="ot">
-                <div className="oh"><span>ORDER ID</span><span>CUSTOMER</span><span>PRODUCT</span><span>AMOUNT</span><span>STATUS</span></div>
-                {ordersData.length > 0 ? ordersData.filter(o => orderFilter === 'all' || o.status.toLowerCase() === orderFilter).map(o => (
-                  <div key={o.id} className="or">
-                    <span style={{ color: 'var(--tx)', fontWeight: 500 }}>{o.order_number}</span>
-                    <span style={{ color: 'var(--mu)' }}>{o.customer_name}</span>
-                    <span style={{ color: 'var(--mu)' }}>{o.product_name}</span>
-                    <span style={{ color: 'var(--tx)' }}>Rs {o.total_price}</span>
-                    <select 
-                      value={o.status} 
-                      onChange={(e) => updateOrderStatus(o.id, e.target.value)}
-                      className={`bg ${o.status === 'Delivered' ? 'bgn' : (o.status === 'Processing' ? 'bgg' : 'bga')}`}
-                      style={{ border: 'none', outline: 'none', cursor: 'pointer', appearance: 'none' }}
+                <div className="oh" style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1fr 1fr 1.2fr 90px', padding: '9px 15px' }}>
+                  <span>ORDER ID</span>
+                  <span>DATE & TIME</span>
+                  <span>CUSTOMER</span>
+                  <span>AMOUNT</span>
+                  <span>METHOD</span>
+                  <span>PAYMENT</span>
+                  <span>STATUS</span>
+                </div>
+                {filteredOrders.length > 0 ? filteredOrders.map(o => {
+                  const statusVal = o.order_status || o.status || 'Pending';
+                  const payStatus = o.payment_status || 'Pending';
+                  return (
+                    <div 
+                      key={o.id} 
+                      className="or" 
+                      style={{ gridTemplateColumns: '1.2fr 1.2fr 1.2fr 1fr 1fr 1.2fr 90px', padding: '12px 15px', cursor: 'pointer' }}
+                      onClick={() => setSelectedAdminOrder(o)}
                     >
-                      <option value="Processing">Processing</option>
-                      <option value="Shipped">Shipped</option>
-                      <option value="Delivered">Delivered</option>
-                    </select>
-                  </div>
-                )) : (
-                  <div style={{ padding: '30px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No orders yet</div>
+                      <span style={{ color: 'var(--tx)', fontWeight: 600 }}>{o.razorpay_order_id || o.id?.substring(0, 13)}</span>
+                      <span style={{ color: 'var(--mu)', fontSize: '11px' }}>{new Date(o.created_at || Date.now()).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: 'var(--tx)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name}</div>
+                        <div style={{ color: 'var(--mu)', fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_email}</div>
+                      </div>
+                      <span style={{ color: 'var(--tx)', fontWeight: 500 }}>₹{parseFloat(o.total_amount || o.total_price || 0).toLocaleString()}</span>
+                      <span style={{ color: 'var(--mu)' }}>{o.payment_method}</span>
+                      <span className={`bg ${payStatus === 'Paid' ? 'bgn' : (payStatus === 'Failed' ? 'kd' : 'bga')}`} style={{ alignSelf: 'center', justifySelf: 'start' }}>
+                        {payStatus}
+                      </span>
+                      <span className={`bg ${statusVal === 'Delivered' ? 'bgn' : (statusVal === 'Processing' ? 'bgg' : (statusVal === 'Cancelled' ? 'kd' : 'bga'))}`} style={{ alignSelf: 'center', justifySelf: 'start' }}>
+                        {statusVal}
+                      </span>
+                    </div>
+                  );
+                }) : (
+                  <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No orders found matching the filter query.</div>
                 )}
               </div>
+
+              {/* Clean Sourcing Order Details Modal Overlay */}
+              {selectedAdminOrder && (
+                <div 
+                  className="admin-login-overlay" 
+                  style={{ background: 'rgba(11,13,17,0.85)', backdropFilter: 'blur(8px)', padding: '20px' }}
+                  onClick={() => setSelectedAdminOrder(null)}
+                >
+                  <div 
+                    className="admin-login-card" 
+                    style={{ width: '650px', maxWidth: '100%', padding: '28px 30px', maxHeight: '90vh', overflowY: 'auto' }}
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+                      <div>
+                        <h2 className="admin-login-title" style={{ textAlign: 'left', fontSize: '20px' }}>Order Details</h2>
+                        <p style={{ fontSize: '11px', color: 'var(--mu)', marginTop: '2px' }}>
+                          Placed on: {new Date(selectedAdminOrder.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedAdminOrder(null)}
+                        style={{ background: 'none', border: 'none', color: 'var(--mu)', cursor: 'pointer', fontSize: '24px' }}
+                      >
+                        ×
+                      </button>
+                    </div>
+
+                    <div className="admin-login-divider" style={{ marginBottom: '18px' }}></div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', fontSize: '12px' }}>
+                      {/* Customer info */}
+                      <div>
+                        <h3 style={{ color: 'var(--ac)', textTransform: 'uppercase', fontSize: '10px', tracking: '1px', marginBottom: '6px', fontWeight: 600 }}>Customer Contact</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: 'var(--s2)', padding: '12px', borderRadius: '6px', border: '1px solid var(--b1)' }}>
+                          <div><span style={{ color: 'var(--mu)' }}>Name:</span> <span style={{ color: 'var(--tx)', fontWeight: 500 }}>{selectedAdminOrder.customer_name}</span></div>
+                          <div><span style={{ color: 'var(--mu)' }}>Phone:</span> <span style={{ color: 'var(--tx)' }}>{selectedAdminOrder.customer_phone}</span></div>
+                          <div style={{ gridColumn: '1/-1' }}><span style={{ color: 'var(--mu)' }}>Email:</span> <span style={{ color: 'var(--tx)' }}>{selectedAdminOrder.customer_email}</span></div>
+                        </div>
+                      </div>
+
+                      {/* Shipping Destination */}
+                      <div>
+                        <h3 style={{ color: 'var(--ac)', textTransform: 'uppercase', fontSize: '10px', tracking: '1px', marginBottom: '6px', fontWeight: 600 }}>Shipping Destination</h3>
+                        <div style={{ background: 'var(--s2)', padding: '12px', borderRadius: '6px', border: '1px solid var(--b1)', color: 'var(--tx)', lineHeight: '1.5' }}>
+                          {typeof selectedAdminOrder.shipping_address === 'string' ? selectedAdminOrder.shipping_address : (
+                            <>
+                              <div>{selectedAdminOrder.shipping_address?.address}</div>
+                              {selectedAdminOrder.shipping_address?.apartment && <div>{selectedAdminOrder.shipping_address.apartment}</div>}
+                              <div>{selectedAdminOrder.shipping_address?.city}, {selectedAdminOrder.shipping_address?.state} - {selectedAdminOrder.shipping_address?.pinCode}</div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Products detail */}
+                      <div>
+                        <h3 style={{ color: 'var(--ac)', textTransform: 'uppercase', fontSize: '10px', tracking: '1px', marginBottom: '6px', fontWeight: 600 }}>Sourcing Items</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {selectedAdminOrder.products && Array.isArray(selectedAdminOrder.products) && selectedAdminOrder.products.map((prod, idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'var(--s2)', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--b1)' }}>
+                              <img src={prod.image} alt={prod.name} style={{ width: '40px', height: '50px', objectFit: 'cover', borderRadius: '4px' }} />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ color: 'var(--tx)', fontWeight: 500 }}>{prod.name}</div>
+                                <div style={{ color: 'var(--mu)', fontSize: '10px' }}>Rate: ₹{parseFloat(prod.price).toLocaleString()} · Qty: {prod.quantity}</div>
+                              </div>
+                              <div style={{ color: 'var(--tx)', fontWeight: 600 }}>₹{parseFloat(prod.price * prod.quantity).toLocaleString()}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Payment details */}
+                      <div>
+                        <h3 style={{ color: 'var(--ac)', textTransform: 'uppercase', fontSize: '10px', tracking: '1px', marginBottom: '6px', fontWeight: 600 }}>Payment Credentials</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: 'var(--s2)', padding: '12px', borderRadius: '6px', border: '1px solid var(--b1)' }}>
+                          <div><span style={{ color: 'var(--mu)' }}>Method:</span> <span style={{ color: 'var(--tx)', fontWeight: 500 }}>{selectedAdminOrder.payment_method}</span></div>
+                          <div><span style={{ color: 'var(--mu)' }}>Status:</span> <span style={{ color: 'var(--tx)', fontWeight: 500 }}>{selectedAdminOrder.payment_status}</span></div>
+                          <div><span style={{ color: 'var(--mu)' }}>Payment ID:</span> <span style={{ color: 'var(--tx)', fontFamily: 'monospace', fontSize: '10px' }}>{selectedAdminOrder.payment_id || 'N/A'}</span></div>
+                          <div><span style={{ color: 'var(--mu)' }}>Razorpay Order ID:</span> <span style={{ color: 'var(--tx)', fontFamily: 'monospace', fontSize: '10px' }}>{selectedAdminOrder.razorpay_order_id || 'N/A'}</span></div>
+                        </div>
+                      </div>
+
+                      {/* Interactive order status controls */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid var(--b1)', paddingTop: '16px', marginTop: '4px' }}>
+                        <div style={{ display: 'flex', justifySelf: 'stretch', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: 'var(--tx)', fontWeight: 600 }}>Update Status:</span>
+                          <select 
+                            value={selectedAdminOrder.order_status || selectedAdminOrder.status || 'Pending'} 
+                            onChange={(e) => {
+                              updateOrderStatus(selectedAdminOrder.id, e.target.value);
+                              setSelectedAdminOrder(prev => ({ ...prev, order_status: e.target.value, status: e.target.value }));
+                            }}
+                            className="si si-sel"
+                            style={{ width: '160px', background: 'var(--s3)', borderColor: 'var(--b2)' }}
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Paid">Paid</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                          <button 
+                            className="btn" 
+                            style={{ flex: 1, borderColor: 'var(--rd)', color: 'var(--rd)', background: 'rgba(224,82,82,0.06)' }}
+                            onClick={() => {
+                              if (window.confirm('Are you sure you want to cancel this order?')) {
+                                updateOrderStatus(selectedAdminOrder.id, 'Cancelled');
+                                setSelectedAdminOrder(prev => ({ ...prev, order_status: 'Cancelled', status: 'Cancelled' }));
+                              }
+                            }}
+                          >
+                            Cancel Order
+                          </button>
+                          <button 
+                            className="btn btn-p" 
+                            style={{ flex: 1 }}
+                            onClick={() => setSelectedAdminOrder(null)}
+                          >
+                            Done
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* SETTINGS */}

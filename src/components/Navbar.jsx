@@ -53,7 +53,8 @@ export default function Navbar() {
     { label: 'Collections', path: '/collections' },
     { label: 'New Arrivals', path: '/new-arrivals' },
     { label: 'About', path: '/about' },
-    { label: 'Track Order', path: '/track-order' }
+    { label: 'Track Order', path: '/track-order' },
+    ...(isLoggedIn ? [{ label: 'My Orders', path: '/orders' }] : [])
   ]
 
   const handleLogout = async () => {

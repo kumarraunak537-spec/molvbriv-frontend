@@ -45,7 +45,7 @@ const INDIAN_STATES = [
 
 export default function CartPage() {
   const navigate = useNavigate()
-  const { cartItems, removeFromCart, updateQuantity, subtotal } = useCart()
+  const { cartItems, removeFromCart, updateQuantity, subtotal, clearCart, user } = useCart()
   const [activeStep, setActiveStep] = useState(1)
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -114,30 +114,123 @@ export default function CartPage() {
   }
 
   const completePurchase = async () => {
-    if (validateForm()) {
-      if (paymentMethod === 'cod') {
-        setShowConfirmation(true)
-        window.scrollTo(0, 0)
-      } else {
-        setIsPaymentLoading(true)
-        const isLoaded = await loadRazorpayScript()
-        if (!isLoaded) {
-          alert('Razorpay SDK failed to load. Please check your internet connection.')
-          setIsPaymentLoading(false)
-          return
+    if (!validateForm()) {
+      setActiveStep(activeStep > 1 ? activeStep : 1);
+      return;
+    }
+
+    const shippingAddress = {
+      address: address,
+      apartment: apartment,
+      city: city,
+      state: state,
+      pinCode: pinCode
+    };
+
+    const checkoutDetails = {
+      userId: user?.id || null,
+      customerName: `${firstName} ${lastName}`,
+      customerEmail: email,
+      customerPhone: phone,
+      shippingAddress: shippingAddress,
+      products: cartItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+        description: item.description
+      })),
+      quantity: cartItems.reduce((sum, item) => sum + item.quantity, 0),
+      amount: grandTotal
+    };
+
+    if (paymentMethod === 'cod') {
+      setIsPaymentLoading(true);
+      try {
+        const response = await fetch('http://localhost:5000/api/payments/cod', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ checkoutDetails })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+          clearCart();
+          navigate('/payment-success', { state: { order: result.order } });
+        } else {
+          throw new Error(result.error || 'Failed to place COD order');
         }
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Payment failure. Please try again.');
+      } finally {
+        setIsPaymentLoading(false);
+      }
+    } else {
+      setIsPaymentLoading(true);
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) {
+        alert('Razorpay SDK failed to load. Please check your internet connection.');
+        setIsPaymentLoading(false);
+        return;
+      }
+
+      try {
+        // 1. Create order on backend (pre-created to prevent losses)
+        const orderResponse = await fetch('http://localhost:5000/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: grandTotal,
+            currency: 'INR',
+            checkoutDetails
+          })
+        });
+        const orderResult = await orderResponse.json();
+
+        if (!orderResult.success) {
+          throw new Error(orderResult.error || 'Failed to initialize payment');
+        }
+
+        const razorpayOrder = orderResult.razorpayOrder;
 
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_SsUdDbfNytrJV9',
-          amount: grandTotal * 100, // in paise
-          currency: 'INR',
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
           name: 'MOLVBRIV',
           description: 'Timeless Luxury Jewelry Sourcing & Purchase',
           image: 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=200&h=200&fit=crop',
-          handler: function (response) {
-            setIsPaymentLoading(false)
-            setShowConfirmation(true)
-            window.scrollTo(0, 0)
+          order_id: razorpayOrder.id,
+          handler: async function (response) {
+            try {
+              setIsPaymentLoading(true);
+              // 2. Verify signature on backend
+              const verifyResponse = await fetch('http://localhost:5000/api/payments/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  checkoutDetails
+                })
+              });
+              const verifyResult = await verifyResponse.json();
+
+              if (verifyResult.success) {
+                clearCart();
+                navigate('/payment-success', { state: { order: verifyResult.order } });
+              } else {
+                throw new Error(verifyResult.error || 'Payment signature mismatch');
+              }
+            } catch (err) {
+              console.error(err);
+              navigate('/payment-failed', { state: { error: err.message, checkoutDetails } });
+            } finally {
+              setIsPaymentLoading(false);
+            }
           },
           prefill: {
             name: `${firstName} ${lastName}`,
@@ -152,24 +245,26 @@ export default function CartPage() {
           },
           modal: {
             ondismiss: function () {
-              setIsPaymentLoading(false)
+              setIsPaymentLoading(false);
+              navigate('/payment-failed', { 
+                state: { 
+                  error: 'Payment dismissed by user.', 
+                  checkoutDetails 
+                } 
+              });
             }
           }
-        }
+        };
 
-        try {
-          const rzp = new window.Razorpay(options)
-          rzp.open()
-        } catch (err) {
-          console.error('Razorpay initialization error:', err)
-          alert('Failed to initialize Razorpay payment. Please try again.')
-          setIsPaymentLoading(false)
-        }
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } catch (err) {
+        console.error(err);
+        alert(err.message || 'Failed to initiate Razorpay checkout.');
+        setIsPaymentLoading(false);
       }
-    } else {
-      setActiveStep(activeStep > 1 ? activeStep : 1)
     }
-  }
+  };
 
   const steps = [
     { num: '01', label: 'Cart' },

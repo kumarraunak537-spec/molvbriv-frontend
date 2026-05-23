@@ -200,3 +200,54 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- ==================================================
+-- UPGRADE ORDERS TABLE FOR COMPLETE VISIBILITY SYSTEM
+-- ==================================================
+
+-- Safely add missing columns to public.orders if they do not exist
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS customer_name TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS customer_email TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS customer_phone TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS products JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS total_amount DECIMAL(10,2);
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_id TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS order_status TEXT DEFAULT 'Pending';
+
+-- Ensure compatible columns are synced and non-null values populated
+UPDATE public.orders SET total_amount = total_price WHERE total_amount IS NULL AND total_price IS NOT NULL;
+UPDATE public.orders SET payment_id = razorpay_payment_id WHERE payment_id IS NULL AND razorpay_payment_id IS NOT NULL;
+UPDATE public.orders SET order_status = INITCAP(status) WHERE order_status IS NULL AND status IS NOT NULL;
+
+-- Enable Row Level Security (RLS) on public.orders
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+-- Safely drop old policies if they exist to prevent conflicts
+DROP POLICY IF EXISTS "Users can view their own orders" ON public.orders;
+DROP POLICY IF EXISTS "Users can view their own orders or Admins view all" ON public.orders;
+DROP POLICY IF EXISTS "Users can insert their own orders" ON public.orders;
+DROP POLICY IF EXISTS "Anyone can insert orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins can update orders" ON public.orders;
+
+-- 1. Users can view their own orders, or admins can view all orders
+CREATE POLICY "Users can view their own orders or Admins view all" ON public.orders
+  FOR SELECT USING (
+    auth.uid() = user_id OR 
+    EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+  );
+
+-- 2. Anyone can insert orders (supports guest checkout, but restricts user_id to auth.uid() if authenticated)
+CREATE POLICY "Anyone can insert orders" ON public.orders
+  FOR INSERT WITH CHECK (
+    (auth.uid() IS NULL AND user_id IS NULL) OR 
+    (auth.uid() = user_id) OR
+    EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+  );
+
+-- 3. Admins can update orders
+CREATE POLICY "Admins can update orders" ON public.orders
+  FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+  );
+
