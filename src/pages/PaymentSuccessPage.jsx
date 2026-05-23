@@ -77,7 +77,7 @@ export default function PaymentSuccessPage() {
               to="/" 
               className="w-full sm:w-auto inline-block bg-primary text-white font-label uppercase tracking-[0.2em] text-[10px] px-8 py-5 hover:bg-[#082717] transition-all font-bold text-center"
             >
-              Continue Sourcing
+              CONTINUE SHOPPING
             </Link>
             
             <Link 
