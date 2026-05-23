@@ -23,7 +23,7 @@ export default function CartPage() {
   const [expiry, setExpiry] = useState('')
   const [cvv, setCvv] = useState('')
   const [privilegeCode, setPrivilegeCode] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('visa')
+  const [paymentMethod, setPaymentMethod] = useState('razorpay')
   const [upiId, setUpiId] = useState('')
   const [upiVerified, setUpiVerified] = useState(null)
   const [discount, setDiscount] = useState(0)
@@ -331,119 +331,15 @@ export default function CartPage() {
               </div>
               
               <div className="bg-[#f7f3ed] rounded-sm p-3 space-y-2">
-                {/* Visa / Credit Card */}
-                <div onClick={() => setPaymentMethod('visa')} className={`flex flex-col bg-white p-5 rounded-sm border shadow-sm space-y-4 cursor-pointer transition-all ${paymentMethod === 'visa' ? 'border-[#765931]/40' : 'border-outline-variant/10'}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-8 bg-[#1434CB] rounded-[3px] flex items-center justify-center text-white shadow-sm">
-                        <span className="text-[11px] font-bold tracking-[1.5px] ml-[0.5px]" style={{ fontFamily: 'system-ui, -apple-system, Arial, sans-serif' }}>VISA</span>
-                      </div>
-                      <span className="text-sm font-semibold tracking-widest">Credit Card</span>
+                {/* Razorpay Online Payment */}
+                <div onClick={() => setPaymentMethod('razorpay')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
+                  <div className={`flex items-center gap-4 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
+                    <div className="w-12 h-8 bg-[#0F1C3F] rounded-[3px] flex items-center justify-center text-white">
+                      <span className="text-[10px] font-bold tracking-tight">Razorpay</span>
                     </div>
-                    <div className={`w-5 h-5 rounded-full ${paymentMethod === 'visa' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
+                    <span className="text-sm font-semibold">Online Payment (UPI, Card, NetBanking, Wallets)</span>
                   </div>
-                  {paymentMethod === 'visa' && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-                    <div className="md:col-span-3 space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">Card Number</label>
-                      <input type="text" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="•••• •••• •••• ••••" className={`w-full bg-transparent border-b ${errors.cardNumber ? 'border-error' : 'border-outline-variant/50'} focus:border-secondary focus:ring-0 py-2 font-mono outline-none`} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">Expiry</label>
-                      <input type="text" value={expiry} onChange={(e) => setExpiry(e.target.value)} placeholder="MM/YY" className={`w-full bg-transparent border-b ${errors.expiry ? 'border-error' : 'border-outline-variant/50'} focus:border-secondary focus:ring-0 py-2 outline-none`} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">CVV</label>
-                      <input type="password" value={cvv} onChange={(e) => setCvv(e.target.value)} placeholder="•••" className={`w-full bg-transparent border-b ${errors.cvv ? 'border-error' : 'border-outline-variant/50'} focus:border-secondary focus:ring-0 py-2 outline-none`} />
-                    </div>
-                  </div>
-                  )}
-                </div>
-
-                {/* Apple Pay */}
-                <div onClick={() => setPaymentMethod('applepay')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'applepay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex items-center gap-4 ${paymentMethod === 'applepay' ? '' : 'opacity-50'}`}>
-                    <div className="w-12 h-8 bg-[#000000] rounded-[3px] flex items-center justify-center text-white gap-[1px]">
-                      <svg viewBox="0 0 256 315" width="10" height="12" xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="mb-[1px]">
-                        <path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615-1.126 3.633-6.52 22.338-21.282 43.83-12.755 18.57-26.242 36.932-46.902 37.333-20.25.4-26.79-11.93-49.917-11.93-23.126 0-30.407 11.53-49.516 12.33-19.953.802-35.34-19.8-48.256-38.394-26.216-37.8-46.217-106.63-19.517-152.923 13.255-22.95 36.313-37.47 61.436-37.873 19.8-.4 38.384 13.298 50.158 13.298 11.77 0 34.02-15.7 57.625-13.4 9.873.402 37.584 3.992 55.434 30.124-1.464 1.025-33.144 19.345-31.46 53.99m-31.603-107.505c10.887-13.167 18.23-31.442 16.234-49.637-15.65 1.574-35.346 11.458-46.612 24.582-9.014 10.428-17.844 29.233-15.42 47.01 17.592 1.345 34.93-8.868 45.8-21.954"/>
-                      </svg>
-                      <span className="text-[10px] font-semibold tracking-tight">Pay</span>
-                    </div>
-                    <span className="text-sm font-semibold">Apple Pay</span>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full ${paymentMethod === 'applepay' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
-                </div>
-
-                {/* Google Pay */}
-                <div onClick={() => setPaymentMethod('gpay')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'gpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex items-center gap-4 ${paymentMethod === 'gpay' ? '' : 'opacity-50'}`}>
-                    <div className="w-12 h-8 bg-white border border-gray-200 rounded-[3px] flex items-center justify-center text-black">
-                      <span className="text-[10px] font-bold tracking-tight">G Pay</span>
-                    </div>
-                    <span className="text-sm font-semibold">Google Pay</span>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full ${paymentMethod === 'gpay' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
-                </div>
-
-                {/* Paytm */}
-                <div onClick={() => setPaymentMethod('paytm')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'paytm' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex items-center gap-4 ${paymentMethod === 'paytm' ? '' : 'opacity-50'}`}>
-                    <div className="w-12 h-8 bg-[#002970] rounded-[3px] flex items-center justify-center text-[#00baf2]">
-                      <span className="text-[9px] font-bold tracking-tighter">Paytm</span>
-                    </div>
-                    <span className="text-sm font-semibold">Paytm</span>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full ${paymentMethod === 'paytm' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
-                </div>
-
-                {/* PhonePe */}
-                <div onClick={() => setPaymentMethod('phonepe')} className={`flex items-center justify-between p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'phonepe' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className={`flex items-center gap-4 ${paymentMethod === 'phonepe' ? '' : 'opacity-50'}`}>
-                    <div className="w-12 h-8 bg-[#5f259f] rounded-[3px] flex items-center justify-center text-white">
-                      <span className="text-[8.5px] font-bold tracking-tight">PhonePe</span>
-                    </div>
-                    <span className="text-sm font-semibold">PhonePe</span>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full ${paymentMethod === 'phonepe' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
-                </div>
-
-                {/* UPI */}
-                <div onClick={() => setPaymentMethod('upi')} className={`flex flex-col p-5 rounded-sm cursor-pointer transition-all ${paymentMethod === 'upi' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                  <div className="flex items-center justify-between">
-                    <div className={`flex items-center gap-4 ${paymentMethod === 'upi' ? '' : 'opacity-50'}`}>
-                      <div className="w-12 h-8 bg-white border border-gray-200 rounded-[3px] flex items-center justify-center">
-                        <span className="text-[10px] font-black text-gray-800 tracking-tighter mr-[1px]">UPI</span>
-                        <svg viewBox="0 0 16 24" width="12" height="14" className="mt-[1px]">
-                          <path d="M0 6 L7 12 L0 18 L0 14 L4 12 L0 10 Z" fill="#F36F21"/>
-                          <path d="M5 6 L12 12 L5 18 L5 14 L9 12 L5 10 Z" fill="#0DA14B"/>
-                        </svg>
-                      </div>
-                      <span className="text-sm font-semibold">UPI</span>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full ${paymentMethod === 'upi' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
-                  </div>
-                  {paymentMethod === 'upi' && (
-                    <div className="pt-4 mt-4 border-t border-outline-variant/10 space-y-3">
-                      <div className="flex items-center gap-3">
-                        <input type="text" value={upiId} onChange={e => { setUpiId(e.target.value); setUpiVerified(null); }} placeholder="Enter UPI ID (e.g. name@upi)" className="flex-1 bg-transparent border-b border-outline-variant/30 py-2 text-sm outline-none" />
-                        <button onClick={(e) => { e.stopPropagation(); if(!upiId) return; setUpiVerified(upiId.includes('@')); }} className={`px-4 py-2 rounded-sm text-[10px] font-label font-semibold uppercase tracking-wider transition-all ${upiVerified === true ? 'bg-[#0DA14B] text-white' : upiVerified === false ? 'bg-[#DC2626] text-white' : 'bg-[#082717]/10 text-[#082717] hover:bg-[#082717]/20'}`}>
-                          {upiVerified === true ? '✓ Verified' : upiVerified === false ? '✗ Invalid' : 'Verify'}
-                        </button>
-                      </div>
-                      {upiVerified === true && (
-                        <p className="text-[11px] text-[#0DA14B] flex items-center gap-1">
-                          <span className="material-symbols-outlined text-xs">check_circle</span>
-                          UPI ID verified successfully
-                        </p>
-                      )}
-                      {upiVerified === false && (
-                        <p className="text-[11px] text-[#DC2626] flex items-center gap-1">
-                          <span className="material-symbols-outlined text-xs">cancel</span>
-                          Invalid UPI ID. Please enter a valid UPI ID (e.g. name@upi)
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  <div className={`w-5 h-5 rounded-full ${paymentMethod === 'razorpay' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
                 </div>
 
                 {/* Cash on Delivery */}
@@ -729,125 +625,33 @@ export default function CartPage() {
               </div>
             </div>
 
-            <div className="bg-[#f7f3ed] rounded-sm p-2 space-y-2">
-               <div onClick={() => setPaymentMethod('visa')} className={`flex flex-col bg-white p-4 rounded-sm border shadow-sm space-y-4 cursor-pointer transition-all ${paymentMethod === 'visa' ? 'border-[#765931]/40' : 'border-outline-variant/10'}`}>
-                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-4">
-                     <div className="w-10 h-6 bg-[#1434CB] rounded-[2.5px] flex items-center justify-center text-white shadow-sm">
-                       <span className="text-[9px] font-bold tracking-[1.2px] ml-[0.5px]" style={{ fontFamily: 'system-ui, -apple-system, Arial, sans-serif' }}>
-                         VISA
-                       </span>
-                     </div>
-                     <span className="text-sm tracking-widest">Credit Card</span>
-                   </div>
-                   <div className={`w-4 h-4 rounded-full ${paymentMethod === 'visa' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
-                 </div>
-                 {paymentMethod === 'visa' && (
-                 <div className="space-y-3 pt-2">
-                    <input type="text" value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="Card Number" className="w-full bg-transparent border-b border-outline-variant/20 py-2 text-sm outline-none" />
-                    <div className="flex gap-4">
-                      <input type="text" value={expiry} onChange={e => setExpiry(e.target.value)} placeholder="MM/YY" className="w-1/2 bg-transparent border-b border-outline-variant/20 py-2 text-sm outline-none" />
-                      <input type="password" value={cvv} onChange={e => setCvv(e.target.value)} placeholder="CVV" className="w-1/2 bg-transparent border-b border-outline-variant/20 py-2 text-sm outline-none" />
+             <div className="bg-[#f7f3ed] rounded-sm p-2 space-y-2">
+                {/* Razorpay Online Payment */}
+                <div onClick={() => setPaymentMethod('razorpay')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'razorpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
+                  <div className={`flex items-center gap-4 ${paymentMethod === 'razorpay' ? '' : 'opacity-50'}`}>
+                    <div className="w-10 h-6 bg-[#0F1C3F] rounded-[2.5px] flex items-center justify-center text-white">
+                      <span className="text-[9px] font-bold tracking-tight">Razorpay</span>
                     </div>
-                 </div>
-                 )}
-               </div>
-               
-               <div onClick={() => setPaymentMethod('applepay')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'applepay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                 <div className={`flex items-center gap-4 ${paymentMethod === 'applepay' ? '' : 'opacity-50'}`}>
-                   <div className="w-10 h-6 bg-[#000000] rounded-[2px] flex items-center justify-center text-white gap-[1px]">
-                     <svg viewBox="0 0 256 315" width="8" height="10" xmlns="http://www.w3.org/2000/svg" fill="currentColor" className="mb-[1px]">
-                       <path d="M213.803 167.03c.442 47.58 41.74 63.413 42.197 63.615-1.126 3.633-6.52 22.338-21.282 43.83-12.755 18.57-26.242 36.932-46.902 37.333-20.25.4-26.79-11.93-49.917-11.93-23.126 0-30.407 11.53-49.516 12.33-19.953.802-35.34-19.8-48.256-38.394-26.216-37.8-46.217-106.63-19.517-152.923 13.255-22.95 36.313-37.47 61.436-37.873 19.8-.4 38.384 13.298 50.158 13.298 11.77 0 34.02-15.7 57.625-13.4 9.873.402 37.584 3.992 55.434 30.124-1.464 1.025-33.144 19.345-31.46 53.99m-31.603-107.505c10.887-13.167 18.23-31.442 16.234-49.637-15.65 1.574-35.346 11.458-46.612 24.582-9.014 10.428-17.844 29.233-15.42 47.01 17.592 1.345 34.93-8.868 45.8-21.954"/>
-                     </svg>
-                     <span className="text-[8.5px] font-semibold tracking-tight">Pay</span>
-                   </div>
-                   <span className="text-sm">Apple Pay</span>
-                 </div>
-                 <div className={`w-4 h-4 rounded-full ${paymentMethod === 'applepay' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
-               </div>
+                    <span className="text-sm">Online Payment (UPI, Cards, Wallets)</span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full ${paymentMethod === 'razorpay' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
+                </div>
 
-               <div onClick={() => setPaymentMethod('gpay')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'gpay' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                 <div className={`flex items-center gap-4 ${paymentMethod === 'gpay' ? '' : 'opacity-50'}`}>
-                   <div className="w-10 h-6 bg-white border border-gray-200 rounded-[2px] flex items-center justify-center text-black">
-                     <span className="text-[8.5px] font-bold tracking-tight">G Pay</span>
-                   </div>
-                   <span className="text-sm">Google Pay</span>
-                 </div>
-                 <div className={`w-4 h-4 rounded-full ${paymentMethod === 'gpay' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
-               </div>
-
-               <div onClick={() => setPaymentMethod('paytm')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'paytm' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                 <div className={`flex items-center gap-4 ${paymentMethod === 'paytm' ? '' : 'opacity-50'}`}>
-                   <div className="w-10 h-6 bg-[#002970] rounded-[2px] flex items-center justify-center text-[#00baf2]">
-                     <span className="text-[8px] font-bold tracking-tighter">Paytm</span>
-                   </div>
-                   <span className="text-sm">Paytm</span>
-                 </div>
-                 <div className={`w-4 h-4 rounded-full ${paymentMethod === 'paytm' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
-               </div>
-
-               <div onClick={() => setPaymentMethod('phonepe')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'phonepe' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                 <div className={`flex items-center gap-4 ${paymentMethod === 'phonepe' ? '' : 'opacity-50'}`}>
-                   <div className="w-10 h-6 bg-[#5f259f] rounded-[2px] flex items-center justify-center text-white">
-                     <span className="text-[7.5px] font-bold tracking-tight">PhonePe</span>
-                   </div>
-                   <span className="text-sm">PhonePe</span>
-                 </div>
-                 <div className={`w-4 h-4 rounded-full ${paymentMethod === 'phonepe' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
-               </div>
-
-               <div onClick={() => setPaymentMethod('upi')} className={`flex flex-col p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'upi' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                 <div className="flex items-center justify-between">
-                   <div className={`flex items-center gap-4 ${paymentMethod === 'upi' ? '' : 'opacity-50'}`}>
-                     <div className="w-10 h-6 bg-white border border-gray-200 rounded-[2px] flex items-center justify-center">
-                       <span className="text-[8.5px] font-black text-gray-800 tracking-tighter mr-[1px]">UPI</span>
-                       <svg viewBox="0 0 16 24" width="10" height="12" className="mt-[1px]">
-                         <path d="M0 6 L7 12 L0 18 L0 14 L4 12 L0 10 Z" fill="#F36F21"/>
-                         <path d="M5 6 L12 12 L5 18 L5 14 L9 12 L5 10 Z" fill="#0DA14B"/>
-                       </svg>
-                     </div>
-                     <span className="text-sm">UPI</span>
-                   </div>
-                   <div className={`w-4 h-4 rounded-full ${paymentMethod === 'upi' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
-                 </div>
-                 {paymentMethod === 'upi' && (
-                   <div className="pt-3 mt-3 border-t border-outline-variant/10 space-y-3">
-                     <div className="flex items-center gap-2">
-                       <input type="text" value={upiId} onChange={e => { setUpiId(e.target.value); setUpiVerified(null); }} placeholder="Enter UPI ID (e.g. name@upi)" className="flex-1 bg-transparent border-b border-outline-variant/20 py-2 text-sm outline-none" />
-                       <button onClick={(e) => { e.stopPropagation(); if(!upiId) return; setUpiVerified(upiId.includes('@')); }} className={`px-3 py-1.5 rounded-sm text-[11px] font-semibold uppercase tracking-wider transition-all ${upiVerified === true ? 'bg-[#0DA14B] text-white' : upiVerified === false ? 'bg-[#DC2626] text-white' : 'bg-[#082717]/10 text-[#082717] hover:bg-[#082717]/20'}`}>
-                         {upiVerified === true ? '✓ Verified' : upiVerified === false ? '✗ Invalid' : 'Verify'}
-                       </button>
-                     </div>
-                     {upiVerified === true && (
-                       <p className="text-[11px] text-[#0DA14B] flex items-center gap-1">
-                         <span className="material-symbols-outlined text-xs">check_circle</span>
-                         UPI ID verified successfully
-                       </p>
-                     )}
-                     {upiVerified === false && (
-                       <p className="text-[11px] text-[#DC2626] flex items-center gap-1">
-                         <span className="material-symbols-outlined text-xs">cancel</span>
-                         Invalid UPI ID. Please enter a valid UPI ID (e.g. name@upi)
-                       </p>
-                     )}
-                   </div>
-                 )}
-               </div>
-
-               <div onClick={() => setPaymentMethod('cod')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'cod' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
-                 <div className={`flex items-center gap-4 ${paymentMethod === 'cod' ? '' : 'opacity-50'}`}>
-                   <div className="w-10 h-6 bg-[#082717] rounded-[2px] flex items-center justify-center">
-                     <svg viewBox="0 0 40 24" width="40" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                       <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" fill="#d4af37" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="7">COD</text>
-                       <path d="M5 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
-                       <path d="M30 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
-                     </svg>
-                   </div>
-                   <span className="text-sm">Cash on Delivery</span>
-                 </div>
-                 <div className={`w-4 h-4 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
-               </div>
-            </div>
+                {/* Cash on Delivery */}
+                <div onClick={() => setPaymentMethod('cod')} className={`flex items-center justify-between p-4 rounded-sm cursor-pointer transition-all ${paymentMethod === 'cod' ? 'bg-white shadow-sm border border-[#765931]/40' : ''}`}>
+                  <div className={`flex items-center gap-4 ${paymentMethod === 'cod' ? '' : 'opacity-50'}`}>
+                    <div className="w-10 h-6 bg-[#082717] rounded-[2px] flex items-center justify-center">
+                      <svg viewBox="0 0 40 24" width="40" height="24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <text x="50%" y="55%" textAnchor="middle" dominantBaseline="middle" fill="#d4af37" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="7">COD</text>
+                        <path d="M5 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
+                        <path d="M30 18h5" stroke="#d4af37" strokeWidth="0.8" opacity="0.5"/>
+                      </svg>
+                    </div>
+                    <span className="text-sm">Cash on Delivery</span>
+                  </div>
+                  <div className={`w-4 h-4 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
+                </div>
+             </div>
           </div>
 
           {/* Summary */}
