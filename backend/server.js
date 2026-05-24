@@ -26,8 +26,297 @@ const supabaseUrl = process.env.SUPABASE_URL || 'https://oiksafoujlduutkcgays.su
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.warn('WARNING: SUPABASE_SERVICE_ROLE_KEY is missing in backend .env file. Order storage will fall back to local simulations.');
+// --- SHIPROCKET SECURE LOGISTICS SERVICES ---
+let shiprocketToken = null;
+let tokenExpiry = null;
+
+async function getShiprocketToken() {
+  const email = process.env.SHIPROCKET_EMAIL;
+  const password = process.env.SHIPROCKET_PASSWORD;
+
+  if (!email || !password) {
+    console.warn('WARNING: SHIPROCKET_EMAIL or SHIPROCKET_PASSWORD is missing in backend .env file. Running in Simulation Mode.');
+    return 'SIMULATED_TOKEN';
+  }
+
+  // Check if token already cached and valid (expires in 24 hours)
+  if (shiprocketToken && tokenExpiry && Date.now() < tokenExpiry) {
+    return shiprocketToken;
+  }
+
+  try {
+    const response = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Shiprocket auth failed: ${response.statusText} - ${errText}`);
+    }
+
+    const data = await response.json();
+    shiprocketToken = data.token;
+    tokenExpiry = Date.now() + 23 * 60 * 60 * 1000; // Cache for 23 hours
+    return shiprocketToken;
+  } catch (err) {
+    console.error('Error fetching Shiprocket token:', err);
+    throw err;
+  }
+}
+
+async function createShiprocketOrder(order) {
+  const token = await getShiprocketToken();
+  
+  if (token === 'SIMULATED_TOKEN') {
+    const courierNames = ['Delhivery', 'BlueDart', 'Ecom Express', 'Xpressbees'];
+    const assignedCourier = courierNames[Math.floor(Math.random() * courierNames.length)];
+    const awb = `MB-AWB-${Math.floor(Math.random() * 9000000000 + 1000000000)}`;
+    
+    return {
+      success: true,
+      simulated: true,
+      shiprocket_order_id: `SR-ORD-${Math.floor(Date.now() / 1000)}`,
+      shipment_id: `SR-SHP-${Math.floor(Date.now() / 1000)}`,
+      awb_code: awb,
+      courier_name: assignedCourier,
+      tracking_id: awb,
+      shipping_label_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+      shipment_status: 'Packed',
+      shipment_history: [
+        { status: 'Order Placed', activity: 'Boutique order recorded successfully.', location: 'Maison Delhi', date: new Date().toISOString() },
+        { status: 'Packed', activity: 'Timeless jewel audited, secured in protective case and packed.', location: 'Maison Delhi', date: new Date(Date.now() + 60000).toISOString() }
+      ]
+    };
+  }
+
+  try {
+    const pickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary';
+    
+    // Map billing name safely
+    const nameParts = (order.customer_name || 'Client Boutique').trim().split(/\s+/);
+    const firstName = nameParts[0] || 'Client';
+    const lastName = nameParts.slice(1).join(' ') || 'Boutique';
+
+    // Map address safely
+    const addr = order.shipping_address || {};
+    const streetAddress = addr.address || 'Boutique Sourcing';
+    const apartment = addr.apartment || '';
+    const city = addr.city || 'Delhi';
+    const pinCode = addr.pinCode || '110001';
+    const state = addr.state || 'Delhi';
+    
+    // Map order items safely
+    const items = (order.products || []).map(p => ({
+      name: p.name || 'Boutique Selection',
+      sku: p.sku || `SKU-${p.id ? p.id.substring(0, 8).toUpperCase() : Math.floor(Math.random()*900000)}`,
+      units: parseInt(p.quantity || 1),
+      selling_price: parseFloat(p.price || order.total_amount || 0).toString()
+    }));
+
+    const shiprocketOrderPayload = {
+      order_id: order.razorpay_order_id || `MB-ORD-${order.id.substring(0, 8)}`,
+      order_date: new Date(order.created_at || Date.now()).toISOString().slice(0, 19).replace('T', ' '),
+      pickup_location: pickupLocation,
+      billing_customer_name: firstName,
+      billing_last_name: lastName,
+      billing_address: streetAddress,
+      billing_address_2: apartment,
+      billing_city: city,
+      billing_pincode: pinCode,
+      billing_state: state,
+      billing_country: 'India',
+      billing_email: order.customer_email || 'concierge@molvbriv.in',
+      billing_phone: order.customer_phone || '9999999999',
+      shipping_is_billing: true,
+      order_items: items,
+      payment_method: order.payment_method === 'COD' ? 'COD' : 'Prepaid',
+      sub_total: parseFloat(order.total_amount || order.total_price),
+      length: 15,
+      breadth: 15,
+      height: 10,
+      weight: 0.5
+    };
+
+    console.log('Sending order payload to Shiprocket:', JSON.stringify(shiprocketOrderPayload));
+
+    // A. CREATE ADHOC ORDER
+    const createRes = await fetch('https://apiv2.shiprocket.in/v1/external/orders/create/adhoc', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(shiprocketOrderPayload)
+    });
+
+    if (!createRes.ok) {
+      const errText = await createRes.text();
+      throw new Error(`Shiprocket order creation failed: ${createRes.statusText} - ${errText}`);
+    }
+
+    const createData = await createRes.json();
+    const shiprocketOrderId = createData.order_id;
+    const shipmentId = createData.shipment_id;
+
+    console.log(`Shiprocket order created successfully. Order ID: ${shiprocketOrderId}, Shipment ID: ${shipmentId}`);
+
+    let awbCode = '';
+    let courierName = 'Shiprocket Courier';
+    let trackingId = '';
+    let labelUrl = '';
+
+    // B. GENERATE AWB & ASSIGN COURIER (Auto assignment)
+    try {
+      const awbRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/assign/awb', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ shipment_id: shipmentId })
+      });
+
+      if (awbRes.ok) {
+        const awbData = await awbRes.json();
+        if (awbData.status === 200 && awbData.response && awbData.response.data) {
+          const awbDetails = awbData.response.data;
+          awbCode = awbDetails.awb_code || '';
+          courierName = awbDetails.courier_name || 'Shiprocket Courier';
+          trackingId = awbDetails.awb_code || '';
+          console.log(`AWB code generated successfully: ${awbCode} via ${courierName}`);
+        } else {
+          console.warn('AWB generation response was not successful:', JSON.stringify(awbData));
+        }
+      } else {
+        const awbErrText = await awbRes.text();
+        console.error(`AWB assignment failed: ${awbRes.statusText} - ${awbErrText}`);
+      }
+    } catch (awbErr) {
+      console.error('Error assigning AWB:', awbErr);
+    }
+
+    // C. GENERATE SHIPPING LABEL
+    try {
+      const labelRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/generate/label', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ shipment_id: [shipmentId] })
+      });
+
+      if (labelRes.ok) {
+        const labelData = await labelRes.json();
+        labelUrl = labelData.label_url || '';
+        console.log(`Shipping label generated successfully: ${labelUrl}`);
+      } else {
+        const labelErrText = await labelRes.text();
+        console.error(`Shipping label generation failed: ${labelRes.statusText} - ${labelErrText}`);
+      }
+    } catch (labelErr) {
+      console.error('Error generating shipping label:', labelErr);
+    }
+
+    return {
+      success: true,
+      simulated: false,
+      shiprocket_order_id: shiprocketOrderId.toString(),
+      shipment_id: shipmentId.toString(),
+      awb_code: awbCode,
+      courier_name: courierName,
+      tracking_id: trackingId,
+      shipping_label_url: labelUrl,
+      shipment_status: 'Packed',
+      shipment_history: [
+        { status: 'Order Placed', activity: 'Boutique order recorded successfully.', location: 'Maison Delhi', date: new Date().toISOString() },
+        { status: 'Packed', activity: 'Shipment created and scheduled for dispatch.', location: 'Maison Delhi', date: new Date().toISOString() }
+      ]
+    };
+  } catch (error) {
+    console.error('Error in createShiprocketOrder:', error);
+    throw error;
+  }
+}
+
+async function cancelShiprocketOrder(shiprocketOrderId) {
+  const token = await getShiprocketToken();
+  if (token === 'SIMULATED_TOKEN') {
+    return { success: true, simulated: true };
+  }
+
+  try {
+    const response = await fetch('https://apiv2.shiprocket.in/v1/external/orders/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ ids: [parseInt(shiprocketOrderId)] })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Failed to cancel Shiprocket order: ${response.statusText} - ${errText}`);
+    }
+
+    return { success: true, simulated: false };
+  } catch (err) {
+    console.error('Error cancelling Shiprocket order:', err);
+    throw err;
+  }
+}
+
+async function autoFulfillShipment(orderId) {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  console.log(`Starting auto-fulfillment tracking for order: ${orderId}`);
+
+  try {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order) {
+      console.error('Failed to load order for auto-fulfillment:', error);
+      return;
+    }
+
+    // Skip if shipment already created
+    if (order.shipment_id) {
+      console.log(`Shipment already created for order: ${orderId}. Skipping auto-fulfillment.`);
+      return;
+    }
+
+    const shiprocketDetails = await createShiprocketOrder(order);
+
+    const { error: updErr } = await supabase
+      .from('orders')
+      .update({
+        shiprocket_order_id: shiprocketDetails.shiprocket_order_id,
+        shipment_id: shiprocketDetails.shipment_id,
+        awb_code: shiprocketDetails.awb_code,
+        courier_name: shiprocketDetails.courier_name,
+        tracking_id: shiprocketDetails.tracking_id,
+        shipping_label_url: shiprocketDetails.shipping_label_url,
+        shipment_status: shiprocketDetails.shipment_status,
+        shipment_history: shiprocketDetails.shipment_history,
+        order_status: 'Processing',
+        status: 'processing'
+      })
+      .eq('id', orderId);
+
+    if (updErr) {
+      console.error('Failed to update Supabase order with Shiprocket details:', updErr.message);
+    } else {
+      console.log(`Successfully completed auto-fulfillment for order: ${orderId}. Shipment ID: ${shiprocketDetails.shipment_id}`);
+    }
+  } catch (err) {
+    console.error('Error in autoFulfillShipment execution:', err);
+  }
 }
 
 // Nodemailer confirmation email utility
@@ -310,6 +599,7 @@ app.post('/api/payments/verify', async (req, res) => {
     }
 
     sendConfirmationEmail(orderRecord).catch(err => console.error('Error sending confirmation email:', err));
+    autoFulfillShipment(orderRecord.id).catch(err => console.error('Error in autoFulfillShipment Prepaid:', err));
 
     res.json({ success: true, order: orderRecord });
   } catch (error) {
@@ -370,6 +660,7 @@ app.post('/api/payments/cod', async (req, res) => {
     }
 
     sendConfirmationEmail(orderRecord).catch(err => console.error('Error sending confirmation email:', err));
+    autoFulfillShipment(orderRecord.id).catch(err => console.error('Error in autoFulfillShipment COD:', err));
 
     res.json({ success: true, order: orderRecord });
   } catch (error) {
@@ -425,8 +716,9 @@ app.post('/api/payments/webhook', async (req, res) => {
             .select()
             .single();
 
-          if (status === 'Paid' && updated) {
+          if (isPaid && updated) {
             sendConfirmationEmail(updated).catch(err => console.error('Email error:', err));
+            autoFulfillShipment(updated.id).catch(err => console.error('Error in autoFulfillShipment Webhook:', err));
           }
         }
       }
@@ -563,6 +855,219 @@ app.put('/api/orders/:id/status', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ updated: this.changes });
   });
+});
+
+// --- SHIPROCKET SYSTEM CONTROLLER ENDPOINTS ---
+
+// A. Manual/Trigger Shipment Creation Dashboard
+app.post('/api/shiprocket/create-shipment', async (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) {
+    return res.status(400).json({ success: false, error: 'orderId is required' });
+  }
+
+  try {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order) {
+      return res.status(404).json({ success: false, error: 'Order not found in database' });
+    }
+
+    if (order.shipment_id) {
+      return res.status(400).json({ success: false, error: 'Shipment already initialized for this order' });
+    }
+
+    const shiprocketDetails = await createShiprocketOrder(order);
+
+    const { data: updatedOrder, error: updErr } = await supabase
+      .from('orders')
+      .update({
+        shiprocket_order_id: shiprocketDetails.shiprocket_order_id,
+        shipment_id: shiprocketDetails.shipment_id,
+        awb_code: shiprocketDetails.awb_code,
+        courier_name: shiprocketDetails.courier_name,
+        tracking_id: shiprocketDetails.tracking_id,
+        shipping_label_url: shiprocketDetails.shipping_label_url,
+        shipment_status: shiprocketDetails.shipment_status,
+        shipment_history: shiprocketDetails.shipment_history,
+        order_status: 'Processing',
+        status: 'processing'
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (updErr) throw updErr;
+
+    res.json({ success: true, order: updatedOrder });
+  } catch (err) {
+    console.error('Error creating manual shipment:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to initialize shipment' });
+  }
+});
+
+// B. Live AWB Checkpoint Tracking Endpoint
+app.get('/api/shiprocket/track/:awb_code', async (req, res) => {
+  const { awb_code } = req.params;
+  const token = await getShiprocketToken();
+
+  if (token === 'SIMULATED_TOKEN' || awb_code.startsWith('MB-AWB-')) {
+    // Return mock updates simulated in timeline
+    return res.json({
+      success: true,
+      simulated: true,
+      awb: awb_code,
+      shipment_status: 'Shipped',
+      tracking_history: [
+        { status: 'Order Placed', activity: 'Boutique order recorded successfully.', location: 'Maison Delhi', date: new Date(Date.now() - 3600000 * 4).toISOString() },
+        { status: 'Packed', activity: 'Timeless jewel audited, secured in protective case and packed.', location: 'Maison Delhi', date: new Date(Date.now() - 3600000 * 3).toISOString() },
+        { status: 'Shipped', activity: 'Dispatched via secure secure transit partners.', location: 'Maison Delhi', date: new Date(Date.now() - 3600000 * 2).toISOString() }
+      ]
+    });
+  }
+
+  try {
+    const response = await fetch(`https://apiv2.shiprocket.in/v1/external/courier/track/awb/${awb_code}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Tracking query failed: ${response.statusText} - ${errText}`);
+    }
+
+    const data = await response.json();
+    const trackingData = data.tracking_data || {};
+    const shipmentTrack = trackingData.shipment_track || [];
+    const activities = trackingData.shipment_track_activities || [];
+
+    // Map Shiprocket activities to common boutique layout
+    const history = activities.map(act => ({
+      status: act.status || 'In Transit',
+      activity: act.activity || 'Package moving through hub.',
+      location: act.location || 'Hub',
+      date: act.date || new Date().toISOString()
+    }));
+
+    const latestStatus = shipmentTrack[0]?.current_status || 'Processing';
+
+    res.json({
+      success: true,
+      simulated: false,
+      awb: awb_code,
+      shipment_status: latestStatus,
+      tracking_history: history.length > 0 ? history : [
+        { status: 'Packed', activity: 'Shipment handed over to courier.', location: 'Delhi Warehouse', date: new Date().toISOString() }
+      ]
+    });
+  } catch (err) {
+    console.error('Error tracking shipment:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to query live tracking details' });
+  }
+});
+
+// C. Cancel Shipment Dashboard Control
+app.post('/api/shiprocket/cancel', async (req, res) => {
+  const { orderId, shiprocketOrderId } = req.body;
+
+  try {
+    if (shiprocketOrderId) {
+      await cancelShiprocketOrder(shiprocketOrderId);
+    }
+
+    // Reset columns in database so that admins can re-initialize if needed
+    const { data: updatedOrder, error } = await supabase
+      .from('orders')
+      .update({
+        shiprocket_order_id: null,
+        shipment_id: null,
+        awb_code: null,
+        courier_name: null,
+        tracking_id: null,
+        shipping_label_url: null,
+        shipment_status: 'Pending',
+        shipment_history: [],
+        order_status: 'Pending',
+        status: 'pending'
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, order: updatedOrder });
+  } catch (err) {
+    console.error('Error cancelling shipment:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to cancel shipment' });
+  }
+});
+
+// D. Shiprocket Webhook Receiver (Push Realtime updates to Supabase)
+app.post('/api/shiprocket/webhook', async (req, res) => {
+  const token = req.headers['x-shiprocket-webhook-token'];
+  const expectedToken = process.env.SHIPROCKET_WEBHOOK_TOKEN;
+
+  if (expectedToken && token !== expectedToken) {
+    console.warn('Unauthorized Shiprocket webhook callback attempt.');
+    return res.status(401).json({ success: false, error: 'Unauthorized signature' });
+  }
+
+  const { awb, current_status, current_status_id, scans } = req.body;
+  console.log(`Received Shiprocket Webhook: AWB=${awb}, Status=${current_status}`);
+
+  if (!awb) {
+    return res.status(400).json({ success: false, error: 'AWB is required' });
+  }
+
+  try {
+    // Map status numeric IDs or strings to packed/shipped/delivered
+    let shipmentStatus = 'Shipped';
+    const statusLower = (current_status || '').toLowerCase();
+    
+    if (statusLower.includes('delivered')) {
+      shipmentStatus = 'Delivered';
+    } else if (statusLower.includes('out for delivery') || statusLower.includes('out_for_delivery')) {
+      shipmentStatus = 'Out for Delivery';
+    } else if (statusLower.includes('shipped') || statusLower.includes('in transit') || statusLower.includes('in_transit')) {
+      shipmentStatus = 'Shipped';
+    } else if (statusLower.includes('packed') || statusLower.includes('ready')) {
+      shipmentStatus = 'Packed';
+    }
+
+    // Map scans to history array
+    const scanHistory = (scans || []).map(s => ({
+      status: s.status || 'In Transit',
+      activity: s.activity || 'Scanned at terminal.',
+      location: s.location || 'Courier Hub',
+      date: s.date || new Date().toISOString()
+    }));
+
+    // Update database
+    const { error } = await supabase
+      .from('orders')
+      .update({
+        shipment_status: shipmentStatus,
+        shipment_history: scanHistory,
+        order_status: shipmentStatus,
+        status: shipmentStatus.toLowerCase()
+      })
+      .eq('awb_code', awb);
+
+    if (error) throw error;
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error handling Shiprocket webhook:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Start Server

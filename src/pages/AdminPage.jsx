@@ -240,6 +240,92 @@ export default function AdminPage() {
     }
   };
 
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  
+  const [isLogisticsLoading, setIsLogisticsLoading] = useState(false);
+  const [logisticsError, setLogisticsError] = useState('');
+  const [liveTrackingInfo, setLiveTrackingInfo] = useState(null);
+  const [showLogisticsHistory, setShowLogisticsHistory] = useState(false);
+
+  useEffect(() => {
+    setLiveTrackingInfo(null);
+    setShowLogisticsHistory(false);
+    setLogisticsError('');
+  }, [selectedAdminOrder?.id]);
+
+  const handleInitializeShipment = async (orderId) => {
+    setIsLogisticsLoading(true);
+    setLogisticsError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/shiprocket/create-shipment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to initialize shipment on Shiprocket');
+      }
+      showToast('Shipment created successfully!');
+      setSelectedAdminOrder(data.order);
+      setOrdersData(prev => prev.map(o => o.id === orderId ? data.order : o));
+    } catch (err) {
+      console.error(err);
+      setLogisticsError(err.message || 'Fulfillment request failed.');
+      showToast('Fulfillment failed');
+    } finally {
+      setIsLogisticsLoading(false);
+    }
+  };
+
+  const handleTrackShipment = async (awbCode) => {
+    setIsLogisticsLoading(true);
+    setLogisticsError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/shiprocket/track/${awbCode}`);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to query live tracking updates');
+      }
+      setLiveTrackingInfo(data);
+      setShowLogisticsHistory(true);
+      showToast('Tracking data synced!');
+    } catch (err) {
+      console.error(err);
+      setLogisticsError(err.message || 'Tracking query failed.');
+      showToast('Tracking query failed');
+    } finally {
+      setIsLogisticsLoading(false);
+    }
+  };
+
+  const handleCancelShipment = async (orderId, shiprocketOrderId) => {
+    setIsLogisticsLoading(true);
+    setLogisticsError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/shiprocket/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, shiprocketOrderId })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to cancel shipment');
+      }
+      showToast('Shipment cancelled successfully!');
+      setSelectedAdminOrder(data.order);
+      setOrdersData(prev => prev.map(o => o.id === orderId ? data.order : o));
+      setLiveTrackingInfo(null);
+      setShowLogisticsHistory(false);
+    } catch (err) {
+      console.error(err);
+      setLogisticsError(err.message || 'Cancellation request failed.');
+      showToast('Cancellation failed');
+    } finally {
+      setIsLogisticsLoading(false);
+    }
+  };
+
   const [productsData, setProductsData] = useState([]);
   const [ordersData, setOrdersData] = useState([]);
   const [faviconUrl, setFaviconUrl] = useState('');
@@ -959,6 +1045,112 @@ export default function AdminPage() {
                           <div><span style={{ color: 'var(--mu)' }}>Payment ID:</span> <span style={{ color: 'var(--tx)', fontFamily: 'monospace', fontSize: '10px' }}>{selectedAdminOrder.payment_id || 'N/A'}</span></div>
                           <div><span style={{ color: 'var(--mu)' }}>Razorpay Order ID:</span> <span style={{ color: 'var(--tx)', fontFamily: 'monospace', fontSize: '10px' }}>{selectedAdminOrder.razorpay_order_id || 'N/A'}</span></div>
                         </div>
+                      </div>
+
+                      {/* Shiprocket Logistics Panel */}
+                      <div style={{ borderTop: '1px solid var(--b1)', paddingTop: '16px', marginTop: '4px' }}>
+                        <h3 style={{ color: 'var(--ac)', textTransform: 'uppercase', fontSize: '11px', tracking: '1px', marginBottom: '8px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="3" width="15" height="13" rx="2" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></svg>
+                          Shiprocket Logistics Panel
+                        </h3>
+
+                        {logisticsError && (
+                          <div style={{ color: 'var(--rd)', fontSize: '11px', background: 'rgba(224,82,82,0.06)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(224,82,82,0.2)', marginBottom: '10px' }}>
+                            {logisticsError}
+                          </div>
+                        )}
+
+                        {!selectedAdminOrder.shipment_id ? (
+                          <div style={{ background: 'var(--s2)', padding: '16px', borderRadius: '6px', border: '1px dashed var(--ac)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textAlign: 'center' }}>
+                            <p style={{ color: 'var(--mu)', fontSize: '11px', margin: 0 }}>This order has not been registered on Shiprocket logistics yet.</p>
+                            <button
+                              className="btn btn-p"
+                              disabled={isLogisticsLoading}
+                              onClick={() => handleInitializeShipment(selectedAdminOrder.id)}
+                              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 18px', fontSize: '11px', background: 'var(--ac)', color: '#000', fontWeight: 600, border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                            >
+                              {isLogisticsLoading ? (
+                                <span className="admin-login-spinner" style={{ width: '12px', height: '12px', borderWidth: '1.5px', borderTopColor: '#000' }}></span>
+                              ) : 'Initialize Shiprocket Shipment'}
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'var(--s2)', padding: '14px', borderRadius: '6px', border: '1px solid var(--b1)' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '12px' }}>
+                              <div><span style={{ color: 'var(--mu)' }}>Shipment Status:</span> <span style={{ color: 'var(--ac)', fontWeight: 600, textTransform: 'uppercase', fontSize: '11px' }}>{selectedAdminOrder.shipment_status || 'Packed'}</span></div>
+                              <div><span style={{ color: 'var(--mu)' }}>Courier:</span> <span style={{ color: 'var(--tx)', fontWeight: 500 }}>{selectedAdminOrder.courier_name || 'Delhivery'}</span></div>
+                              <div><span style={{ color: 'var(--mu)' }}>AWB Code:</span> <span style={{ color: 'var(--tx)', fontFamily: 'monospace', fontSize: '11px' }}>{selectedAdminOrder.awb_code || 'N/A'}</span></div>
+                              <div><span style={{ color: 'var(--mu)' }}>Shipment ID:</span> <span style={{ color: 'var(--tx)', fontFamily: 'monospace', fontSize: '11px' }}>{selectedAdminOrder.shipment_id}</span></div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', borderTop: '1px solid var(--b1)', paddingTop: '10px', marginTop: '4px' }}>
+                              {selectedAdminOrder.shipping_label_url ? (
+                                <a
+                                  href={selectedAdminOrder.shipping_label_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn"
+                                  style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', padding: '6px 12px', textDecoration: 'none', textAlign: 'center', color: 'var(--tx)', border: '1px solid var(--b2)', background: 'var(--s3)' }}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><rect x="6" y="14" width="12" height="8" /></svg>
+                                  Print Label
+                                </a>
+                              ) : (
+                                <button
+                                  disabled
+                                  className="btn"
+                                  style={{ flex: 1, fontSize: '11px', padding: '6px 12px', opacity: 0.5, cursor: 'not-allowed' }}
+                                >
+                                  Label Pending
+                                </button>
+                              )}
+
+                              <button
+                                className="btn btn-p"
+                                disabled={isLogisticsLoading}
+                                onClick={() => handleTrackShipment(selectedAdminOrder.awb_code)}
+                                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', padding: '6px 12px', background: 'var(--ac)', color: '#000', fontWeight: 600, border: 'none' }}
+                              >
+                                {isLogisticsLoading ? 'Syncing...' : 'Track Delivery'}
+                              </button>
+
+                              <button
+                                className="btn"
+                                disabled={isLogisticsLoading}
+                                onClick={() => {
+                                  if (window.confirm('WARNING: Are you sure you want to cancel this Shiprocket shipment? This action resets logistic records.')) {
+                                    handleCancelShipment(selectedAdminOrder.id, selectedAdminOrder.shiprocket_order_id);
+                                  }
+                                }}
+                                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', padding: '6px 12px', borderColor: 'var(--rd)', color: 'var(--rd)', background: 'rgba(224,82,82,0.06)' }}
+                              >
+                                Cancel Shipment
+                              </button>
+                            </div>
+
+                            {/* Detailed Live Tracking Timeline inside Panel */}
+                            {showLogisticsHistory && liveTrackingInfo && (
+                              <div style={{ background: 'var(--s3)', border: '1px solid var(--b2)', borderRadius: '4px', padding: '10px', marginTop: '10px', maxHeight: '180px', overflowY: 'auto' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--b1)', paddingBottom: '4px', marginBottom: '8px' }}>
+                                  <span style={{ fontSize: '10px', color: 'var(--ac)', fontWeight: 700, textTransform: 'uppercase' }}>Live Checkpoint Tracking</span>
+                                  <span style={{ fontSize: '9px', color: 'var(--mu)' }}>{liveTrackingInfo.simulated ? 'Simulated API' : 'Shiprocket live'}</span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {liveTrackingInfo.tracking_history && liveTrackingInfo.tracking_history.map((hist, idx) => (
+                                    <div key={idx} style={{ display: 'flex', gap: '8px', borderLeft: '1px solid var(--ac)', paddingLeft: '8px', position: 'relative' }}>
+                                      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--ac)', position: 'absolute', left: '-3.5px', top: '4px' }}></div>
+                                      <div>
+                                        <div style={{ fontSize: '11px', color: 'var(--tx)', fontWeight: 500 }}>{hist.status} - <span style={{ fontSize: '10px', color: 'var(--mu)' }}>{hist.location}</span></div>
+                                        <div style={{ fontSize: '10px', color: 'var(--mu)', fontStyle: 'italic' }}>{hist.activity}</div>
+                                        <div style={{ fontSize: '9px', color: 'var(--mu)', fontFamily: 'monospace' }}>{new Date(hist.date).toLocaleString()}</div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Interactive order status controls */}

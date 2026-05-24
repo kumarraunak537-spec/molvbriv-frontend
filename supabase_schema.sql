@@ -261,5 +261,17 @@ BEGIN
   WHERE (razorpay_order_id = p_order_id OR id::text = p_order_id)
     AND LOWER(customer_email) = LOWER(p_email);
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ==================================================
+-- SHIPROCKET SECURE LOGISTICS INTEGRATION UPGRADE
+-- ==================================================
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shiprocket_order_id TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_id TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS awb_code TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS courier_name TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS tracking_id TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_label_url TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_status TEXT DEFAULT 'Pending';
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_history JSONB DEFAULT '[]'::jsonb;
+
 

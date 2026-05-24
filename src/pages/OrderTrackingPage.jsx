@@ -9,48 +9,51 @@ export default function OrderTrackingPage() {
   const [trackingStep, setTrackingStep] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
   const [orderDetails, setOrderDetails] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const getStepFromStatus = (status) => {
-    switch(status?.toLowerCase()) {
-      case 'processing': return 1;
-      case 'shipped': return 2;
-      case 'delivered': return 3;
-      default: return 0;
-    }
+    if (!status) return 0;
+    const s = status.toLowerCase();
+    if (s.includes('delivered')) return 4;
+    if (s.includes('out for delivery') || s.includes('out_for_delivery') || s.includes('outfordelivery')) return 3;
+    if (s.includes('shipped') || s.includes('transit') || s.includes('dispatched')) return 2;
+    if (s.includes('packed') || s.includes('processing') || s.includes('ready') || s.includes('pickup') || s.includes('awb') || s.includes('label')) return 1;
+    return 0; // Placed / Pending
   };
 
   useEffect(() => {
     let subscription;
     if (isTracking && orderDetails && orderDetails.id) {
+      console.log('Initializing secure Postgres changes channel subscription for:', orderDetails.id);
       subscription = supabase
-        .channel(`order:${orderDetails.id}`, {
-          config: {
-            private: true,
+        .channel(`order-realtime-${orderDetails.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'orders',
+            filter: `id=eq.${orderDetails.id}`
           },
-        })
-        .on('broadcast', { event: 'INSERT' }, (payload) => {
-          if (payload.payload?.status) {
-            setTrackingStep(getStepFromStatus(payload.payload.status));
+          (payload) => {
+            console.log('Realtime database order update received:', payload.new);
+            setOrderDetails(payload.new);
+            const currentStatus = payload.new.shipment_status || payload.new.status || payload.new.order_status;
+            setTrackingStep(getStepFromStatus(currentStatus));
           }
-        })
-        .on('broadcast', { event: 'UPDATE' }, (payload) => {
-          if (payload.payload?.status) {
-            setTrackingStep(getStepFromStatus(payload.payload.status));
-          }
-        })
-        .on('broadcast', { event: 'DELETE' }, (payload) => {
-          setTrackingStep(0);
-          setErrorMsg("This order has been removed or cancelled.");
-        })
-        .subscribe();
+        )
+        .subscribe((status) => {
+          console.log(`Supabase Realtime subscription status for order ${orderDetails.id}:`, status);
+        });
     }
 
     return () => {
       if (subscription) {
+        console.log('Cleaning up Supabase Realtime channel for order:', orderDetails?.id);
         supabase.removeChannel(subscription);
       }
     };
-  }, [isTracking, orderDetails]);
+  }, [isTracking, orderDetails?.id]);
 
   // Auto-track on mount if ID and Email exist in URL query params
   useEffect(() => {
@@ -231,41 +234,118 @@ export default function OrderTrackingPage() {
           ) : (
             <div className="space-y-12 max-w-2xl mx-auto py-8">
               <div className="text-center space-y-2">
-                <h3 className="font-manrope text-2xl text-primary">Order {orderId}</h3>
+                <h3 className="font-manrope text-2xl text-primary font-bold">Order {orderId}</h3>
                 <p className="text-on-surface-variant text-sm">Estimated Delivery: <span className="text-primary font-medium">Within 3-5 Business Days</span></p>
               </div>
 
+              {/* Logistics Metadata Card */}
+              {orderDetails && orderDetails.awb_code && (
+                <div className="bg-primary/5 p-6 rounded-lg border border-secondary/20 space-y-4">
+                  <div className="flex items-center justify-between border-b border-black/5 pb-2">
+                    <h4 className="text-xs uppercase tracking-widest text-secondary font-bold font-manrope">Logistics Information</h4>
+                    <span className="bg-secondary/10 text-secondary text-[10px] uppercase tracking-widest px-2.5 py-1 font-bold rounded">
+                      {orderDetails.shipment_status || 'Pre-Transit'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-on-surface-variant text-[10px] uppercase tracking-widest mb-1">Courier Partner</p>
+                      <p className="font-semibold text-primary font-manrope">{orderDetails.courier_name || 'Shiprocket Delivery Partner'}</p>
+                    </div>
+                    <div>
+                      <p className="text-on-surface-variant text-[10px] uppercase tracking-widest mb-1">AWB / Tracking ID</p>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold text-primary">{orderDetails.awb_code}</span>
+                        <a
+                          href={`https://shiprocket.co/tracking/${orderDetails.awb_code}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-secondary hover:text-primary transition-colors underline font-medium"
+                        >
+                          Track Live ↗
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Status Timeline */}
-              <div className="relative border-l border-black/10 ml-4 md:ml-8 space-y-12">
-                {/* Step 1 */}
-                <div className="relative pl-8">
-                  <div className={`absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full ${trackingStep >= 0 ? 'bg-primary' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-medium ${trackingStep >= 0 ? 'text-primary' : 'text-on-surface-variant'}`}>Order Placed</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Your order has been received and confirmed.</p>
+              <div className="relative border-l border-primary/20 ml-4 md:ml-8 space-y-10 py-2">
+                {/* Step 0: Order Placed */}
+                <div className="relative pl-8 group">
+                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 0 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 0 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Order Placed</h4>
+                  <p className="text-xs text-on-surface-variant mt-1">Your order has been received, verified, and secured.</p>
                 </div>
-                {/* Step 2 */}
-                <div className="relative pl-8">
-                  <div className={`absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full ${trackingStep >= 1 ? 'bg-primary' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-medium ${trackingStep >= 1 ? 'text-primary' : 'text-on-surface-variant'}`}>Processing</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Our artisans are preparing your jewelry.</p>
+
+                {/* Step 1: Packed */}
+                <div className="relative pl-8 group">
+                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 1 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 1 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Packed & Prepared</h4>
+                  <p className="text-xs text-on-surface-variant mt-1">Your masterpiece has been polished, quality-checked, and packaged beautifully.</p>
                 </div>
-                {/* Step 3 */}
-                <div className="relative pl-8">
-                  <div className={`absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full ${trackingStep >= 2 ? 'bg-primary' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-medium ${trackingStep >= 2 ? 'text-primary' : 'text-on-surface-variant'}`}>Shipped</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Your package has been dispatched via secure courier.</p>
+
+                {/* Step 2: Shipped */}
+                <div className="relative pl-8 group">
+                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 2 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 2 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Shipped</h4>
+                  <p className="text-xs text-on-surface-variant mt-1">Dispatched via secure luxury logistics. Tracking has been assigned.</p>
                 </div>
-                {/* Step 4 */}
-                <div className="relative pl-8">
-                  <div className={`absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full ${trackingStep >= 3 ? 'bg-primary' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-medium ${trackingStep >= 3 ? 'text-primary' : 'text-on-surface-variant'}`}>Delivered</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">The package has been signed for and delivered.</p>
+
+                {/* Step 3: Out for Delivery */}
+                <div className="relative pl-8 group">
+                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 3 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 3 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Out For Delivery</h4>
+                  <p className="text-xs text-on-surface-variant mt-1">A curated courier partner is delivering your shipment today.</p>
+                </div>
+
+                {/* Step 4: Delivered */}
+                <div className="relative pl-8 group">
+                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 4 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 4 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Delivered</h4>
+                  <p className="text-xs text-on-surface-variant mt-1">Successfully hand-delivered. We hope you cherish your Molvbriv creation.</p>
                 </div>
               </div>
 
+              {/* Detailed Shipment History Activity Checkpoints */}
+              {orderDetails && orderDetails.shipment_history && orderDetails.shipment_history.length > 0 && (
+                <div className="border border-black/5 rounded-lg overflow-hidden bg-surface mt-6 shadow-sm">
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="w-full p-5 flex justify-between items-center text-left hover:bg-black/5 transition-colors focus:outline-none"
+                  >
+                    <span className="text-xs uppercase tracking-widest text-primary font-bold font-manrope">Detailed Shipment Milestones</span>
+                    <span className="text-secondary text-sm font-semibold">{showHistory ? '▲ Hide' : '▼ View'}</span>
+                  </button>
+                  {showHistory && (
+                    <div className="bg-[#FAF9F6] p-5 border-t border-black/5 space-y-4 max-h-[320px] overflow-y-auto">
+                      {orderDetails.shipment_history.map((checkpoint, index) => (
+                        <div key={index} className="flex gap-4 border-l border-secondary/30 pl-4 py-1 relative">
+                          <div className="absolute left-[-5px] top-2 w-2.5 h-2.5 rounded-full bg-secondary"></div>
+                          <div className="flex-1">
+                            <span className="text-[10px] text-on-surface-variant font-mono uppercase tracking-wider block">
+                              {checkpoint.date || checkpoint.timestamp || new Date().toLocaleString()}
+                            </span>
+                            <span className="text-sm font-medium text-primary block mt-0.5">
+                              {checkpoint.activity || checkpoint.status}
+                            </span>
+                            {checkpoint.location && (
+                              <span className="text-xs text-on-surface-variant italic block mt-0.5">
+                                Location: {checkpoint.location}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="pt-8 text-center">
                 <button
-                  onClick={() => { setIsTracking(false); setOrderId(''); setEmail(''); setTrackingStep(0); }}
+                  onClick={() => { setIsTracking(false); setOrderId(''); setEmail(''); setTrackingStep(0); setShowHistory(false); }}
                   className="text-xs text-secondary tracking-widest uppercase hover:text-primary transition-colors border-b border-secondary hover:border-primary pb-1"
                 >
                   Track Another Order
