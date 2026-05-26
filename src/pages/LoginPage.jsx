@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [errors, setErrors] = useState({})
   const [authError, setAuthError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [forgotMessage, setForgotMessage] = useState(false)
 
@@ -47,6 +48,7 @@ export default function LoginPage() {
   const handleSignIn = async (e) => {
     e.preventDefault()
     setAuthError('')
+    setSuccessMessage('')
     if (validateLogin()) {
       setLoading(true)
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -67,6 +69,7 @@ export default function LoginPage() {
   const handleRegister = async (e) => {
     e.preventDefault()
     setAuthError('')
+    setSuccessMessage('')
     if (validateRegister()) {
       setLoading(true)
       try {
@@ -88,8 +91,8 @@ export default function LoginPage() {
              setAuthError('This email is already registered. Please sign in.')
              setLoading(false)
           } else if (!data.session) {
-             // Email confirmation is active in Supabase (displays instructions instead of redirecting unverified session)
-             setAuthError('SUCCESS: Account created successfully! Please check your email inbox to verify your account before logging in.')
+             // Email confirmation is active in Supabase (sets green success message card)
+             setSuccessMessage('Account created successfully! Please check your email inbox to verify your account before logging in.')
              setLoading(false)
           } else {
              // Verification is disabled, user logs in automatically
@@ -107,6 +110,7 @@ export default function LoginPage() {
 
   const handleForgotPassword = async () => {
     setAuthError('')
+    setSuccessMessage('')
     if (!email || !/\S+@\S+\.\S+/.test(email)) {
       setErrors({ email: 'Please enter a valid email first' })
       return
@@ -181,6 +185,15 @@ export default function LoginPage() {
               </div>
               
               {authError && <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-manrope text-center rounded">{authError}</div>}
+              {successMessage && (
+                <div className="mb-6 p-4 bg-[#082717]/5 border border-[#082717]/20 text-primary text-xs font-manrope text-center rounded shadow-sm">
+                  <div className="flex items-center justify-center gap-2 mb-1.5">
+                    <span className="text-gold text-sm font-bold">✓</span>
+                    <span className="text-[#082717] font-bold uppercase tracking-[0.15em] text-[10px]">Registration Successful</span>
+                  </div>
+                  <p className="text-[#15462D] leading-relaxed font-medium">{successMessage}</p>
+                </div>
+              )}
 
               <form onSubmit={handleSignIn} className="space-y-8">
                 <div>
@@ -252,7 +265,7 @@ export default function LoginPage() {
               <p className="text-center mt-8 font-manrope text-[11px] text-primary">
                 NEW TO MOLVBRIV?{' '}
                 <button
-                  onClick={() => { setMode('register'); setErrors({}) }}
+                  onClick={() => { setMode('register'); setErrors({}); setAuthError(''); setSuccessMessage(''); }}
                   className="text-gold underline underline-offset-2 hover:text-primary transition-colors uppercase tracking-nav font-medium"
                 >
                   CREATE ACCOUNT
@@ -268,6 +281,15 @@ export default function LoginPage() {
               </div>
               
               {authError && <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-manrope text-center rounded">{authError}</div>}
+              {successMessage && (
+                <div className="mb-6 p-4 bg-[#082717]/5 border border-[#082717]/20 text-primary text-xs font-manrope text-center rounded shadow-sm">
+                  <div className="flex items-center justify-center gap-2 mb-1.5">
+                    <span className="text-gold text-sm font-bold">✓</span>
+                    <span className="text-[#082717] font-bold uppercase tracking-[0.15em] text-[10px]">Registration Successful</span>
+                  </div>
+                  <p className="text-[#15462D] leading-relaxed font-medium">{successMessage}</p>
+                </div>
+              )}
 
               <form onSubmit={handleRegister} className="space-y-6">
                 <div>
@@ -342,7 +364,7 @@ export default function LoginPage() {
               <p className="text-center mt-8 font-manrope text-[11px] text-primary">
                 ALREADY HAVE AN ACCOUNT?{' '}
                 <button
-                  onClick={() => { setMode('login'); setErrors({}) }}
+                  onClick={() => { setMode('login'); setErrors({}); setAuthError(''); setSuccessMessage(''); }}
                   className="text-gold underline underline-offset-2 hover:text-primary transition-colors uppercase tracking-nav font-medium"
                 >
                   SIGN IN
