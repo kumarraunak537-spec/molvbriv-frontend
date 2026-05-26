@@ -189,8 +189,8 @@ CREATE POLICY "Admins can delete images" ON storage.objects FOR DELETE USING (
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, name, email, role)
-  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.email, 'user');
+  INSERT INTO public.profiles (id, name, email, role, phone)
+  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.email, 'user', new.raw_user_meta_data->>'phone');
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

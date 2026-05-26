@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [errors, setErrors] = useState({})
   const [authError, setAuthError] = useState('')
@@ -36,6 +37,7 @@ export default function LoginPage() {
     const newErrors = {}
     if (!name) newErrors.name = 'Name is required'
     if (!email || !/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Please enter a valid email'
+    if (!phone || !/^\d{10}$/.test(phone.trim())) newErrors.phone = 'Please enter a valid 10-digit phone number'
     if (!password || password.length < 8) newErrors.password = 'Password must be at least 8 characters'
     if (password !== confirmPassword) newErrors.confirmPassword = 'Passwords do not match'
     setErrors(newErrors)
@@ -67,27 +69,38 @@ export default function LoginPage() {
     setAuthError('')
     if (validateRegister()) {
       setLoading(true)
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: name,
+              phone: phone.trim()
+            }
+          }
+        })
+        if (error) {
+          setAuthError(error.message)
+          setLoading(false)
+        } else {
+          if (data?.user?.identities?.length === 0) {
+             setAuthError('This email is already registered. Please sign in.')
+             setLoading(false)
+          } else if (!data.session) {
+             // Email confirmation is active in Supabase (displays instructions instead of redirecting unverified session)
+             setAuthError('SUCCESS: Account created successfully! Please check your email inbox to verify your account before logging in.')
+             setLoading(false)
+          } else {
+             // Verification is disabled, user logs in automatically
+             const params = new URLSearchParams(window.location.search);
+             const redirect = params.get('redirect');
+             navigate(redirect ? `/${redirect}` : '/');
           }
         }
-      })
-      if (error) {
-        setAuthError(error.message)
+      } catch (err) {
+        setAuthError(err.message || 'An unexpected registration error occurred.')
         setLoading(false)
-      } else {
-        if (data?.user?.identities?.length === 0) {
-           setAuthError('This email is already registered. Please sign in.')
-           setLoading(false)
-        } else {
-           const params = new URLSearchParams(window.location.search);
-           const redirect = params.get('redirect');
-           navigate(redirect ? `/${redirect}` : '/');
-        }
       }
     }
   }
@@ -279,6 +292,18 @@ export default function LoginPage() {
                     className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 font-manrope text-[13px] text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors"
                   />
                   {errors.email && <p className="text-red-500 text-[10px] mt-1 font-manrope">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted block mb-3">PHONE NUMBER</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Your Phone Number (e.g. 9876543210)"
+                    className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 font-manrope text-[13px] text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors"
+                  />
+                  {errors.phone && <p className="text-red-500 text-[10px] mt-1 font-manrope">{errors.phone}</p>}
                 </div>
 
                 <div>
