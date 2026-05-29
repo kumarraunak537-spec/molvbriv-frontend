@@ -157,6 +157,11 @@ async function createShiprocketOrder(order) {
     }
 
     const createData = await createRes.json();
+    if (!createData || !createData.order_id) {
+      const errMsg = createData.message || JSON.stringify(createData);
+      throw new Error(`Shiprocket order creation failed: ${errMsg}`);
+    }
+
     const shiprocketOrderId = createData.order_id;
     const shipmentId = createData.shipment_id;
 

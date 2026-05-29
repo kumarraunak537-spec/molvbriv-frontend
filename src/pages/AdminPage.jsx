@@ -279,6 +279,11 @@ export default function AdminPage() {
   };
 
   const handleTrackShipment = async (awbCode) => {
+    if (!awbCode || awbCode === 'N/A' || awbCode === 'undefined' || awbCode.trim() === '') {
+      setLogisticsError('AWB Code is not assigned yet. Please wait or re-initialize shipment.');
+      showToast('AWB Code not assigned');
+      return;
+    }
     setIsLogisticsLoading(true);
     setLogisticsError('');
     try {
