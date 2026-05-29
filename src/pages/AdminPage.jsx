@@ -253,11 +253,21 @@ export default function AdminPage() {
     setLogisticsError('');
   }, [selectedAdminOrder?.id]);
 
+  const getFailingFetchError = (err, url) => {
+    if (err && (err.message === 'Failed to fetch' || err.message === 'fetch failed')) {
+      return `Failed to fetch from ${url}.
+Root Cause: Either a CORS preflight failure, the server is offline, or a Mixed Content block (HTTPS site calling HTTP localhost).
+Solution: If you are on the live site, ensure the VITE_API_URL environment variable is set to your secure HTTPS hosted backend (e.g. on Render.com) in Vercel settings and rebuild. If testing locally, check that the backend is running on port 5000.`;
+    }
+    return err.message || 'An unexpected error occurred.';
+  };
+
   const handleInitializeShipment = async (orderId) => {
     setIsLogisticsLoading(true);
     setLogisticsError('');
+    const targetUrl = `${API_BASE_URL}/api/shiprocket/create-shipment`;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/shiprocket/create-shipment`, {
+      const res = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId })
@@ -271,7 +281,7 @@ export default function AdminPage() {
       setOrdersData(prev => prev.map(o => o.id === orderId ? data.order : o));
     } catch (err) {
       console.error(err);
-      setLogisticsError(err.message || 'Fulfillment request failed.');
+      setLogisticsError(getFailingFetchError(err, targetUrl));
       showToast('Fulfillment failed');
     } finally {
       setIsLogisticsLoading(false);
@@ -286,8 +296,9 @@ export default function AdminPage() {
     }
     setIsLogisticsLoading(true);
     setLogisticsError('');
+    const targetUrl = `${API_BASE_URL}/api/shiprocket/track/${awbCode}`;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/shiprocket/track/${awbCode}`);
+      const res = await fetch(targetUrl);
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Failed to query live tracking updates');
@@ -297,7 +308,7 @@ export default function AdminPage() {
       showToast('Tracking data synced!');
     } catch (err) {
       console.error(err);
-      setLogisticsError(err.message || 'Tracking query failed.');
+      setLogisticsError(getFailingFetchError(err, targetUrl));
       showToast('Tracking query failed');
     } finally {
       setIsLogisticsLoading(false);
@@ -307,8 +318,9 @@ export default function AdminPage() {
   const handleCancelShipment = async (orderId, shiprocketOrderId) => {
     setIsLogisticsLoading(true);
     setLogisticsError('');
+    const targetUrl = `${API_BASE_URL}/api/shiprocket/cancel`;
     try {
-      const res = await fetch(`${API_BASE_URL}/api/shiprocket/cancel`, {
+      const res = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, shiprocketOrderId })
@@ -324,7 +336,7 @@ export default function AdminPage() {
       setShowLogisticsHistory(false);
     } catch (err) {
       console.error(err);
-      setLogisticsError(err.message || 'Cancellation request failed.');
+      setLogisticsError(getFailingFetchError(err, targetUrl));
       showToast('Cancellation failed');
     } finally {
       setIsLogisticsLoading(false);
