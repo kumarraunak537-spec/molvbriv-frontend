@@ -34,8 +34,8 @@ async function getShiprocketToken() {
   const email = process.env.SHIPROCKET_EMAIL;
   const password = process.env.SHIPROCKET_PASSWORD;
 
-  if (!email || !password) {
-    console.warn('WARNING: SHIPROCKET_EMAIL or SHIPROCKET_PASSWORD is missing in backend .env file. Running in Simulation Mode.');
+  if (!email || !password || password === 'YOUR_PASSWORD') {
+    console.warn('WARNING: SHIPROCKET_EMAIL or SHIPROCKET_PASSWORD is missing or set to placeholder in backend .env file. Running in Simulation Mode.');
     return 'SIMULATED_TOKEN';
   }
 
@@ -1007,6 +1007,97 @@ app.post('/api/shiprocket/cancel', async (req, res) => {
   } catch (err) {
     console.error('Error cancelling shipment:', err);
     res.status(500).json({ success: false, error: err.message || 'Failed to cancel shipment' });
+  }
+});
+
+// E. Courier Serviceability Check
+app.get('/api/shiprocket/serviceability', async (req, res) => {
+  const { delivery_postcode, pickup_postcode } = req.query;
+  const deliveryPostcode = delivery_postcode || '110001';
+  const pickupPostcode = pickup_postcode || process.env.SHIPROCKET_PICKUP_PINCODE || '110001';
+  
+  const token = await getShiprocketToken();
+  if (token === 'SIMULATED_TOKEN') {
+    return res.json({
+      success: true,
+      simulated: true,
+      data: {
+        company_name: 'Delhivery Private Limited',
+        rate: 85.00,
+        delivery_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toLocaleDateString(),
+        etd: '3 Days',
+        cod: 1
+      }
+    });
+  }
+
+  try {
+    const response = await fetch(`https://apiv2.shiprocket.in/v1/external/courier/serviceability?pickup_postcode=${pickupPostcode}&delivery_postcode=${deliveryPostcode}&weight=0.5&cod=1`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Serviceability check failed: ${response.statusText} - ${errText}`);
+    }
+
+    const data = await response.json();
+    res.json({ success: true, simulated: false, data: data.data || data });
+  } catch (err) {
+    console.error('Error in courier serviceability check:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to check courier serviceability' });
+  }
+});
+
+// F. Generate Invoice Link
+app.post('/api/shiprocket/invoice', async (req, res) => {
+  const { orderId } = req.body;
+  if (!orderId) {
+    return res.status(400).json({ success: false, error: 'orderId is required' });
+  }
+
+  const token = await getShiprocketToken();
+  if (token === 'SIMULATED_TOKEN') {
+    return res.json({
+      success: true,
+      simulated: true,
+      invoice_url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
+    });
+  }
+
+  try {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order || !order.shiprocket_order_id) {
+      return res.status(404).json({ success: false, error: 'Order or Shiprocket Order ID not found' });
+    }
+
+    const response = await fetch('https://apiv2.shiprocket.in/v1/external/orders/print/invoice', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ ids: [parseInt(order.shiprocket_order_id)] })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Invoice generation failed: ${response.statusText} - ${errText}`);
+    }
+
+    const data = await response.json();
+    res.json({ success: true, simulated: false, invoice_url: data.invoice_url || '' });
+  } catch (err) {
+    console.error('Error generating invoice:', err);
+    res.status(500).json({ success: false, error: err.message || 'Failed to generate shipment invoice link' });
   }
 });
 
