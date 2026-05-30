@@ -240,7 +240,7 @@ export default function AdminPage() {
     }
   };
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
   
   const [isLogisticsLoading, setIsLogisticsLoading] = useState(false);
   const [logisticsError, setLogisticsError] = useState('');
@@ -257,7 +257,7 @@ export default function AdminPage() {
     if (err && (err.message === 'Failed to fetch' || err.message === 'fetch failed')) {
       return `Failed to fetch from ${url}.
 Root Cause: Either a CORS preflight failure, the server is offline, or a Mixed Content block (HTTPS site calling HTTP localhost).
-Solution: If you are on the live site, ensure the VITE_API_URL environment variable is set to your secure HTTPS hosted backend (e.g. on Render.com) in Vercel settings and rebuild. If testing locally, check that the backend is running on port 5000.`;
+Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_URL environment variable is set to your secure HTTPS hosted backend (e.g. on Render.com) in Vercel settings and rebuild. If testing locally, check that the backend is running on port 5000.`;
     }
     return err.message || 'An unexpected error occurred.';
   };
