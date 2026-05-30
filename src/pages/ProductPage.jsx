@@ -17,6 +17,8 @@ export default function ProductPage() {
   const [recentProducts, setRecentProducts] = useState([])
   const [showDetails, setShowDetails] = useState(false)
   const [showDelivery, setShowDelivery] = useState(false)
+  const [relatedProducts, setRelatedProducts] = useState([])
+  const [activeBottomTab, setActiveBottomTab] = useState('related')
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -59,6 +61,20 @@ export default function ProductPage() {
         if (recents.length > 4) recents = recents.slice(0, 4)
         localStorage.setItem('recentProducts', JSON.stringify(recents))
       } catch (err) {}
+
+      // Fetch related products
+      if (data.category_id) {
+        const { data: related, error: relError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('category_id', data.category_id)
+          .neq('id', data.id)
+          .limit(4)
+        
+        if (!relError && related) {
+          setRelatedProducts(related)
+        }
+      }
     } catch (err) {
       console.error('Error fetching product:', err.message)
     } finally {
@@ -251,32 +267,89 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* Recently Viewed Products */}
-        {recentProducts.filter(rp => rp.id !== id).length > 0 && (
-          <div className="pt-16 md:pt-24">
-            <h2 className="text-2xl md:text-3xl font-manrope text-primary mb-8 text-center">Recently Viewed</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-              {recentProducts.filter(rp => rp.id !== id).slice(0, 4).map(rp => (
-                <Link to={`/product/${rp.id}`} key={rp.id} className="group cursor-pointer">
-                  <div className="aspect-[4/5] bg-surface-container-low overflow-hidden rounded-xl mb-4">
-                    <img 
-                      src={rp.image} 
-                      alt={rp.title} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                    />
-                  </div>
-                  <h3 className="font-manrope text-primary text-sm md:text-base truncate">{rp.title}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="font-body text-secondary text-sm">₹{(rp.price || 0).toLocaleString()}</span>
-                    {rp.compare_price && Number(rp.compare_price) > Number(rp.price) && (
-                      <span className="text-xs text-on-surface-variant line-through opacity-60">₹{Number(rp.compare_price).toLocaleString()}</span>
-                    )}
-                  </div>
-                </Link>
-              ))}
-            </div>
+        {/* Tabbed Products Bottom Section */}
+        <div className="pt-16 md:pt-24 border-t border-surface-variant/20 mt-16 md:mt-24">
+          {/* Tab Navigation */}
+          <div className="flex items-center justify-start gap-10 md:gap-14 mb-10">
+            <button 
+              onClick={() => setActiveBottomTab('related')}
+              className={`text-xs md:text-sm font-manrope tracking-widest transition-all duration-300 uppercase pb-2.5 ${
+                activeBottomTab === 'related' 
+                  ? 'text-on-surface border-b-[2px] border-on-surface font-semibold' 
+                  : 'text-outline/70 hover:text-on-surface font-semibold'
+              }`}
+            >
+              RELATED PRODUCTS
+            </button>
+            <button 
+              onClick={() => setActiveBottomTab('recent')}
+              className={`text-xs md:text-sm font-manrope tracking-widest transition-all duration-300 uppercase pb-2.5 ${
+                activeBottomTab === 'recent' 
+                  ? 'text-on-surface border-b-[2px] border-on-surface font-semibold' 
+                  : 'text-outline/70 hover:text-on-surface font-semibold'
+              }`}
+            >
+              RECENTLY VIEWED
+            </button>
           </div>
-        )}
+
+          {/* Tab Content */}
+          {activeBottomTab === 'related' ? (
+            relatedProducts.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+                {relatedProducts.map(rp => (
+                  <Link to={`/product/${rp.id}`} key={rp.id} className="group cursor-pointer">
+                    <div className="aspect-[4/5] bg-surface-container-low overflow-hidden rounded-xl mb-4">
+                      <img 
+                        src={rp.images && rp.images.length > 0 ? rp.images[0] : 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=800&h=900&fit=crop'} 
+                        alt={rp.title} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                      />
+                    </div>
+                    <h3 className="font-manrope text-primary text-sm md:text-base truncate">{rp.title}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="font-body text-secondary text-sm">₹{(rp.price || 0).toLocaleString()}</span>
+                      {rp.compare_price && Number(rp.compare_price) > Number(rp.price) && (
+                        <span className="text-xs text-on-surface-variant line-through opacity-60">₹{Number(rp.compare_price).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-outline text-sm">
+                No related products found in this collection.
+              </div>
+            )
+          ) : (
+            recentProducts.filter(rp => rp.id !== id).length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+                {recentProducts.filter(rp => rp.id !== id).slice(0, 4).map(rp => (
+                  <Link to={`/product/${rp.id}`} key={rp.id} className="group cursor-pointer">
+                    <div className="aspect-[4/5] bg-surface-container-low overflow-hidden rounded-xl mb-4">
+                      <img 
+                        src={rp.image} 
+                        alt={rp.title} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                      />
+                    </div>
+                    <h3 className="font-manrope text-primary text-sm md:text-base truncate">{rp.title}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="font-body text-secondary text-sm">₹{(rp.price || 0).toLocaleString()}</span>
+                      {rp.compare_price && Number(rp.compare_price) > Number(rp.price) && (
+                        <span className="text-xs text-on-surface-variant line-through opacity-60">₹{Number(rp.compare_price).toLocaleString()}</span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 text-outline text-sm">
+                Your recently viewed jewelry items will appear here.
+              </div>
+            )
+          )}
+        </div>
       </main>
 
       <Footer />
