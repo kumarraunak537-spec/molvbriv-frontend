@@ -4,24 +4,10 @@ import { supabase } from '../supabaseClient'
 const CartContext = createContext()
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState(() => {
-    try {
-      const saved = localStorage.getItem('molvbriv_cart')
-      return saved ? JSON.parse(saved) : []
-    } catch (e) {
-      return []
-    }
-  })
+  const [cartItems, setCartItems] = useState([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
-  const [wishlist, setWishlist] = useState(() => {
-    try {
-      const saved = localStorage.getItem('molvbriv_wishlist')
-      return saved ? JSON.parse(saved) : []
-    } catch (e) {
-      return []
-    }
-  })
+  const [wishlist, setWishlist] = useState([])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -37,23 +23,57 @@ export function CartProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Load user-specific cart and wishlist when session resolves
   useEffect(() => {
-    try {
-      localStorage.setItem('molvbriv_cart', JSON.stringify(cartItems))
-    } catch (e) {
-      console.error('Failed to save cart to localStorage:', e)
-    }
-  }, [cartItems])
+    if (user) {
+      try {
+        const savedCart = localStorage.getItem(`molvbriv_cart_${user.id}`)
+        setCartItems(savedCart ? JSON.parse(savedCart) : [])
+      } catch (e) {
+        setCartItems([])
+      }
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('molvbriv_wishlist', JSON.stringify(wishlist))
-    } catch (e) {
-      console.error('Failed to save wishlist to localStorage:', e)
+      try {
+        const savedWishlist = localStorage.getItem(`molvbriv_wishlist_${user.id}`)
+        setWishlist(savedWishlist ? JSON.parse(savedWishlist) : [])
+      } catch (e) {
+        setWishlist([])
+      }
+    } else {
+      // Clear cart and wishlist when user logs out or is not authenticated
+      setCartItems([])
+      setWishlist([])
     }
-  }, [wishlist])
+  }, [user])
+
+  // Save cart changes to user-specific storage
+  useEffect(() => {
+    if (user) {
+      try {
+        localStorage.setItem(`molvbriv_cart_${user.id}`, JSON.stringify(cartItems))
+      } catch (e) {
+        console.error('Failed to save user cart:', e)
+      }
+    }
+  }, [cartItems, user])
+
+  // Save wishlist changes to user-specific storage
+  useEffect(() => {
+    if (user) {
+      try {
+        localStorage.setItem(`molvbriv_wishlist_${user.id}`, JSON.stringify(wishlist))
+      } catch (e) {
+        console.error('Failed to save user wishlist:', e)
+      }
+    }
+  }, [wishlist, user])
 
   const addToCart = useCallback((item) => {
+    if (!user) {
+      alert("Please login to add items to your cart.")
+      window.location.href = "/login"
+      return
+    }
     setCartItems(prev => {
       const existing = prev.find(i => i.id === item.id)
       if (existing) {
@@ -61,7 +81,7 @@ export function CartProvider({ children }) {
       }
       return [...prev, { ...item, quantity: 1 }]
     })
-  }, [])
+  }, [user])
 
   const removeFromCart = useCallback((id) => {
     setCartItems(prev => prev.filter(i => i.id !== id))
@@ -82,12 +102,17 @@ export function CartProvider({ children }) {
   const grandTotal = subtotal + taxes
 
   const toggleWishlist = useCallback((productId) => {
+    if (!user) {
+      alert("Please login to manage your wishlist.")
+      window.location.href = "/login"
+      return
+    }
     setWishlist(prev =>
       prev.includes(productId)
         ? prev.filter(id => id !== productId)
         : [...prev, productId]
     )
-  }, [])
+  }, [user])
 
   const isInWishlist = useCallback((productId) => {
     return wishlist.includes(productId)
