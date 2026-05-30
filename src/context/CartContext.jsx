@@ -4,10 +4,24 @@ import { supabase } from '../supabaseClient'
 const CartContext = createContext()
 
 export function CartProvider({ children }) {
-  const [cartItems, setCartItems] = useState([])
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const saved = localStorage.getItem('molvbriv_cart')
+      return saved ? JSON.parse(saved) : []
+    } catch (e) {
+      return []
+    }
+  })
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
-  const [wishlist, setWishlist] = useState([])
+  const [wishlist, setWishlist] = useState(() => {
+    try {
+      const saved = localStorage.getItem('molvbriv_wishlist')
+      return saved ? JSON.parse(saved) : []
+    } catch (e) {
+      return []
+    }
+  })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -22,6 +36,22 @@ export function CartProvider({ children }) {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('molvbriv_cart', JSON.stringify(cartItems))
+    } catch (e) {
+      console.error('Failed to save cart to localStorage:', e)
+    }
+  }, [cartItems])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('molvbriv_wishlist', JSON.stringify(wishlist))
+    } catch (e) {
+      console.error('Failed to save wishlist to localStorage:', e)
+    }
+  }, [wishlist])
 
   const addToCart = useCallback((item) => {
     setCartItems(prev => {
