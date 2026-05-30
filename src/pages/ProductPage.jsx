@@ -246,20 +246,20 @@ export default function ProductPage() {
                 </div>
               </div>
 
-              {/* Delivery & Returns Accordion */}
+              {/* Shipping & Returns Accordion */}
               <div className="py-4">
                 <button 
                   onClick={() => setShowDelivery(!showDelivery)}
                   className="w-full flex items-center justify-between py-2 text-left font-manrope text-sm md:text-base tracking-wide text-primary hover:text-secondary transition-all"
                 >
-                  <span className="font-semibold text-on-surface">Delivery & Returns</span>
+                  <span className="font-semibold text-on-surface">Shipping & Returns</span>
                   <span className={`material-symbols-outlined text-outline transition-transform duration-300 ${showDelivery ? 'rotate-90 text-secondary' : ''}`}>
                     chevron_right
                   </span>
                 </button>
                 <div className={`overflow-hidden transition-all duration-300 ${showDelivery ? 'max-h-96 mt-3 opacity-100' : 'max-h-0 opacity-0'}`}>
                   <p className="text-xs md:text-sm text-on-surface-variant leading-relaxed font-inter font-light">
-                    Complimentary fully insured white-glove delivery across India. Handled with absolute discretion, each jewel is protected in our signature luxury presentation box and shipped with live AWB tracking. Returns are welcome within 7 days of delivery for pristine, unworn curator selections.
+                    Once your order is confirmed, it will be shipped and delivered to your doorstep within 3 to 6 business days. We ensure every product is carefully packed to reach you in perfect condition. If you are not satisfied, you may initiate a hassle-free return within 24 hours of delivery (item must be unused and in original packaging).
                   </p>
                 </div>
               </div>
