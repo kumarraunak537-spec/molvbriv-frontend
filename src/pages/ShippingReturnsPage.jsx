@@ -27,7 +27,7 @@ export default function ShippingReturnsPage() {
             
             {/* Intro / Commitment */}
             <div className="bg-[#f7f3ed] p-8 md:p-12 border-l-2 border-[#765931]/30">
-              <p className="text-[#424843] text-sm md:text-base leading-relaxed font-manrope italic">
+              <p className="text-[#424843] text-sm md:text-base leading-relaxed font-manrope">
                 "At Molvbriv, we are committed to delivering your orders safely and on time. Once your order is confirmed, it will be shipped and delivered to your doorstep within 3 to 6 business days, depending on your location. We ensure every product is carefully packed to reach you in perfect condition."
               </p>
             </div>
