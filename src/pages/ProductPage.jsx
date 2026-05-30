@@ -15,6 +15,8 @@ export default function ProductPage() {
   const [selectedImage, setSelectedImage] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
   const [recentProducts, setRecentProducts] = useState([])
+  const [showDetails, setShowDetails] = useState(false)
+  const [showDelivery, setShowDelivery] = useState(false)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -199,14 +201,51 @@ export default function ProductPage() {
               </div>
             )}
 
-            <div className="pt-6 md:pt-8 border-t border-surface-variant flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-secondary text-xl">verified</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium">Authenticity Guaranteed</span>
+            <div className="mt-8 border-t border-b border-surface-variant/40 divide-y divide-surface-variant/40">
+              {/* Product Details Accordion */}
+              <div className="py-4">
+                <button 
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="w-full flex items-center justify-between py-2 text-left font-manrope text-sm md:text-base tracking-wide text-primary hover:text-secondary transition-all"
+                >
+                  <span className="font-semibold text-on-surface">Product Details</span>
+                  <span className={`material-symbols-outlined text-outline transition-transform duration-300 ${showDetails ? 'rotate-90 text-secondary' : ''}`}>
+                    chevron_right
+                  </span>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${showDetails ? 'max-h-96 mt-3 opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <p className="text-xs md:text-sm text-on-surface-variant leading-relaxed font-inter font-light">
+                    Each MOLVBRIV masterpiece is individually certified for authenticity, meticulously handcrafted by our master artisans from premium {product.material || 'precious metal'} selection, and audited to guarantee a lifetime of timeless luxury.
+                  </p>
+                  <div className="mt-4 grid grid-cols-2 gap-4 border-t border-surface-variant/20 pt-4 text-xs">
+                    <div>
+                      <span className="text-outline uppercase tracking-wider text-[10px]">Curation</span>
+                      <p className="text-primary font-medium mt-0.5">Bespoke Jewelry</p>
+                    </div>
+                    <div>
+                      <span className="text-outline uppercase tracking-wider text-[10px]">Material Spec</span>
+                      <p className="text-primary font-medium mt-0.5">{product.material || 'Gold Plated'}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-secondary text-xl">local_shipping</span>
-                <span className="text-[10px] uppercase tracking-widest font-medium">Insured Worldwide Delivery</span>
+
+              {/* Delivery & Returns Accordion */}
+              <div className="py-4">
+                <button 
+                  onClick={() => setShowDelivery(!showDelivery)}
+                  className="w-full flex items-center justify-between py-2 text-left font-manrope text-sm md:text-base tracking-wide text-primary hover:text-secondary transition-all"
+                >
+                  <span className="font-semibold text-on-surface">Delivery & Returns</span>
+                  <span className={`material-symbols-outlined text-outline transition-transform duration-300 ${showDelivery ? 'rotate-90 text-secondary' : ''}`}>
+                    chevron_right
+                  </span>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${showDelivery ? 'max-h-96 mt-3 opacity-100' : 'max-h-0 opacity-0'}`}>
+                  <p className="text-xs md:text-sm text-on-surface-variant leading-relaxed font-inter font-light">
+                    Complimentary fully insured white-glove delivery across India. Handled with absolute discretion, each jewel is protected in our signature luxury presentation box and shipped with live AWB tracking. Returns are welcome within 7 days of delivery for pristine, unworn curator selections.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
