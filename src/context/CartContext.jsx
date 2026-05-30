@@ -8,6 +8,8 @@ export function CartProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
   const [wishlist, setWishlist] = useState([])
+  const [isCartLoaded, setIsCartLoaded] = useState(false)
+  const [isWishlistLoaded, setIsWishlistLoaded] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -26,12 +28,16 @@ export function CartProvider({ children }) {
   // Load user-specific cart and wishlist when session resolves
   useEffect(() => {
     if (user) {
+      setIsCartLoaded(false)
+      setIsWishlistLoaded(false)
+
       try {
         const savedCart = localStorage.getItem(`molvbriv_cart_${user.id}`)
         setCartItems(savedCart ? JSON.parse(savedCart) : [])
       } catch (e) {
         setCartItems([])
       }
+      setIsCartLoaded(true)
 
       try {
         const savedWishlist = localStorage.getItem(`molvbriv_wishlist_${user.id}`)
@@ -39,34 +45,37 @@ export function CartProvider({ children }) {
       } catch (e) {
         setWishlist([])
       }
+      setIsWishlistLoaded(true)
     } else {
       // Clear cart and wishlist when user logs out or is not authenticated
       setCartItems([])
       setWishlist([])
+      setIsCartLoaded(false)
+      setIsWishlistLoaded(false)
     }
   }, [user])
 
-  // Save cart changes to user-specific storage
+  // Save cart changes to user-specific storage (ONLY after loading has finished!)
   useEffect(() => {
-    if (user) {
+    if (user && isCartLoaded) {
       try {
         localStorage.setItem(`molvbriv_cart_${user.id}`, JSON.stringify(cartItems))
       } catch (e) {
         console.error('Failed to save user cart:', e)
       }
     }
-  }, [cartItems, user])
+  }, [cartItems, user, isCartLoaded])
 
-  // Save wishlist changes to user-specific storage
+  // Save wishlist changes to user-specific storage (ONLY after loading has finished!)
   useEffect(() => {
-    if (user) {
+    if (user && isWishlistLoaded) {
       try {
         localStorage.setItem(`molvbriv_wishlist_${user.id}`, JSON.stringify(wishlist))
       } catch (e) {
         console.error('Failed to save user wishlist:', e)
       }
     }
-  }, [wishlist, user])
+  }, [wishlist, user, isWishlistLoaded])
 
   const addToCart = useCallback((item) => {
     if (!user) {
