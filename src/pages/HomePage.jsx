@@ -119,7 +119,7 @@ export default function HomePage() {
             </div>
             <div className="flex flex-col items-center text-center gap-4">
               <span className="material-symbols-outlined text-secondary text-3xl">lock</span>
-              <p className="text-[10px] uppercase tracking-widest font-bold text-primary">Insured Checkout</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-primary">Secure Checkout</p>
             </div>
             <div className="flex flex-col items-center text-center gap-4">
               <span className="material-symbols-outlined text-secondary text-3xl">published_with_changes</span>
