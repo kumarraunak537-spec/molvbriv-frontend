@@ -13,7 +13,7 @@ export default function Footer({ variant = 'default' }) {
           <ul className="space-y-4">
             <li><Link to="/shipping-returns" className="text-white/60 hover:text-white transition-colors text-sm font-manrope tracking-wide">Shipping & Returns</Link></li>
             <li><Link to="/" className="text-white/60 hover:text-white transition-colors text-sm font-manrope tracking-wide">Privacy Policy</Link></li>
-            <li><Link to="/" className="text-white/60 hover:text-white transition-colors text-sm font-manrope tracking-wide">Terms of Service</Link></li>
+            <li><Link to="/terms-of-service" className="text-white/60 hover:text-white transition-colors text-sm font-manrope tracking-wide">Terms of Service</Link></li>
           </ul>
         </div>
         <div className="space-y-6">

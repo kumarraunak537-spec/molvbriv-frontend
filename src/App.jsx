@@ -15,6 +15,7 @@ import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx'
 import PaymentFailedPage from './pages/PaymentFailedPage.jsx'
 import UserOrdersPage from './pages/UserOrdersPage.jsx'
 import ShippingReturnsPage from './pages/ShippingReturnsPage.jsx'
+import TermsOfServicePage from './pages/TermsOfServicePage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import { CartProvider } from './context/CartContext.jsx'
 
@@ -79,6 +80,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/about" element={<AboutUsPage />} />
           <Route path="/shipping-returns" element={<ShippingReturnsPage />} />
+          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
           <Route path="/track-order" element={<OrderTrackingPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
