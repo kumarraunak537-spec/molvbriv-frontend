@@ -28,7 +28,16 @@ export default function LoginPage() {
 
   const validateLogin = () => {
     const newErrors = {}
-    if (!email || !/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Please enter a valid email'
+    const identifier = email.trim()
+    const isPhone = /^\d{10}$/.test(identifier)
+    const isEmail = /\S+@\S+\.\S+/.test(identifier)
+
+    if (!identifier) {
+      newErrors.email = 'Please enter your Email or Phone Number'
+    } else if (!isPhone && !isEmail) {
+      newErrors.email = 'Please enter a valid Email or 10-digit Phone Number'
+    }
+
     if (!password || password.length < 8) newErrors.password = 'Password must be at least 8 characters'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -51,8 +60,35 @@ export default function LoginPage() {
     setSuccessMessage('')
     if (validateLogin()) {
       setLoading(true)
+      const identifier = email.trim()
+      const isPhone = /^\d{10}$/.test(identifier)
+      
+      let loginEmail = identifier
+
+      if (isPhone) {
+        try {
+          // Query the public.profiles table to find the email linked with this phone number
+          const { data: profile, error: profileErr } = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('phone', identifier)
+            .maybeSingle()
+
+          if (profileErr || !profile || !profile.email) {
+            setAuthError('No account found with this phone number.')
+            setLoading(false)
+            return
+          }
+          loginEmail = profile.email
+        } catch (err) {
+          setAuthError('Could not resolve phone number. Please sign in with email.')
+          setLoading(false)
+          return
+        }
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       })
       if (error) {
@@ -197,12 +233,12 @@ export default function LoginPage() {
 
               <form onSubmit={handleSignIn} className="space-y-8">
                 <div>
-                  <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted block mb-3">EMAIL ADDRESS</label>
+                  <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted block mb-3">EMAIL OR PHONE NUMBER</label>
                   <input
-                    type="email"
+                    type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="curator@molvbriv.com"
+                    placeholder="curator@molvbriv.com or 9876543210"
                     className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 font-manrope text-[13px] text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors"
                   />
                   {errors.email && <p className="text-red-500 text-[10px] mt-1 font-manrope">{errors.email}</p>}
