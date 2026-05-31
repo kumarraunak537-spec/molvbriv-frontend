@@ -59,7 +59,6 @@ export default function CollectionsPage() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-12 gap-4 md:gap-6">
           <div className="max-w-xl">
             <h2 className="text-2xl md:text-4xl font-manrope text-primary mb-3 md:mb-6">Our Collections</h2>
-            <p className="text-[#424843] text-sm md:text-base font-inter">A selection of rare stones, hand-set in recycled 18k gold. Every piece is a dialogue between nature's chaos and architectural precision.</p>
           </div>
         </div>
 

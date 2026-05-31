@@ -60,11 +60,11 @@ export default function AllProductsPage() {
                 <h2 className="text-2xl md:text-4xl font-manrope text-primary mb-3 md:mb-6">
                   {searchQuery ? `Search Results for "${searchQuery}"` : 'All Products'}
                 </h2>
-                <p className="text-on-surface-variant text-sm md:text-base">
-                  {searchQuery 
-                    ? `Showing products that matched your search query.` 
-                    : 'Explore our entire collection of rare stones and precision-crafted 18k gold pieces. Every item tells a story.'}
-                </p>
+                {searchQuery && (
+                  <p className="text-on-surface-variant text-sm md:text-base">
+                    Showing products that matched your search query.
+                  </p>
+                )}
               </div>
             </div>
             
