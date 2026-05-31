@@ -128,11 +128,27 @@ ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 
+-- Create the secure admin helper function with SECURITY DEFINER to bypass RLS recursion
+CREATE OR REPLACE FUNCTION public.is_admin(p_user_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = p_user_id AND role = 'admin'
+  );
+END;
+$$;
+
 -- Profile Policies
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
+DROP POLICY IF EXISTS "Profiles are viewable by owner or admin." ON public.profiles;
 CREATE POLICY "Profiles are viewable by owner or admin." ON public.profiles FOR SELECT USING (
   auth.uid() = id OR 
-  EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+  public.is_admin(auth.uid())
 );
 CREATE POLICY "Users can insert their own profile." ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id);
