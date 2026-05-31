@@ -6,14 +6,90 @@ const crypto = require('crypto');
 const Razorpay = require('razorpay');
 const { createClient } = require('@supabase/supabase-js');
 const nodemailer = require('nodemailer');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Apply Helmet Security Headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.razorpay.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https://*.supabase.co", "https://images.unsplash.com"],
+      connectSrc: ["'self'", "https://*.supabase.co", "https://api.razorpay.com", "https://apiv2.shiprocket.in"],
+      frameSrc: ["'self'", "https://api.razorpay.com"]
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+
+// Global API Rate Limiter (maximum of 200 requests per 15 minutes per IP)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { success: false, error: 'Too many requests from this IP, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
+
+// Sensitive endpoints Rate Limiter (maximum of 10 payment operations per 10 minutes)
+const sensitiveLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: 'Too many transaction attempts. Restricting for security purposes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Input Sanitization Helper
+function sanitizeString(str) {
+  if (typeof str !== 'string') return str;
+  return str
+    .replace(/[&<>"']/g, (m) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#x27;'
+    })[m])
+    .replace(/\b(SELECT|UNION|INSERT|DELETE|UPDATE|DROP)\b/gi, '') // Strip SQL command injection attempts
+    .replace(/[;`$()]/g, ''); // Strip shell command characters
+}
+
+function sanitizeObject(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  for (let key in obj) {
+    if (typeof obj[key] === 'string') {
+      obj[key] = sanitizeString(obj[key]);
+    } else if (Array.isArray(obj[key])) {
+      obj[key] = obj[key].map(item => typeof item === 'string' ? sanitizeString(item) : sanitizeObject(item));
+    } else if (typeof obj[key] === 'object') {
+      obj[key] = sanitizeObject(obj[key]);
+    }
+  }
+  return obj;
+}
+
+// Global Sanitization Middleware to defend against XSS/Injection
+const sanitizeInputMiddleware = (req, res, next) => {
+  if (req.body) req.body = sanitizeObject(req.body);
+  if (req.query) req.query = sanitizeObject(req.query);
+  if (req.params) req.params = sanitizeObject(req.params);
+  next();
+};
+app.use(sanitizeInputMiddleware);
 
 // Initialize Razorpay Client
 const razorpay = new Razorpay({
@@ -25,6 +101,41 @@ const razorpay = new Razorpay({
 const supabaseUrl = process.env.SUPABASE_URL || 'https://oiksafoujlduutkcgays.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// RBAC Middleware: Auth & Admin Validation
+const authenticateAdmin = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Access denied. Missing authorization token.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    // 1. Verify token with Supabase Auth
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) {
+      return res.status(401).json({ success: false, error: 'Unauthorized. Invalid authentication token.' });
+    }
+
+    // 2. Query user profile to verify 'admin' role
+    const { data: profile, error: dbErr } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (dbErr || !profile || profile.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Forbidden. Access restricted to administrators only.' });
+    }
+
+    // Pass validated admin details to req for logging
+    req.adminUser = user;
+    next();
+  } catch (error) {
+    console.error('Authentication check failure:', error);
+    res.status(500).json({ success: false, error: 'Server authentication checkpoint failure.' });
+  }
+};
 
 // --- SHIPROCKET SECURE LOGISTICS SERVICES ---
 let shiprocketToken = null;
@@ -432,10 +543,14 @@ async function sendConfirmationEmail(order) {
 // --- SECURE PAYMENT & WEBHOOK ENDPOINTS ---
 
 // 1. Create Razorpay Order and pre-create 'Pending' order in Supabase
-app.post('/api/payments/create-order', async (req, res) => {
+app.post('/api/payments/create-order', sensitiveLimiter, async (req, res, next) => {
   const { amount, currency, checkoutDetails } = req.body;
   
   try {
+    if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid checkout amount.' });
+    }
+
     const orderNumber = `MB-${Math.floor(Date.now() / 1000)}`;
     let razorpayOrder = null;
 
@@ -447,6 +562,9 @@ app.post('/api/payments/create-order', async (req, res) => {
       };
       razorpayOrder = await razorpay.orders.create(options);
     } else {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ success: false, error: 'Razorpay keys are unconfigured on live server.' });
+      }
       console.log('Razorpay Secret key is missing. Simulating Razorpay order creation.');
       razorpayOrder = {
         id: `order_sim_${Math.random().toString(36).substring(2, 11)}`,
@@ -489,16 +607,19 @@ app.post('/api/payments/create-order', async (req, res) => {
 
     res.json({ success: true, razorpayOrder });
   } catch (error) {
-    console.error('Error creating payment order:', error);
-    res.status(500).json({ success: false, error: error.message || 'Failed to initialize payment' });
+    next(error);
   }
 });
 
 // 2. Verify payment signatures and commit orders
-app.post('/api/payments/verify', async (req, res) => {
+app.post('/api/payments/verify', sensitiveLimiter, async (req, res, next) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, checkoutDetails } = req.body;
 
   try {
+    if (!razorpay_order_id || !razorpay_payment_id) {
+      return res.status(400).json({ success: false, error: 'Missing transaction identifiers.' });
+    }
+
     let verified = false;
 
     if (process.env.RAZORPAY_KEY_SECRET) {
@@ -511,6 +632,9 @@ app.post('/api/payments/verify', async (req, res) => {
         verified = true;
       }
     } else {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ success: false, error: 'Razorpay keys are unconfigured on live server.' });
+      }
       console.log('Razorpay Key Secret missing. Simulating signature verification success.');
       verified = true;
     }
@@ -608,16 +732,19 @@ app.post('/api/payments/verify', async (req, res) => {
 
     res.json({ success: true, order: orderRecord });
   } catch (error) {
-    console.error('Signature verification error:', error);
-    res.status(500).json({ success: false, error: error.message || 'Payment verification failed' });
+    next(error);
   }
 });
 
 // 3. Cash on Delivery checkout
-app.post('/api/payments/cod', async (req, res) => {
+app.post('/api/payments/cod', sensitiveLimiter, async (req, res, next) => {
   const { checkoutDetails } = req.body;
   
   try {
+    if (!checkoutDetails || !checkoutDetails.amount || parseFloat(checkoutDetails.amount) <= 0) {
+      return res.status(400).json({ success: false, error: 'Invalid checkout request.' });
+    }
+
     const orderNumber = `MB-COD-${Math.floor(Date.now() / 1000)}`;
     let orderRecord = null;
 
@@ -809,63 +936,63 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 // --- API ROUTES ---
 
-// GET all products
-app.get('/api/products', (req, res) => {
+// GET all products (Publicly accessible)
+app.get('/api/products', (req, res, next) => {
   db.all("SELECT * FROM products", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return next(err);
     res.json(rows);
   });
 });
 
-// POST new product
-app.post('/api/products', (req, res) => {
+// POST new product (Admin protected)
+app.post('/api/products', authenticateAdmin, (req, res, next) => {
   const { name, price, category, material, stock, status } = req.body;
   const sql = "INSERT INTO products (name, price, category, material, stock, status) VALUES (?, ?, ?, ?, ?, ?)";
   db.run(sql, [name, price, category, material, stock, status], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return next(err);
     res.json({ id: this.lastID, name, price, category, material, stock, status });
   });
 });
 
-// PUT update product
-app.put('/api/products/:id', (req, res) => {
+// PUT update product (Admin protected)
+app.put('/api/products/:id', authenticateAdmin, (req, res, next) => {
   const { name, price, category, material, stock, status } = req.body;
   const sql = "UPDATE products SET name = ?, price = ?, category = ?, material = ?, stock = ?, status = ? WHERE id = ?";
   db.run(sql, [name, price, category, material, stock, status, req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return next(err);
     res.json({ updated: this.changes });
   });
 });
 
-// DELETE product
-app.delete('/api/products/:id', (req, res) => {
+// DELETE product (Admin protected)
+app.delete('/api/products/:id', authenticateAdmin, (req, res, next) => {
   db.run("DELETE FROM products WHERE id = ?", req.params.id, function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return next(err);
     res.json({ deleted: this.changes });
   });
 });
 
-// GET all orders
-app.get('/api/orders', (req, res) => {
+// GET all orders (Admin protected)
+app.get('/api/orders', authenticateAdmin, (req, res, next) => {
   db.all("SELECT * FROM orders", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return next(err);
     res.json(rows);
   });
 });
 
-// Update order status
-app.put('/api/orders/:id/status', (req, res) => {
+// Update order status (Admin protected)
+app.put('/api/orders/:id/status', authenticateAdmin, (req, res, next) => {
   const { status } = req.body;
   db.run("UPDATE orders SET status = ? WHERE id = ?", [status, req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) return next(err);
     res.json({ updated: this.changes });
   });
 });
 
 // --- SHIPROCKET SYSTEM CONTROLLER ENDPOINTS ---
 
-// A. Manual/Trigger Shipment Creation Dashboard
-app.post('/api/shiprocket/create-shipment', async (req, res) => {
+// A. Manual/Trigger Shipment Creation Dashboard (Admin protected)
+app.post('/api/shiprocket/create-shipment', authenticateAdmin, async (req, res, next) => {
   const { orderId } = req.body;
   if (!orderId) {
     return res.status(400).json({ success: false, error: 'orderId is required' });
@@ -910,8 +1037,7 @@ app.post('/api/shiprocket/create-shipment', async (req, res) => {
 
     res.json({ success: true, order: updatedOrder });
   } catch (err) {
-    console.error('Error creating manual shipment:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to initialize shipment' });
+    next(err);
   }
 });
 
@@ -978,8 +1104,8 @@ app.get('/api/shiprocket/track/:awb_code', async (req, res) => {
   }
 });
 
-// C. Cancel Shipment Dashboard Control
-app.post('/api/shiprocket/cancel', async (req, res) => {
+// C. Cancel Shipment Dashboard Control (Admin protected)
+app.post('/api/shiprocket/cancel', authenticateAdmin, async (req, res, next) => {
   const { orderId, shiprocketOrderId } = req.body;
 
   try {
@@ -1010,13 +1136,12 @@ app.post('/api/shiprocket/cancel', async (req, res) => {
 
     res.json({ success: true, order: updatedOrder });
   } catch (err) {
-    console.error('Error cancelling shipment:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to cancel shipment' });
+    next(err);
   }
 });
 
-// E. Courier Serviceability Check
-app.get('/api/shiprocket/serviceability', async (req, res) => {
+// E. Courier Serviceability Check (Publicly accessible)
+app.get('/api/shiprocket/serviceability', async (req, res, next) => {
   const { delivery_postcode, pickup_postcode } = req.query;
   const deliveryPostcode = delivery_postcode || '110001';
   const pickupPostcode = pickup_postcode || process.env.SHIPROCKET_PICKUP_PINCODE || '110001';
@@ -1052,13 +1177,12 @@ app.get('/api/shiprocket/serviceability', async (req, res) => {
     const data = await response.json();
     res.json({ success: true, simulated: false, data: data.data || data });
   } catch (err) {
-    console.error('Error in courier serviceability check:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to check courier serviceability' });
+    next(err);
   }
 });
 
-// F. Generate Invoice Link
-app.post('/api/shiprocket/invoice', async (req, res) => {
+// F. Generate Invoice Link (Admin protected)
+app.post('/api/shiprocket/invoice', authenticateAdmin, async (req, res, next) => {
   const { orderId } = req.body;
   if (!orderId) {
     return res.status(400).json({ success: false, error: 'orderId is required' });
@@ -1101,8 +1225,7 @@ app.post('/api/shiprocket/invoice', async (req, res) => {
     const data = await response.json();
     res.json({ success: true, simulated: false, invoice_url: data.invoice_url || '' });
   } catch (err) {
-    console.error('Error generating invoice:', err);
-    res.status(500).json({ success: false, error: err.message || 'Failed to generate shipment invoice link' });
+    next(err);
   }
 });
 
@@ -1164,6 +1287,22 @@ app.post('/api/shiprocket/webhook', async (req, res) => {
     console.error('Error handling Shiprocket webhook:', err);
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// Secure Global Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error('Unhandled System Error:', err);
+  
+  // Do not leak stack traces or internal raw messages in production
+  const isProduction = process.env.NODE_ENV === 'production';
+  const responseError = isProduction 
+    ? 'Internal system error occurred. Please contact customer support.' 
+    : err.message || 'Unknown internal error';
+    
+  res.status(err.status || 500).json({
+    success: false,
+    error: responseError
+  });
 });
 
 // Start Server

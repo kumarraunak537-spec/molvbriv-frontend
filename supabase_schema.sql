@@ -129,7 +129,11 @@ ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 
 -- Profile Policies
-CREATE POLICY "Public profiles are viewable by everyone." ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
+CREATE POLICY "Profiles are viewable by owner or admin." ON public.profiles FOR SELECT USING (
+  auth.uid() = id OR 
+  EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+);
 CREATE POLICY "Users can insert their own profile." ON public.profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update own profile." ON public.profiles FOR UPDATE USING (auth.uid() = id);
 
@@ -254,6 +258,8 @@ CREATE POLICY "Admins can update orders" ON public.orders
 -- 4. Secure public order tracking function (SECURITY DEFINER bypasses RLS safely)
 CREATE OR REPLACE FUNCTION public.track_order(p_order_id TEXT, p_email TEXT)
 RETURNS SETOF public.orders
+LANGUAGE plpgsql
+SECURITY DEFINER
 AS $$
 BEGIN
   RETURN QUERY
@@ -261,6 +267,7 @@ BEGIN
   WHERE (razorpay_order_id = p_order_id OR id::text = p_order_id)
     AND LOWER(customer_email) = LOWER(p_email);
 END;
+$$;
 
 -- ==================================================
 -- SHIPROCKET SECURE LOGISTICS INTEGRATION UPGRADE
