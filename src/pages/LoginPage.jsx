@@ -17,6 +17,11 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState('')
   const [loading, setLoading] = useState(false)
   const [forgotMessage, setForgotMessage] = useState(false)
+  const [loginMethod, setLoginMethod] = useState('email') // 'email' or 'phone'
+  const [phoneLogin, setPhoneLogin] = useState('')
+  const [otpCode, setOtpCode] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [countdown, setCountdown] = useState(0)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -25,6 +30,14 @@ export default function LoginPage() {
       setAuthError(decodeURIComponent(err).replace(/\+/g, ' '))
     }
   }, [])
+
+  useEffect(() => {
+    let timerId;
+    if (countdown > 0) {
+      timerId = setTimeout(() => setCountdown(c => c - 1), 1000);
+    }
+    return () => clearTimeout(timerId);
+  }, [countdown]);
 
   const validateLogin = () => {
     const newErrors = {}
@@ -96,6 +109,74 @@ export default function LoginPage() {
         const redirect = params.get('redirect');
         navigate(redirect ? `/${redirect}` : '/');
       }
+    }
+  }
+
+  const handleSendOtp = async (e) => {
+    if (e) e.preventDefault()
+    setAuthError('')
+    setSuccessMessage('')
+    
+    const cleanPhone = phoneLogin.trim()
+    if (!cleanPhone || !/^\d{10}$/.test(cleanPhone)) {
+      setErrors({ phoneLogin: 'Please enter a valid 10-digit phone number' })
+      return
+    }
+    setErrors({})
+    setLoading(true)
+
+    const formattedPhone = `+91${cleanPhone}`
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: formattedPhone
+      })
+
+      if (error) {
+        setAuthError(error.message)
+        setLoading(false)
+      } else {
+        setOtpSent(true)
+        setCountdown(60)
+        setSuccessMessage('Verification code successfully sent to your phone!')
+        setLoading(false)
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Failed to send verification code.')
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault()
+    setAuthError('')
+    setSuccessMessage('')
+
+    if (!otpCode || otpCode.length !== 6 || isNaN(otpCode)) {
+      setErrors({ otpCode: 'Please enter a valid 6-digit verification code' })
+      return
+    }
+    setErrors({})
+    setLoading(true)
+
+    const formattedPhone = `+91${phoneLogin.trim()}`
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        phone: formattedPhone,
+        token: otpCode,
+        type: 'sms'
+      })
+
+      if (error) {
+        setAuthError(error.message)
+        setLoading(false)
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get('redirect');
+        navigate(redirect ? `/${redirect}` : '/');
+      }
+    } catch (err) {
+      setAuthError(err.message || 'Failed to verify code.')
+      setLoading(false)
     }
   }
 
@@ -208,7 +289,6 @@ export default function LoginPage() {
           <p className="text-center font-manrope text-[12px] uppercase tracking-[0.35em] text-gold mb-8">
             M O L V B R I V
           </p>
-
           {mode === 'login' ? (
             <>
               {/* Login Form */}
@@ -228,51 +308,142 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <form onSubmit={handleSignIn} className="space-y-8">
-                <div>
-                  <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted block mb-3">EMAIL OR PHONE NUMBER</label>
-                  <input
-                    type="text"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="curator@molvbriv.com or 9876543210"
-                    className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 font-manrope text-[13px] text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors"
-                  />
-                  {errors.email && <p className="text-red-500 text-[10px] mt-1 font-manrope">{errors.email}</p>}
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted">PASSWORD</label>
-                    <button
-                      type="button"
-                      onClick={handleForgotPassword}
-                      className="font-manrope text-[9px] uppercase tracking-nav text-gold hover:text-primary transition-colors"
-                    >
-                      FORGOT PASSWORD?
-                    </button>
-                  </div>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="• • • • • • • •"
-                    className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 font-manrope text-[13px] text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors"
-                  />
-                  {errors.password && <p className="text-red-500 text-[10px] mt-1 font-manrope">{errors.password}</p>}
-                  {forgotMessage && (
-                    <p className="text-gold text-[11px] mt-2 font-manrope">A password reset link has been sent to your email.</p>
-                  )}
-                </div>
-
+              {/* Login Method Segmented Switch */}
+              <div className="flex border border-[#C0B8A8] p-1 rounded-sm mb-8 max-w-[320px] mx-auto bg-[#Fdfbf7]">
                 <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-primary text-white font-manrope text-[11px] uppercase tracking-nav py-4 hover:bg-[#244a39] transition-colors disabled:opacity-70"
+                  type="button"
+                  onClick={() => { setLoginMethod('email'); setErrors({}); setAuthError(''); setSuccessMessage(''); }}
+                  className={`flex-1 font-manrope text-[10px] uppercase tracking-wider py-2.5 text-center transition-colors rounded-sm ${
+                    loginMethod === 'email'
+                      ? 'bg-primary text-white font-bold'
+                      : 'text-text-muted hover:text-primary'
+                  }`}
                 >
-                  {loading ? 'SIGNING IN...' : 'SIGN IN'}
+                  Email Login
                 </button>
-              </form>
+                <button
+                  type="button"
+                  onClick={() => { setLoginMethod('phone'); setErrors({}); setAuthError(''); setSuccessMessage(''); }}
+                  className={`flex-1 font-manrope text-[10px] uppercase tracking-wider py-2.5 text-center transition-colors rounded-sm ${
+                    loginMethod === 'phone'
+                      ? 'bg-primary text-white font-bold'
+                      : 'text-text-muted hover:text-primary'
+                  }`}
+                >
+                  Phone OTP Login
+                </button>
+              </div>
+
+              {loginMethod === 'email' ? (
+                <form onSubmit={handleSignIn} className="space-y-8">
+                  <div>
+                    <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted block mb-3">EMAIL OR PHONE NUMBER</label>
+                    <input
+                      type="text"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="curator@molvbriv.com or 9876543210"
+                      className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 font-manrope text-[13px] text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors"
+                    />
+                    {errors.email && <p className="text-red-500 text-[10px] mt-1 font-manrope">{errors.email}</p>}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted">PASSWORD</label>
+                      <button
+                        type="button"
+                        onClick={handleForgotPassword}
+                        className="font-manrope text-[9px] uppercase tracking-nav text-gold hover:text-primary transition-colors"
+                      >
+                        FORGOT PASSWORD?
+                      </button>
+                    </div>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="• • • • • • • •"
+                      className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 font-manrope text-[13px] text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors"
+                    />
+                    {errors.password && <p className="text-red-500 text-[10px] mt-1 font-manrope">{errors.password}</p>}
+                    {forgotMessage && (
+                      <p className="text-gold text-[11px] mt-2 font-manrope">A password reset link has been sent to your email.</p>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary text-white font-manrope text-[11px] uppercase tracking-nav py-4 hover:bg-[#244a39] transition-colors disabled:opacity-70"
+                  >
+                    {loading ? 'SIGNING IN...' : 'SIGN IN'}
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-8">
+                  <div>
+                    <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted block mb-3">PHONE NUMBER</label>
+                    <div className="relative flex items-center">
+                      <span className="font-manrope text-[13px] text-[#B0A890] border-b border-[#C0B8A8] pb-3 mr-2">+91</span>
+                      <input
+                        type="tel"
+                        disabled={otpSent}
+                        value={phoneLogin}
+                        onChange={(e) => setPhoneLogin(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        placeholder="9876543210"
+                        className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 font-manrope text-[13px] text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors disabled:opacity-50"
+                      />
+                    </div>
+                    {errors.phoneLogin && <p className="text-red-500 text-[10px] mt-1 font-manrope">{errors.phoneLogin}</p>}
+                  </div>
+
+                  {otpSent && (
+                    <div className="animate-fadeIn">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="font-manrope text-[9px] uppercase tracking-nav text-text-muted">ENTER 6-DIGIT OTP</label>
+                        {countdown > 0 ? (
+                          <span className="font-manrope text-[9px] uppercase tracking-nav text-gold">Resend OTP in {countdown}s</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleSendOtp}
+                            className="font-manrope text-[9px] uppercase tracking-nav text-gold hover:text-primary transition-colors font-bold underline"
+                          >
+                            RESEND OTP
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="• • • • • •"
+                        className="w-full bg-transparent border-b border-[#C0B8A8] pb-3 text-center tracking-[0.5em] font-manrope text-[18px] font-bold text-primary placeholder:text-[#B0A890] focus:border-primary transition-colors"
+                      />
+                      {errors.otpCode && <p className="text-red-500 text-[10px] mt-1 font-manrope text-left">{errors.otpCode}</p>}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary text-white font-manrope text-[11px] uppercase tracking-nav py-4 hover:bg-[#244a39] transition-colors disabled:opacity-70"
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        {otpSent ? 'VERIFYING...' : 'SENDING OTP...'}
+                      </span>
+                    ) : (
+                      otpSent ? 'VERIFY & SIGN IN' : 'SEND OTP'
+                    )}
+                  </button>
+                </form>
+              )}
 
               {/* Divider */}
               <div className="flex items-center gap-4 my-8">

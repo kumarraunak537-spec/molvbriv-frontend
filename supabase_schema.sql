@@ -7,7 +7,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   name TEXT,
-  email TEXT UNIQUE NOT NULL,
+  email TEXT UNIQUE,
   role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   phone TEXT,
   address JSONB,
@@ -194,7 +194,13 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
   INSERT INTO public.profiles (id, name, email, role, phone)
-  VALUES (new.id, new.raw_user_meta_data->>'full_name', new.email, 'user', new.raw_user_meta_data->>'phone');
+  VALUES (
+    new.id,
+    COALESCE(new.raw_user_meta_data->>'full_name', 'Boutique Patron'),
+    new.email,
+    'user',
+    COALESCE(new.phone, new.raw_user_meta_data->>'phone')
+  );
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -301,4 +307,24 @@ BEGIN
 END;
 $$;
 
-
+-- ==================================================
+-- MIGRATION PATCH: ENABLE PHONE OTP SIGNUPS
+-- ==================================================
+-- RUN THESE THREE LINES IN YOUR SUPABASE SQL EDITOR TO APPLY PATCH TO LIVE DATABASE:
+--
+-- ALTER TABLE public.profiles ALTER COLUMN email DROP NOT NULL;
+--
+-- CREATE OR REPLACE FUNCTION public.handle_new_user()
+-- RETURNS trigger AS $$
+-- BEGIN
+--   INSERT INTO public.profiles (id, name, email, role, phone)
+--   VALUES (
+--     new.id,
+--     COALESCE(new.raw_user_meta_data->>'full_name', 'Boutique Patron'),
+--     new.email,
+--     'user',
+--     COALESCE(new.phone, new.raw_user_meta_data->>'phone')
+--   );
+--   RETURN new;
+-- END;
+-- $$ LANGUAGE plpgsql SECURITY DEFINER;
