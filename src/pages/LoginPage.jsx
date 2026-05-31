@@ -67,19 +67,16 @@ export default function LoginPage() {
 
       if (isPhone) {
         try {
-          // Query the public.profiles table to find the email linked with this phone number
-          const { data: profile, error: profileErr } = await supabase
-            .from('profiles')
-            .select('email')
-            .eq('phone', identifier)
-            .maybeSingle()
+          // Query the profiles table securely via RPC function to bypass RLS for non-logged-in sessions
+          const { data: resolvedEmail, error: rpcErr } = await supabase
+            .rpc('get_email_by_phone', { p_phone: identifier })
 
-          if (profileErr || !profile || !profile.email) {
+          if (rpcErr || !resolvedEmail) {
             setAuthError('No account found with this phone number.')
             setLoading(false)
             return
           }
-          loginEmail = profile.email
+          loginEmail = resolvedEmail
         } catch (err) {
           setAuthError('Could not resolve phone number. Please sign in with email.')
           setLoading(false)

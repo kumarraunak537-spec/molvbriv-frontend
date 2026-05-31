@@ -281,4 +281,24 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_label_url TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_status TEXT DEFAULT 'Pending';
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipment_history JSONB DEFAULT '[]'::jsonb;
 
+-- ==================================================
+-- SECURE PUBLIC HELPER: RESOLVE EMAIL BY PHONE
+-- ==================================================
+CREATE OR REPLACE FUNCTION public.get_email_by_phone(p_phone TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_email TEXT;
+BEGIN
+  SELECT email INTO v_email
+  FROM public.profiles
+  WHERE phone = p_phone
+  LIMIT 1;
+  
+  RETURN v_email;
+END;
+$$;
+
 
