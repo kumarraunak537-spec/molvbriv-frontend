@@ -475,32 +475,21 @@ export default function CartPage() {
               </div>
             </section>
 
-            {!user ? (
-              <section className="p-8 md:p-12 shadow-sm rounded-none border border-white/10 text-center space-y-8" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)' }}>
-                <div className="w-16 h-16 rounded-full bg-[#765931]/10 flex items-center justify-center mx-auto text-[#765931]">
-                  <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>lock</span>
-                </div>
-                <div className="space-y-3">
-                  <span className="text-[10px] font-label uppercase tracking-[0.25em] text-[#765931] font-bold block">Secure Checkout Session</span>
-                  <h3 className="font-headline text-2xl md:text-3xl text-primary font-bold">Authentication Required</h3>
-                  <p className="text-sm text-on-surface-variant max-w-md mx-auto leading-relaxed">
-                    To complete your boutique order and secure your timeless luxury jewelry, please sign in or create a private account first.
-                  </p>
-                </div>
-                <div className="pt-4 max-w-sm mx-auto">
-                  <Link 
-                    to="/login?redirect=cart" 
-                    className="w-full inline-block bg-[#765931] text-white py-5 font-label uppercase tracking-[0.25em] text-[10px] font-bold hover:bg-primary transition-all shadow-md text-center"
-                  >
-                    Login or Create Account
+            {/* Personal Details */}
+            <section className="bg-surface p-8 md:p-12 space-y-6">
+              <h2 className="font-headline text-3xl text-primary mb-8">Personal Details</h2>
+              
+              {!user && (
+                <div className="p-4 bg-[#765931]/10 border border-[#765931]/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                  <div className="flex items-center gap-3 text-primary text-xs">
+                    <span className="material-symbols-outlined text-sm text-[#765931]">info</span>
+                    <span>You are checking out as a <strong>Guest</strong>. Have an account?</span>
+                  </div>
+                  <Link to="/login?redirect=cart" className="text-xs uppercase tracking-widest text-[#765931] hover:underline font-bold">
+                    Login for faster checkout
                   </Link>
                 </div>
-              </section>
-            ) : (
-              <>
-                {/* Personal Details */}
-                <section className="bg-surface p-8 md:p-12 space-y-6">
-                  <h2 className="font-headline text-3xl text-primary mb-8">Personal Details</h2>
+              )}
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
@@ -636,8 +625,6 @@ export default function CartPage() {
                     </div>
                   </div>
                 </section>
-              </>
-            )}
             
           </div>
 
@@ -690,30 +677,20 @@ export default function CartPage() {
                 </div>
               </div>
               
-              {!user ? (
-                <Link 
-                  to="/login?redirect=cart"
-                  className="w-full mt-10 py-5 bg-secondary text-white font-label uppercase tracking-[0.3em] text-[11px] font-bold shadow-lg hover:bg-on-secondary-container transition-all flex items-center justify-center gap-3 text-center"
-                >
-                  Login to Checkout
-                  <span className="material-symbols-outlined text-sm">lock</span>
-                </Link>
-              ) : (
-                <button 
-                  onClick={completePurchase} 
-                  disabled={isPaymentLoading}
-                  className="w-full mt-10 py-5 bg-secondary text-white font-label uppercase tracking-[0.3em] text-[11px] font-bold shadow-lg hover:bg-on-secondary-container transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isPaymentLoading ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      Pay Now
-                      <span className="material-symbols-outlined text-sm">lock</span>
-                    </>
-                  )}
-                </button>
-              )}
+              <button 
+                onClick={completePurchase} 
+                disabled={isPaymentLoading}
+                className="w-full mt-10 py-5 bg-secondary text-white font-label uppercase tracking-[0.3em] text-[11px] font-bold shadow-lg hover:bg-on-secondary-container transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPaymentLoading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    Pay Now
+                    <span className="material-symbols-outlined text-sm">lock</span>
+                  </>
+                )}
+              </button>
               
               <p className="text-[10px] text-center mt-6 text-white/40 leading-relaxed font-label">
                 Transactions are secured by 256-bit encryption. <br/>
@@ -823,32 +800,21 @@ export default function CartPage() {
              <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
           </div>
 
-          {!user ? (
-            <div className="mt-12 p-8 shadow-sm rounded-none border border-[#765931]/20 text-center space-y-8 bg-white/40 backdrop-blur-md" style={{ background: 'rgba(255,255,255,0.4)' }}>
-              <div className="w-14 h-14 rounded-full bg-[#765931]/10 flex items-center justify-center mx-auto text-[#765931]">
-                <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>lock</span>
-              </div>
-              <div className="space-y-2">
-                <span className="text-[9px] font-label uppercase tracking-[0.2em] text-[#765931] font-bold block">Secure Checkout Session</span>
-                <h3 className="font-headline text-xl text-primary font-bold">Authentication Required</h3>
-                <p className="text-xs text-on-surface-variant max-w-xs mx-auto leading-relaxed">
-                  To complete your boutique order and secure your timeless luxury jewelry, please sign in or create a private account first.
-                </p>
-              </div>
-              <div className="pt-2 max-w-xs mx-auto">
-                <Link 
-                  to="/login?redirect=cart" 
-                  className="w-full inline-block bg-[#765931] text-white py-4 font-label uppercase tracking-[0.2em] text-[9px] font-bold hover:bg-primary transition-all shadow-md text-center"
-                >
-                  Login or Create Account
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <>
               {/* Personal Details */}
               <div className="mt-12 space-y-6">
                 <h2 className="font-headline text-2xl text-primary mb-6">Personal Details</h2>
+
+                {!user && (
+                  <div className="p-4 bg-[#765931]/10 border border-[#765931]/20 flex flex-col gap-3 mb-6">
+                    <div className="flex items-center gap-3 text-primary text-xs">
+                      <span className="material-symbols-outlined text-sm text-[#765931]">info</span>
+                      <span>Checking out as <strong>Guest</strong>.</span>
+                    </div>
+                    <Link to="/login?redirect=cart" className="text-xs uppercase tracking-widest text-[#765931] hover:underline font-bold self-start">
+                      Login for faster checkout
+                    </Link>
+                  </div>
+                )}
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
@@ -986,8 +952,7 @@ export default function CartPage() {
                   </div>
                 </div>
               </div>
-            </>
-          )}
+
 
           {/* Summary */}
           <div className="mt-12 bg-[#082717] text-white p-8 shadow-2xl rounded-sm">
@@ -1024,30 +989,20 @@ export default function CartPage() {
               <span className="font-headline text-3xl text-[#d4af37]">₹{grandTotal.toLocaleString()}.00</span>
             </div>
 
-            {!user ? (
-              <Link 
-                to="/login?redirect=cart"
-                className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold text-center"
-              >
-                Login to Checkout
-                <span className="material-symbols-outlined text-sm">lock</span>
-              </Link>
-            ) : (
-              <button 
-                onClick={completePurchase} 
-                disabled={isPaymentLoading}
-                className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isPaymentLoading ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <>
-                    Pay Now
-                    <span className="material-symbols-outlined text-sm">lock</span>
-                  </>
-                )}
-              </button>
-            )}
+            <button 
+              onClick={completePurchase} 
+              disabled={isPaymentLoading}
+              className="w-full bg-[#765931] text-white py-5 flex justify-center items-center gap-3 text-[10px] font-label uppercase tracking-[0.2em] font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isPaymentLoading ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  Pay Now
+                  <span className="material-symbols-outlined text-sm">lock</span>
+                </>
+              )}
+            </button>
 
             <p className="text-[8px] font-label uppercase tracking-widest text-center mt-6 text-white/40 leading-relaxed">
               Transactions are secured by 256-bit encryption.<br/>

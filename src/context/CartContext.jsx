@@ -25,12 +25,12 @@ export function CartProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Load user-specific cart and wishlist when session resolves
+  // Load cart and wishlist when session resolves
   useEffect(() => {
-    if (user) {
-      setIsCartLoaded(false)
-      setIsWishlistLoaded(false)
+    setIsCartLoaded(false)
+    setIsWishlistLoaded(false)
 
+    if (user) {
       try {
         const savedCart = localStorage.getItem(`molvbriv_cart_${user.id}`)
         setCartItems(savedCart ? JSON.parse(savedCart) : [])
@@ -47,21 +47,31 @@ export function CartProvider({ children }) {
       }
       setIsWishlistLoaded(true)
     } else {
-      // Clear cart and wishlist when user logs out or is not authenticated
-      setCartItems([])
+      // Load guest cart for non-logged-in sessions
+      try {
+        const savedCart = localStorage.getItem('molvbriv_cart_guest')
+        setCartItems(savedCart ? JSON.parse(savedCart) : [])
+      } catch (e) {
+        setCartItems([])
+      }
+      setIsCartLoaded(true)
+
       setWishlist([])
-      setIsCartLoaded(false)
-      setIsWishlistLoaded(false)
+      setIsWishlistLoaded(true)
     }
   }, [user])
 
-  // Save cart changes to user-specific storage (ONLY after loading has finished!)
+  // Save cart changes to user-specific or guest storage (ONLY after loading has finished!)
   useEffect(() => {
-    if (user && isCartLoaded) {
+    if (isCartLoaded) {
       try {
-        localStorage.setItem(`molvbriv_cart_${user.id}`, JSON.stringify(cartItems))
+        if (user) {
+          localStorage.setItem(`molvbriv_cart_${user.id}`, JSON.stringify(cartItems))
+        } else {
+          localStorage.setItem('molvbriv_cart_guest', JSON.stringify(cartItems))
+        }
       } catch (e) {
-        console.error('Failed to save user cart:', e)
+        console.error('Failed to save cart:', e)
       }
     }
   }, [cartItems, user, isCartLoaded])
@@ -78,11 +88,6 @@ export function CartProvider({ children }) {
   }, [wishlist, user, isWishlistLoaded])
 
   const addToCart = useCallback((item) => {
-    if (!user) {
-      alert("Please login to add items to your cart.")
-      window.location.href = "/login"
-      return
-    }
     setCartItems(prev => {
       const existing = prev.find(i => i.id === item.id)
       if (existing) {
@@ -90,7 +95,7 @@ export function CartProvider({ children }) {
       }
       return [...prev, { ...item, quantity: 1 }]
     })
-  }, [user])
+  }, [])
 
   const removeFromCart = useCallback((id) => {
     setCartItems(prev => prev.filter(i => i.id !== id))
