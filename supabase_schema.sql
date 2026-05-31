@@ -328,3 +328,25 @@ $$;
 --   RETURN new;
 -- END;
 -- $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ==================================================
+-- TRANSACTIONAL EMAIL SYSTEM INTEGRATION (email_logs)
+-- ==================================================
+CREATE TABLE IF NOT EXISTS public.email_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  order_id UUID REFERENCES public.orders(id) ON DELETE CASCADE,
+  recipient_email TEXT NOT NULL,
+  email_type TEXT NOT NULL CHECK (email_type IN ('confirmed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'refund_processed')),
+  delivery_status TEXT DEFAULT 'pending' CHECK (delivery_status IN ('pending', 'sent', 'failed')),
+  error_message TEXT,
+  sent_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.email_logs ENABLE ROW LEVEL SECURITY;
+
+-- Admins can view/insert logs
+CREATE POLICY "Admins can manage email logs" ON public.email_logs
+  FOR ALL USING (
+    EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
+  );

@@ -7,6 +7,7 @@ const Razorpay = require('razorpay');
 const { createClient } = require('@supabase/supabase-js');
 const nodemailer = require('nodemailer');
 const helmet = require('helmet');
+const emailService = require('./emailService');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
@@ -436,108 +437,13 @@ async function autoFulfillShipment(orderId) {
 }
 
 // Nodemailer confirmation email utility
+// Centralized transactional email dispatcher wrapper
 async function sendConfirmationEmail(order) {
-  const isSmtpConfigured = process.env.SMTP_USER && process.env.SMTP_PASS;
-  let transporter;
-
-  if (isSmtpConfigured) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: process.env.SMTP_PORT === '465',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-  } else {
-    console.log('SMTP credentials not configured. Simulated email invoice successfully sent to client:', order.customer_email);
-    return;
+  try {
+    await emailService.sendOrderEmail(order, 'confirmed');
+  } catch (err) {
+    console.error('Error sending confirmation email:', err);
   }
-
-  const productsListHtml = order.products && Array.isArray(order.products) 
-    ? order.products.map(p => `
-        <tr>
-          <td style="padding: 12px; border-bottom: 1px solid #f0f0f0;">
-            <div style="font-weight: bold; color: #1a4a35;">${p.name}</div>
-            <div style="font-size: 11px; color: #888;">Qty: ${p.quantity}</div>
-          </td>
-          <td style="padding: 12px; text-align: right; border-bottom: 1px solid #f0f0f0; color: #333;">
-            ₹${(p.price * p.quantity).toLocaleString()}
-          </td>
-        </tr>
-      `).join('')
-    : `<tr><td colspan="2" style="padding: 12px;">Standard Boutique Selection</td></tr>`;
-
-  const emailHtml = `
-    <div style="font-family: 'Georgia', 'Times New Roman', serif; background-color: #faf8f5; padding: 40px 20px; max-width: 600px; margin: 0 auto; border: 1px solid #e0dcd3;">
-      <div style="text-align: center; margin-bottom: 40px;">
-        <h1 style="color: #1a4a35; font-size: 28px; font-weight: normal; letter-spacing: 0.25em; text-transform: uppercase; margin: 0;">MOLVBRIV</h1>
-        <p style="font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: #765931; margin-top: 5px;">A Timeless Curator Experience</p>
-      </div>
-
-      <div style="background-color: #ffffff; padding: 40px; border-radius: 2px; box-shadow: 0 4px 20px rgba(0,0,0,0.02);">
-        <h2 style="font-weight: normal; color: #1a4a35; margin-top: 0; font-size: 20px;">Order Confirmation</h2>
-        <p style="font-size: 14px; color: #555; line-height: 1.6;">Dear ${order.customer_name || 'Valued Client'},</p>
-        <p style="font-size: 14px; color: #555; line-height: 1.6;">Thank you for your boutique order. We are preparing your curated masterpiece for secure white-glove transit.</p>
-
-        <div style="margin: 30px 0; border: 1px solid #f0ece3; padding: 20px; background-color: #fcfcfc;">
-          <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Order Number</div>
-          <div style="font-size: 16px; color: #1a4a35; font-weight: bold; margin-bottom: 16px;">${order.razorpay_order_id || order.id}</div>
-          
-          <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Shipping Destination</div>
-          <div style="font-size: 13px; color: #555; line-height: 1.4; margin-bottom: 16px;">
-            ${typeof order.shipping_address === 'string' ? order.shipping_address : `
-              ${order.shipping_address?.address || ''}<br/>
-              ${order.shipping_address?.apartment ? order.shipping_address.apartment + '<br/>' : ''}
-              ${order.shipping_address?.city || ''}, ${order.shipping_address?.state || ''} - ${order.shipping_address?.pinCode || ''}
-            `}
-          </div>
-
-          <div style="font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Payment Method</div>
-          <div style="font-size: 13px; color: #555;">${order.payment_method === 'COD' ? 'Cash on Delivery (Pending)' : 'Online Payment (Secure)'}</div>
-        </div>
-
-        <h3 style="font-weight: normal; color: #1a4a35; border-bottom: 1px solid #e0dcd3; padding-bottom: 8px; font-size: 16px;">Invoice Summary</h3>
-        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-          <thead>
-            <tr style="background-color: #fafafa; border-bottom: 1px solid #eaeaea;">
-              <th style="padding: 12px; text-align: left; font-weight: bold; color: #1a4a35;">Bespoke Product</th>
-              <th style="padding: 12px; text-align: right; font-weight: bold; color: #1a4a35;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${productsListHtml}
-            <tr>
-              <td style="padding: 12px; font-weight: bold; border-top: 1px solid #e0dcd3; color: #1a4a35;">Grand Total</td>
-              <td style="padding: 12px; text-align: right; font-weight: bold; border-top: 1px solid #e0dcd3; color: #1a4a35; font-size: 16px;">
-                ₹${parseFloat(order.total_amount || order.total_price).toLocaleString()}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div style="text-align: center; margin-top: 40px;">
-          <a href="https://molvbriv.vercel.app/track-order?id=${order.razorpay_order_id || order.id}&email=${order.customer_email}" 
-             style="background-color: #1a4a35; color: #ffffff; text-decoration: none; padding: 15px 30px; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: bold; display: inline-block; border-radius: 2px;">
-            Track Your Masterpiece
-          </a>
-        </div>
-      </div>
-
-      <div style="text-align: center; margin-top: 40px; color: #888; font-size: 11px;">
-        <p>MOLVBRIV Curated Luxury Jewelry</p>
-        <p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;">This is an automated invoice. Do not reply to this mail.</p>
-      </div>
-    </div>
-  `;
-
-  await transporter.sendMail({
-    from: process.env.EMAIL_FROM || '"MOLVBRIV Concierge" <concierge@molvbriv.in>',
-    to: order.customer_email,
-    subject: `Your MOLVBRIV Order Confirmation [${order.razorpay_order_id || order.id}]`,
-    html: emailHtml
-  });
 }
 
 // --- SECURE PAYMENT & WEBHOOK ENDPOINTS ---
@@ -859,14 +765,20 @@ app.post('/api/payments/webhook', async (req, res) => {
       const razorpayPaymentId = refundEntity.payment_id;
 
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        await supabase
+        const { data: updatedOrder, error } = await supabase
           .from('orders')
           .update({
             order_status: 'Cancelled',
             status: 'cancelled',
             payment_status: 'failed'
           })
-          .eq('payment_id', razorpayPaymentId);
+          .eq('payment_id', razorpayPaymentId)
+          .select()
+          .single();
+
+        if (!error && updatedOrder) {
+          emailService.sendOrderEmail(updatedOrder, 'refund_processed').catch(err => console.error('Error sending refund email:', err));
+        }
       }
     }
 
@@ -981,12 +893,64 @@ app.get('/api/orders', authenticateAdmin, (req, res, next) => {
 });
 
 // Update order status (Admin protected)
-app.put('/api/orders/:id/status', authenticateAdmin, (req, res, next) => {
+// Update order status and trigger transactional email (Admin protected)
+app.put('/api/orders/:id/status', authenticateAdmin, async (req, res, next) => {
   const { status } = req.body;
-  db.run("UPDATE orders SET status = ? WHERE id = ?", [status, req.params.id], function(err) {
-    if (err) return next(err);
-    res.json({ updated: this.changes });
-  });
+  const orderId = req.params.id;
+
+  if (!status) {
+    return res.status(400).json({ success: false, error: 'Status is required' });
+  }
+
+  try {
+    // 1. Update status in Supabase
+    const { data: updatedOrder, error } = await supabase
+      .from('orders')
+      .update({
+        order_status: status,
+        status: status.toLowerCase()
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (!updatedOrder) {
+      return res.status(404).json({ success: false, error: 'Order not found in database' });
+    }
+
+    // 2. Trigger status-specific emails
+    let emailType = null;
+    const statusLower = status.toLowerCase();
+    
+    if (statusLower === 'shipped') {
+      emailType = 'shipped';
+    } else if (statusLower === 'out for delivery' || statusLower === 'out_for_delivery') {
+      emailType = 'out_for_delivery';
+    } else if (statusLower === 'delivered') {
+      emailType = 'delivered';
+    } else if (statusLower === 'cancelled') {
+      emailType = 'cancelled';
+    } else if (statusLower === 'refunded' || statusLower === 'refund_processed') {
+      emailType = 'refund_processed';
+    } else if (statusLower === 'processing' || statusLower === 'paid') {
+      emailType = 'confirmed';
+    }
+
+    if (emailType) {
+      emailService.sendOrderEmail(updatedOrder, emailType).catch(err => console.error(`Error sending ${emailType} email:`, err));
+    }
+
+    // Update local SQLite order status for compatibility
+    db.run("UPDATE orders SET status = ? WHERE order_number = ? OR id = ?", [status, updatedOrder.razorpay_order_id, orderId], (err) => {
+      if (err) console.error('SQLite order status sync failed:', err);
+    });
+
+    res.json({ success: true, order: updatedOrder });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // --- SHIPROCKET SYSTEM CONTROLLER ENDPOINTS ---
@@ -1270,7 +1234,8 @@ app.post('/api/shiprocket/webhook', async (req, res) => {
     }));
 
     // Update database
-    const { error } = await supabase
+    // Update database
+    const { data: updatedOrder, error } = await supabase
       .from('orders')
       .update({
         shipment_status: shipmentStatus,
@@ -1278,9 +1243,27 @@ app.post('/api/shiprocket/webhook', async (req, res) => {
         order_status: shipmentStatus,
         status: shipmentStatus.toLowerCase()
       })
-      .eq('awb_code', awb);
+      .eq('awb_code', awb)
+      .select()
+      .single();
 
     if (error) throw error;
+
+    if (updatedOrder) {
+      // Trigger status-specific emails
+      let emailType = null;
+      if (shipmentStatus === 'Shipped') {
+        emailType = 'shipped';
+      } else if (shipmentStatus === 'Out for Delivery') {
+        emailType = 'out_for_delivery';
+      } else if (shipmentStatus === 'Delivered') {
+        emailType = 'delivered';
+      }
+
+      if (emailType) {
+        emailService.sendOrderEmail(updatedOrder, emailType).catch(err => console.error(`Error sending ${emailType} email:`, err));
+      }
+    }
 
     res.json({ success: true });
   } catch (err) {

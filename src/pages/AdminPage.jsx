@@ -227,12 +227,21 @@ export default function AdminPage() {
 
   const updateOrderStatus = async (id, newStatus) => {
     try {
-      const { error } = await supabase.from('orders').update({ 
-        order_status: newStatus, 
-        status: newStatus.toLowerCase() 
-      }).eq('id', id);
-      if (error) throw error;
-      setOrdersData(prev => prev.map(o => o.id === id ? { ...o, order_status: newStatus, status: newStatus } : o));
+      const { data: { session } } = await supabase.auth.getSession();
+      const targetUrl = `${API_BASE_URL}/api/orders/${id}/status`;
+      const res = await fetch(targetUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update order status');
+      }
+      setOrdersData(prev => prev.map(o => o.id === id ? data.order : o));
       showToast(`Order status updated to ${newStatus}`);
     } catch (err) {
       console.error(err);
@@ -267,9 +276,13 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     setLogisticsError('');
     const targetUrl = `${API_BASE_URL}/api/shiprocket/create-shipment`;
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(targetUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({ orderId })
       });
       const data = await res.json();
@@ -320,9 +333,13 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     setLogisticsError('');
     const targetUrl = `${API_BASE_URL}/api/shiprocket/cancel`;
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(targetUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
         body: JSON.stringify({ orderId, shiprocketOrderId })
       });
       const data = await res.json();
