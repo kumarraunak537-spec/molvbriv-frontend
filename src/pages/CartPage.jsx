@@ -85,17 +85,20 @@ export default function CartPage() {
 
   const validateForm = () => {
     const newErrors = {}
-    if (!email) newErrors.email = true
-    if (!firstName) newErrors.firstName = true
-    if (!lastName) newErrors.lastName = true
-    if (!address) newErrors.address = true
-    if (!phone) newErrors.phone = true
+    if (!email || !/\S+@\S+\.\S+/.test(email.trim())) newErrors.email = true
+    if (!firstName || !firstName.trim()) newErrors.firstName = true
+    if (!lastName || !lastName.trim()) newErrors.lastName = true
+    if (!address || !address.trim()) newErrors.address = true
+    if (!city || !city.trim()) newErrors.city = true
+    if (!state || !state.trim()) newErrors.state = true
+    if (!pinCode || !/^\d{6}$/.test(pinCode.trim())) newErrors.pinCode = true
+    if (!phone || !/^\d{10}$/.test(phone.trim())) newErrors.phone = true
     
     // Only validate Card fields if Credit Card payment method is chosen
     if (paymentMethod === 'visa') {
-      if (!cardNumber) newErrors.cardNumber = true
-      if (!expiry) newErrors.expiry = true
-      if (!cvv) newErrors.cvv = true
+      if (!cardNumber || !/^\d{16}$/.test(cardNumber.trim())) newErrors.cardNumber = true
+      if (!expiry || !/^\d{2}\/\d{2}$/.test(expiry.trim())) newErrors.expiry = true
+      if (!cvv || !/^\d{3}$/.test(cvv.trim())) newErrors.cvv = true
     }
     
     setErrors(newErrors)
@@ -119,11 +122,6 @@ export default function CartPage() {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   const completePurchase = async () => {
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
-
     if (!validateForm()) {
       setActiveStep(activeStep > 1 ? activeStep : 1);
       return;
@@ -524,17 +522,20 @@ export default function CartPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
-                        <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                        <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.firstName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.firstName && <p className="text-[10px] text-red-500 ml-1">First name is required</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
-                        <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                        <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.lastName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.lastName && <p className="text-[10px] text-red-500 ml-1">Last name is required</p>}
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
-                      <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.address ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.address && <p className="text-[10px] text-red-500 ml-1">Address is required</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -545,7 +546,8 @@ export default function CartPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
-                        <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                        <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.city ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.city && <p className="text-[10px] text-red-500 ml-1">City is required</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
@@ -563,11 +565,13 @@ export default function CartPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
-                        <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                        <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.pinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.pinCode && <p className="text-[10px] text-red-500 ml-1">Valid 6-digit PIN is required</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
-                        <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                        <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.phone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.phone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Phone is required</p>}
                       </div>
                     </div>
 
@@ -866,17 +870,20 @@ export default function CartPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
-                      <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.firstName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.firstName && <p className="text-[10px] text-red-500 ml-1">First name is required</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
-                      <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.lastName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.lastName && <p className="text-[10px] text-red-500 ml-1">Last name is required</p>}
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
-                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.address ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                    {errors.address && <p className="text-[10px] text-red-500 ml-1">Address is required</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -887,7 +894,8 @@ export default function CartPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
-                      <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.city ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.city && <p className="text-[10px] text-red-500 ml-1">City is required</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
@@ -905,11 +913,13 @@ export default function CartPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
-                      <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.pinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.pinCode && <p className="text-[10px] text-red-500 ml-1">Valid 6-digit PIN is required</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
-                      <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.phone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.phone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Phone is required</p>}
                     </div>
                   </div>
 
