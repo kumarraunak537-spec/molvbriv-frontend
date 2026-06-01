@@ -137,6 +137,25 @@ export default function CartPage() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [couponError, setCouponError] = useState('')
   const [couponSuccess, setCouponSuccess] = useState('')
+  const [appliedCode, setAppliedCode] = useState('')
+
+  // Monitor coupon changes, clear discount on input edit, and scale discount with subtotal changes
+  useEffect(() => {
+    const currentCode = privilegeCode.trim().toLowerCase();
+    
+    if (currentCode !== appliedCode) {
+      setDiscount(0);
+      setCouponSuccess('');
+      setCouponError('');
+      setAppliedCode('');
+    } else if (appliedCode === 'molvbriv10') {
+      setDiscount(Math.round(subtotal * 0.1));
+      setCouponSuccess('10% Privilege discount applied!');
+    } else if (appliedCode === 'molvwel15off') {
+      setDiscount(Math.round(subtotal * 0.15));
+      setCouponSuccess('15% Welcome discount applied!');
+    }
+  }, [privilegeCode, appliedCode, subtotal]);
 
   // Load saved checkout information on mount
   useEffect(() => {
@@ -239,19 +258,15 @@ export default function CartPage() {
     const code = privilegeCode.trim().toLowerCase()
     
     if (code === 'molvbriv10') {
-      const amount = Math.round(subtotal * 0.1)
-      setDiscount(amount)
-      setCouponSuccess('10% Privilege discount applied!')
+      setAppliedCode('molvbriv10')
     } else if (code === 'molvwel15off') {
-      const amount = Math.round(subtotal * 0.15)
-      setDiscount(amount)
-      setCouponSuccess('15% Welcome discount applied!')
+      setAppliedCode('molvwel15off')
     } else if (code === '') {
       setCouponError('Please enter a privilege code.')
-      setDiscount(0)
+      setAppliedCode('')
     } else {
       setCouponError('Invalid privilege code.')
-      setDiscount(0)
+      setAppliedCode('')
     }
   }
 
