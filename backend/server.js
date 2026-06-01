@@ -66,7 +66,7 @@ function sanitizeString(str) {
       "'": '&#x27;'
     })[m])
     .replace(/\b(SELECT|UNION|INSERT|DELETE|UPDATE|DROP)\b/gi, '') // Strip SQL command injection attempts
-    .replace(/[;`$()]/g, ''); // Strip shell command characters
+    .replace(/[;`$]/g, ''); // Strip shell command characters (removed ( and ) to prevent URL/text breakage)
 }
 
 function sanitizeObject(obj) {
