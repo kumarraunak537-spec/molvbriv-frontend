@@ -789,6 +789,70 @@ app.post('/api/payments/webhook', async (req, res) => {
   }
 });
 
+// 5. Newsletter Subscription Endpoint
+app.post('/api/subscribe', sensitiveLimiter, async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    if (!email || !emailService.isValidEmail(email)) {
+      return res.status(400).json({ success: false, error: 'Please enter a valid email address.' });
+    }
+
+    const subscriber = { email: email.trim().toLowerCase() };
+
+    // A. Insert in Supabase 'subscribers' table if service role key exists
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const { error: insErr } = await supabase
+          .from('subscribers')
+          .insert([{ email: subscriber.email }]);
+
+        if (insErr) {
+          if (insErr.code === '23505') {
+            console.log(`Subscriber email "${email}" already registered in Supabase.`);
+          } else {
+            console.error('Supabase subscriber insertion error:', insErr.message);
+          }
+        } else {
+          console.log(`Audited subscriber in Supabase: ${subscriber.email}`);
+        }
+      } catch (dbErr) {
+        console.error('Supabase subscribers table insert failure:', dbErr.message);
+      }
+    }
+
+    // B. Insert in local SQLite database 'subscribers' table
+    try {
+      db.run(`INSERT INTO subscribers (email) VALUES (?)`, [subscriber.email], (err) => {
+        if (err) {
+          if (err.message.includes('UNIQUE')) {
+            console.log(`Subscriber email "${email}" already registered in SQLite.`);
+          } else {
+            console.error('SQLite subscribers insertion error:', err.message);
+          }
+        } else {
+          console.log(`Audited subscriber in SQLite: ${subscriber.email}`);
+        }
+      });
+    } catch (sqlErr) {
+      console.error('SQLite subscribers insert failure:', sqlErr.message);
+    }
+
+    // C. Trigger subscription-specific emails
+    // 1. Send Welcome email to subscriber
+    emailService.sendNewsletterEmail(subscriber, 'newsletter_welcome')
+      .catch(err => console.error('Error sending newsletter welcome email:', err));
+
+    // 2. Send Notification email to admin
+    emailService.sendNewsletterEmail(subscriber, 'newsletter_admin')
+      .catch(err => console.error('Error sending newsletter admin notification email:', err));
+
+    res.json({ success: true, message: 'Welcome to the Boutique Circle! Check your email for details.' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Initialize SQLite Database
 const dbPath = path.resolve(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -817,6 +881,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
         product_name TEXT,
         amount REAL,
         status TEXT
+      )`);
+
+      db.run(`CREATE TABLE IF NOT EXISTS subscribers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`);
 
       // Seed initial data if empty

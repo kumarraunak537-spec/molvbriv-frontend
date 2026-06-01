@@ -260,6 +260,57 @@ const templates = {
         </div>
       `
     };
+  },
+
+  // 7. NEWSLETTER WELCOME
+  newsletter_welcome: (subscriber) => {
+    return {
+      title: 'Welcome to the MOLVBRIV Circle',
+      preheader: 'An exclusive invitation to a world of architectural jewelry precision.',
+      heading: 'Welcome to the Circle',
+      body: `
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 20px;">Dear Patron,</p>
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 25px;">
+          Thank you for subscribing to **MOLVBRIV**. You have successfully joined our exclusive inner circle of boutique curation.
+        </p>
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 25px;">
+          As a member of the Circle, you will receive priority access to our master artisans' newest releases, behind-the-scenes glimpses into our design process, and exclusive invitations to private boutique events.
+        </p>
+        
+        <div style="background-color: #faf9f6; border: 1px solid #eae6db; padding: 20px; border-radius: 2px; text-align: center; margin-bottom: 25px;">
+          <div style="font-size: 10px; color: #8c8573; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;">Exclusive Benefits Status</div>
+          <div style="font-size: 15px; color: #1a4a35; font-family: Georgia, serif; font-weight: bold;">Standard Gold Access Activated</div>
+        </div>
+      `
+    };
+  },
+
+  // 8. NEWSLETTER ADMIN NOTIFICATION
+  newsletter_admin: (subscriber) => {
+    return {
+      title: 'New Subscriber Alert',
+      preheader: 'A new patron has joined the MOLVBRIV Circle.',
+      heading: 'New Circle Subscriber',
+      body: `
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 20px;">Hello Admin,</p>
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 25px;">
+          Great news! A new patron has just subscribed to the MOLVBRIV newsletter circle.
+        </p>
+        
+        <div style="background-color: #faf9f6; border: 1px solid #eae6db; padding: 24px; border-radius: 3px; margin-bottom: 30px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; color: #4a453a;">
+            <tr>
+              <td style="padding-bottom: 10px; width: 40%; font-weight: bold; color: #8c8573; text-transform: uppercase; letter-spacing: 0.1em;">Subscriber Email</td>
+              <td style="padding-bottom: 10px; color: #1a4a35; font-weight: bold; font-size: 13px;">\${subscriber.email}</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold; color: #8c8573; text-transform: uppercase; letter-spacing: 0.1em;">Subscription Time</td>
+              <td style="color: #4a453a;">\${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} (IST)</td>
+            </tr>
+          </table>
+        </div>
+      `
+    };
   }
 };
 
@@ -556,7 +607,120 @@ async function sendOrderEmail(order, emailType) {
   }
 }
 
+/**
+ * Transactional Email Sender for Newsletter Subscriptions
+ * Sends welcome email to subscriber and notification email to admin.
+ */
+async function sendNewsletterEmail(subscriber, emailType) {
+  const recipientEmail = emailType === 'newsletter_admin' 
+    ? (process.env.SUPPORT_EMAIL || 'concierge@molvbriv.in')
+    : subscriber.email;
+    
+  const fromEmail = process.env.EMAIL_FROM || '"MOLVBRIV Concierge" <orders@molvbriv.in>';
+
+  console.log(`Newsletter Email request initialized: Type=${emailType}, To=${recipientEmail}`);
+
+  if (!isValidEmail(recipientEmail)) {
+    console.error(`Blocked invalid recipient email for newsletter: "${recipientEmail}"`);
+    return { success: false, error: 'Invalid recipient email' };
+  }
+
+  const templateBuilder = templates[emailType];
+  if (!templateBuilder) {
+    console.error(`Invalid newsletter email template requested: "${emailType}"`);
+    return { success: false, error: 'Invalid template type' };
+  }
+
+  const compiledContent = templateBuilder(subscriber);
+  const emailHtml = buildHtmlWrapper(compiledContent);
+  const subject = `[MOLVBRIV] ${compiledContent.title}`;
+
+  // Log in Supabase if service key exists
+  let logRecordId = null;
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const { data: logRow, error: insErr } = await supabase
+        .from('email_logs')
+        .insert([{
+          order_id: null,
+          recipient_email: recipientEmail,
+          email_type: emailType,
+          delivery_status: 'pending'
+        }])
+        .select()
+        .single();
+
+      if (!insErr) logRecordId = logRow.id;
+    } catch (dbInsErr) {
+      console.error(`Failed to pre-insert newsletter email log:`, dbInsErr.message);
+    }
+  }
+
+  const maxRetries = 3;
+  let attempt = 0;
+  let sentResult = null;
+  let lastError = null;
+
+  while (attempt < maxRetries) {
+    try {
+      attempt++;
+      if (process.env.RESEND_API_KEY) {
+        sentResult = await sendResendRestApi(process.env.RESEND_API_KEY, {
+          from: fromEmail,
+          to: recipientEmail,
+          subject: subject,
+          html: emailHtml
+        });
+        break;
+      } else if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST || 'smtp.gmail.com',
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_PORT === '465',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+        sentResult = await transporter.sendMail({
+          from: fromEmail,
+          to: recipientEmail,
+          subject: subject,
+          html: emailHtml
+        });
+        break;
+      } else {
+        console.log(`[SIMULATION NEWSLETTER] Sent successfully to ${recipientEmail}`);
+        sentResult = { simulated: true };
+        break;
+      }
+    } catch (sendErr) {
+      lastError = sendErr;
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt - 1)));
+      }
+    }
+  }
+
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY && logRecordId) {
+    try {
+      await supabase
+        .from('email_logs')
+        .update({
+          delivery_status: sentResult ? 'sent' : 'failed',
+          error_message: sentResult ? null : (lastError?.message || 'Unknown network error')
+        })
+        .eq('id', logRecordId);
+    } catch (dbUpdErr) {
+      console.error(`Failed to update newsletter email log:`, dbUpdErr.message);
+    }
+  }
+
+  return sentResult ? { success: true } : { success: false, error: lastError?.message };
+}
+
 module.exports = {
   sendOrderEmail,
+  sendNewsletterEmail,
   isValidEmail
 };
