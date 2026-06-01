@@ -59,6 +59,16 @@ export default function CartPage() {
   const [phone, setPhone] = useState('')
   const [saveInfo, setSaveInfo] = useState(false)
   const [newsOffers, setNewsOffers] = useState(false)
+  const [billingSame, setBillingSame] = useState(true)
+  const [billingEmail, setBillingEmail] = useState('')
+  const [billingFirstName, setBillingFirstName] = useState('')
+  const [billingLastName, setBillingLastName] = useState('')
+  const [billingAddress, setBillingAddress] = useState('')
+  const [billingApartment, setBillingApartment] = useState('')
+  const [billingCity, setBillingCity] = useState('')
+  const [billingState, setBillingState] = useState('Delhi')
+  const [billingPinCode, setBillingPinCode] = useState('')
+  const [billingPhone, setBillingPhone] = useState('')
   const [cardNumber, setCardNumber] = useState('')
   const [expiry, setExpiry] = useState('')
   const [cvv, setCvv] = useState('')
@@ -88,6 +98,17 @@ export default function CartPage() {
         if (info.state) setState(info.state);
         if (info.pinCode) setPinCode(info.pinCode);
         if (info.phone) setPhone(info.phone);
+        
+        if (info.billingSame !== undefined) setBillingSame(info.billingSame);
+        if (info.billingEmail) setBillingEmail(info.billingEmail);
+        if (info.billingFirstName) setBillingFirstName(info.billingFirstName);
+        if (info.billingLastName) setBillingLastName(info.billingLastName);
+        if (info.billingAddress) setBillingAddress(info.billingAddress);
+        if (info.billingApartment) setBillingApartment(info.billingApartment);
+        if (info.billingCity) setBillingCity(info.billingCity);
+        if (info.billingState) setBillingState(info.billingState);
+        if (info.billingPinCode) setBillingPinCode(info.billingPinCode);
+        if (info.billingPhone) setBillingPhone(info.billingPhone);
         setSaveInfo(true);
       }
       
@@ -113,7 +134,17 @@ export default function CartPage() {
           city,
           state,
           pinCode,
-          phone
+          phone,
+          billingSame,
+          billingEmail,
+          billingFirstName,
+          billingLastName,
+          billingAddress,
+          billingApartment,
+          billingCity,
+          billingState,
+          billingPinCode,
+          billingPhone
         };
         localStorage.setItem('molvbriv_checkout_info', JSON.stringify(infoToSave));
       } else {
@@ -151,6 +182,17 @@ export default function CartPage() {
     if (!pinCode || !/^\d{6}$/.test(pinCode.trim())) newErrors.pinCode = true
     if (!phone || !/^\d{10}$/.test(phone.trim())) newErrors.phone = true
     
+    if (!billingSame) {
+      if (!billingEmail || !/\S+@\S+\.\S+/.test(billingEmail.trim())) newErrors.billingEmail = true
+      if (!billingFirstName || !billingFirstName.trim()) newErrors.billingFirstName = true
+      if (!billingLastName || !billingLastName.trim()) newErrors.billingLastName = true
+      if (!billingAddress || !billingAddress.trim()) newErrors.billingAddress = true
+      if (!billingCity || !billingCity.trim()) newErrors.billingCity = true
+      if (!billingState || !billingState.trim()) newErrors.billingState = true
+      if (!billingPinCode || !/^\d{6}$/.test(billingPinCode.trim())) newErrors.billingPinCode = true
+      if (!billingPhone || !/^\d{10}$/.test(billingPhone.trim())) newErrors.billingPhone = true
+    }
+    
     // Only validate Card fields if Credit Card payment method is chosen
     if (paymentMethod === 'visa') {
       if (!cardNumber || !/^\d{16}$/.test(cardNumber.trim())) newErrors.cardNumber = true
@@ -184,12 +226,35 @@ export default function CartPage() {
       return;
     }
 
+    const billingAddressDetails = billingSame ? {
+      email: email,
+      firstName: firstName,
+      lastName: lastName,
+      address: address,
+      apartment: apartment,
+      city: city,
+      state: state,
+      pinCode: pinCode,
+      phone: phone
+    } : {
+      email: billingEmail,
+      firstName: billingFirstName,
+      lastName: billingLastName,
+      address: billingAddress,
+      apartment: billingApartment,
+      city: billingCity,
+      state: billingState,
+      pinCode: billingPinCode,
+      phone: billingPhone
+    };
+
     const shippingAddress = {
       address: address,
       apartment: apartment,
       city: city,
       state: state,
-      pinCode: pinCode
+      pinCode: pinCode,
+      billingAddress: billingAddressDetails
     };
 
     const checkoutDetails = {
@@ -198,6 +263,7 @@ export default function CartPage() {
       customerEmail: email,
       customerPhone: phone,
       shippingAddress: shippingAddress,
+      billingAddress: billingAddressDetails,
       products: cartItems.map(item => ({
         id: item.id,
         name: item.name,
@@ -632,6 +698,118 @@ export default function CartPage() {
                   </div>
                 </section>
 
+                {/* Billing Address Selection */}
+                <section className="bg-surface p-8 md:p-12 border-t border-on-surface/5 space-y-6">
+                  <h3 className="font-headline text-2xl text-primary mb-4 font-semibold">Billing address</h3>
+                  
+                  <div className="border border-outline-variant/30 rounded-md overflow-hidden bg-white">
+                    {/* Option 1: Same as shipping */}
+                    <div 
+                      onClick={() => setBillingSame(true)} 
+                      className={`flex items-center gap-4 p-5 cursor-pointer transition-all border-b border-outline-variant/30 ${billingSame ? 'bg-[#f7f3ed]' : 'hover:bg-[#f7f3ed]/50'}`}
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${billingSame ? 'border-black' : 'border-outline-variant/50'}`}>
+                          {billingSame && <div className="w-2.5 h-2.5 rounded-full bg-black"></div>}
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-on-surface select-none">Same as shipping address</span>
+                    </div>
+
+                    {/* Option 2: Different billing address */}
+                    <div 
+                      onClick={() => setBillingSame(false)} 
+                      className={`flex items-center gap-4 p-5 cursor-pointer transition-all ${!billingSame ? 'bg-[#f7f3ed]' : 'hover:bg-[#f7f3ed]/50'}`}
+                    >
+                      <div className="relative flex items-center justify-center">
+                        <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${!billingSame ? 'border-black' : 'border-outline-variant/50'}`}>
+                          {!billingSame && <div className="w-2.5 h-2.5 rounded-full bg-black"></div>}
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-on-surface select-none">Use a different billing address</span>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Billing Form */}
+                  {!billingSame && (
+                    <div className="pt-6 space-y-4 border-t border-outline-variant/20 transition-all duration-300">
+                      <h4 className="font-headline text-lg text-primary mb-4 font-semibold">Billing Details</h4>
+                      
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
+                        <div className="relative">
+                          <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                            <option>India</option>
+                          </select>
+                          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
+                        <input type="email" value={billingEmail} onChange={e => setBillingEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingEmail ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingEmail && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
+                          <input type="text" value={billingFirstName} onChange={e => setBillingFirstName(e.target.value)} placeholder="First name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFirstName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingFirstName && <p className="text-[10px] text-red-500 ml-1">First name is required</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
+                          <input type="text" value={billingLastName} onChange={e => setBillingLastName(e.target.value)} placeholder="Last name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingLastName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingLastName && <p className="text-[10px] text-red-500 ml-1">Last name is required</p>}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
+                        <input type="text" value={billingAddress} onChange={e => setBillingAddress(e.target.value)} placeholder="Address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingAddress ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingAddress && <p className="text-[10px] text-red-500 ml-1">Address is required</p>}
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
+                        <input type="text" value={billingApartment} onChange={e => setBillingApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
+                          <input type="text" value={billingCity} onChange={e => setBillingCity(e.target.value)} placeholder="City" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingCity ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingCity && <p className="text-[10px] text-red-500 ml-1">City is required</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
+                          <div className="relative">
+                            <select value={billingState} onChange={e => setBillingState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                              {INDIAN_STATES.map((s) => (
+                                <option key={s} value={s}>{s}</option>
+                              ))}
+                            </select>
+                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
+                          <input type="text" value={billingPinCode} onChange={e => setBillingPinCode(e.target.value)} placeholder="PIN code" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingPinCode && <p className="text-[10px] text-red-500 ml-1">Valid 6-digit PIN is required</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
+                          <input type="tel" value={billingPhone} onChange={e => setBillingPhone(e.target.value)} placeholder="Phone" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Phone is required</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
                 {/* Payment Integration */}
                 <section className="bg-surface p-8 md:p-12 border-t border-on-surface/5 space-y-8">
                   <div className="flex justify-between items-center">
@@ -943,6 +1121,118 @@ export default function CartPage() {
                     </label>
                   </div>
                 </div>
+              </div>
+
+              {/* Billing Address Selection */}
+              <div className="mt-12 space-y-6">
+                <h2 className="font-headline text-2xl text-primary mb-6 font-semibold">Billing address</h2>
+                
+                <div className="border border-outline-variant/30 rounded-md overflow-hidden bg-white">
+                  {/* Option 1: Same as shipping */}
+                  <div 
+                    onClick={() => setBillingSame(true)} 
+                    className={`flex items-center gap-4 p-4 cursor-pointer transition-all border-b border-outline-variant/30 ${billingSame ? 'bg-[#f7f3ed]' : 'hover:bg-[#f7f3ed]/50'}`}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center transition-all ${billingSame ? 'border-black' : 'border-outline-variant/50'}`}>
+                        {billingSame && <div className="w-2 h-2 rounded-full bg-black"></div>}
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-on-surface select-none">Same as shipping address</span>
+                  </div>
+
+                  {/* Option 2: Different billing address */}
+                  <div 
+                    onClick={() => setBillingSame(false)} 
+                    className={`flex items-center gap-4 p-4 cursor-pointer transition-all ${!billingSame ? 'bg-[#f7f3ed]' : 'hover:bg-[#f7f3ed]/50'}`}
+                  >
+                    <div className="relative flex items-center justify-center">
+                      <div className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center transition-all ${!billingSame ? 'border-black' : 'border-outline-variant/50'}`}>
+                        {!billingSame && <div className="w-2 h-2 rounded-full bg-black"></div>}
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-on-surface select-none">Use a different billing address</span>
+                  </div>
+                </div>
+
+                {/* Collapsible Billing Form */}
+                {!billingSame && (
+                  <div className="pt-6 space-y-4 border-t border-outline-variant/20 transition-all duration-300">
+                    <h4 className="font-headline text-lg text-primary mb-4 font-semibold">Billing Details</h4>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
+                      <div className="relative">
+                        <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                          <option>India</option>
+                        </select>
+                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
+                      <input type="email" value={billingEmail} onChange={e => setBillingEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingEmail ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.billingEmail && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
+                        <input type="text" value={billingFirstName} onChange={e => setBillingFirstName(e.target.value)} placeholder="First name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFirstName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingFirstName && <p className="text-[10px] text-red-500 ml-1">First name is required</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
+                        <input type="text" value={billingLastName} onChange={e => setBillingLastName(e.target.value)} placeholder="Last name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingLastName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingLastName && <p className="text-[10px] text-red-500 ml-1">Last name is required</p>}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
+                      <input type="text" value={billingAddress} onChange={e => setBillingAddress(e.target.value)} placeholder="Address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingAddress ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.billingAddress && <p className="text-[10px] text-red-500 ml-1">Address is required</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
+                      <input type="text" value={billingApartment} onChange={e => setBillingApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
+                        <input type="text" value={billingCity} onChange={e => setBillingCity(e.target.value)} placeholder="City" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingCity ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingCity && <p className="text-[10px] text-red-500 ml-1">City is required</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
+                        <div className="relative">
+                          <select value={billingState} onChange={e => setBillingState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                            {INDIAN_STATES.map((s) => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
+                        <input type="text" value={billingPinCode} onChange={e => setBillingPinCode(e.target.value)} placeholder="PIN code" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingPinCode && <p className="text-[10px] text-red-500 ml-1">Valid 6-digit PIN is required</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
+                        <input type="tel" value={billingPhone} onChange={e => setBillingPhone(e.target.value)} placeholder="Phone" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Phone is required</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Secure Payment */}

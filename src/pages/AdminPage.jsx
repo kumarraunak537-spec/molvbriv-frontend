@@ -1053,6 +1053,27 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                         </div>
                       </div>
 
+                      {/* Billing Destination */}
+                      <div>
+                        <h3 style={{ color: 'var(--ac)', textTransform: 'uppercase', fontSize: '10px', tracking: '1px', marginBottom: '6px', fontWeight: 600 }}>Billing Destination</h3>
+                        <div style={{ background: 'var(--s2)', padding: '12px', borderRadius: '6px', border: '1px solid var(--b1)', color: 'var(--tx)', lineHeight: '1.5' }}>
+                          {selectedAdminOrder.shipping_address?.billingAddress ? (
+                            <>
+                              <div><span style={{ color: 'var(--mu)' }}>Name:</span> {selectedAdminOrder.shipping_address.billingAddress.firstName} {selectedAdminOrder.shipping_address.billingAddress.lastName}</div>
+                              {selectedAdminOrder.shipping_address.billingAddress.email && <div><span style={{ color: 'var(--mu)' }}>Email:</span> {selectedAdminOrder.shipping_address.billingAddress.email}</div>}
+                              {selectedAdminOrder.shipping_address.billingAddress.phone && <div><span style={{ color: 'var(--mu)' }}>Phone:</span> {selectedAdminOrder.shipping_address.billingAddress.phone}</div>}
+                              <div style={{ marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '4px' }}>
+                                <div>{selectedAdminOrder.shipping_address.billingAddress.address}</div>
+                                {selectedAdminOrder.shipping_address.billingAddress.apartment && <div>{selectedAdminOrder.shipping_address.billingAddress.apartment}</div>}
+                                <div>{selectedAdminOrder.shipping_address.billingAddress.city}, {selectedAdminOrder.shipping_address.billingAddress.state} - {selectedAdminOrder.shipping_address.billingAddress.pinCode}</div>
+                              </div>
+                            </>
+                          ) : (
+                            <span style={{ color: 'var(--mu)', fontStyle: 'italic' }}>Same as shipping address</span>
+                          )}
+                        </div>
+                      </div>
+
                       {/* Products detail */}
                       <div>
                         <h3 style={{ color: 'var(--ac)', textTransform: 'uppercase', fontSize: '10px', tracking: '1px', marginBottom: '6px', fontWeight: 600 }}>Sourcing Items</h3>

@@ -388,3 +388,11 @@ CREATE POLICY "Admins can view subscribers" ON public.subscribers
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
   );
+
+-- ==================================================
+-- MIGRATION PATCH: BILLING ADDRESS COLUMN SUPPORT (OPTIONAL)
+-- ==================================================
+-- This schema stores billing address details nested inside the orders.shipping_address JSONB payload safely to prevent relational insertion errors on legacy databases.
+-- However, you can run the statement below inside your Supabase SQL Editor if you prefer to have a dedicated billing_address column:
+--
+-- ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS billing_address JSONB;

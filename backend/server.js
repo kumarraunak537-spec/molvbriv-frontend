@@ -218,6 +218,15 @@ async function createShiprocketOrder(order) {
     const city = addr.city || 'Delhi';
     const pinCode = addr.pinCode || '110001';
     const state = addr.state || 'Delhi';
+
+    // Map billing address details dynamically
+    const hasBilling = addr.billingAddress && Object.keys(addr.billingAddress).length > 0;
+    const billAddr = hasBilling ? addr.billingAddress : addr;
+    
+    const bFirstName = hasBilling ? (billAddr.firstName || firstName) : firstName;
+    const bLastName = hasBilling ? (billAddr.lastName || lastName) : lastName;
+    const bEmail = hasBilling ? (billAddr.email || order.customer_email) : (order.customer_email || 'concierge@molvbriv.in');
+    const bPhone = hasBilling ? (billAddr.phone || order.customer_phone) : (order.customer_phone || '9999999999');
     
     // Map order items safely
     const items = (order.products || []).map(p => ({
@@ -231,17 +240,17 @@ async function createShiprocketOrder(order) {
       order_id: order.razorpay_order_id || `MB-ORD-${order.id.substring(0, 8)}`,
       order_date: new Date(order.created_at || Date.now()).toISOString().slice(0, 19).replace('T', ' '),
       pickup_location: pickupLocation,
-      billing_customer_name: firstName,
-      billing_last_name: lastName,
-      billing_address: streetAddress,
-      billing_address_2: apartment,
-      billing_city: city,
-      billing_pincode: pinCode,
-      billing_state: state,
+      billing_customer_name: bFirstName,
+      billing_last_name: bLastName,
+      billing_address: billAddr.address || streetAddress,
+      billing_address_2: billAddr.apartment || '',
+      billing_city: billAddr.city || city,
+      billing_pincode: billAddr.pinCode || pinCode,
+      billing_state: billAddr.state || state,
       billing_country: 'India',
-      billing_email: order.customer_email || 'concierge@molvbriv.in',
-      billing_phone: order.customer_phone || '9999999999',
-      shipping_is_billing: true,
+      billing_email: bEmail,
+      billing_phone: bPhone,
+      shipping_is_billing: !hasBilling,
       order_items: items,
       payment_method: order.payment_method === 'COD' ? 'COD' : 'Prepaid',
       sub_total: parseFloat(order.total_amount || order.total_price),

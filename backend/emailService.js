@@ -62,6 +62,17 @@ const templates = {
                 `}
               </td>
             </tr>
+            ${order.shipping_address?.billingAddress ? `
+            <tr>
+              <td style="padding-bottom: 12px; font-weight: bold; color: #8c8573; text-transform: uppercase; letter-spacing: 0.1em;">Billing Address</td>
+              <td style="padding-bottom: 12px; color: #4a453a;">
+                ${order.shipping_address.billingAddress.firstName} ${order.shipping_address.billingAddress.lastName}<br/>
+                ${order.shipping_address.billingAddress.address || ''}<br/>
+                ${order.shipping_address.billingAddress.apartment ? order.shipping_address.billingAddress.apartment + '<br/>' : ''}
+                ${order.shipping_address.billingAddress.city || ''}, ${order.shipping_address.billingAddress.state || ''} - ${order.shipping_address.billingAddress.pinCode || ''}
+              </td>
+            </tr>
+            ` : ''}
             <tr>
               <td style="padding-bottom: 12px; font-weight: bold; color: #8c8573; text-transform: uppercase; letter-spacing: 0.1em;">Phone</td>
               <td style="padding-bottom: 12px; color: #4a453a;">${order.customer_phone || ''}</td>
