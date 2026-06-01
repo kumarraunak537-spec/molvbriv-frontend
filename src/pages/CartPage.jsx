@@ -53,11 +53,11 @@ export default function CartPage() {
   const prefillAddress = (addr) => {
     if (addr.full_name) setFullName(addr.full_name);
     if (addr.phone) setPhone(addr.phone);
-    if (addr.alt_phone) setAltPhone(addr.alt_phone || '');
+    setAltPhone(addr.alt_phone || '');
     if (addr.flat_number) setFlatNumber(addr.flat_number);
     if (addr.street) setStreet(addr.street);
-    if (addr.landmark) setLandmark(addr.landmark || '');
-    if (addr.area) setArea(addr.area || '');
+    setLandmark(addr.landmark || '');
+    setArea(addr.area || '');
     if (addr.city) setCity(addr.city);
     if (addr.state) setState(addr.state);
     if (addr.pincode) setPinCode(addr.pincode);
@@ -241,7 +241,6 @@ export default function CartPage() {
     if (!email || !/\S+@\S+\.\S+/.test(email.trim())) newErrors.email = true
     if (!fullName || !fullName.trim()) newErrors.fullName = true
     if (!phone || !/^\d{10}$/.test(phone.trim())) newErrors.phone = true
-    if (altPhone.trim() && !/^\d{10}$/.test(altPhone.trim())) newErrors.altPhone = true
     if (!flatNumber || !flatNumber.trim()) newErrors.flatNumber = true
     if (!street || !street.trim()) newErrors.street = true
     if (!city || !city.trim()) newErrors.city = true
@@ -252,7 +251,6 @@ export default function CartPage() {
       if (!billingEmail || !/\S+@\S+\.\S+/.test(billingEmail.trim())) newErrors.billingEmail = true
       if (!billingFullName || !billingFullName.trim()) newErrors.billingFullName = true
       if (!billingPhone || !/^\d{10}$/.test(billingPhone.trim())) newErrors.billingPhone = true
-      if (billingAltPhone.trim() && !/^\d{10}$/.test(billingAltPhone.trim())) newErrors.billingAltPhone = true
       if (!billingFlatNumber || !billingFlatNumber.trim()) newErrors.billingFlatNumber = true
       if (!billingStreet || !billingStreet.trim()) newErrors.billingStreet = true
       if (!billingCity || !billingCity.trim()) newErrors.billingCity = true
@@ -897,8 +895,7 @@ export default function CartPage() {
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Alternate Number (Optional)</label>
-                          <input type="tel" value={billingAltPhone} onChange={e => setBillingAltPhone(e.target.value)} placeholder="Alternate Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingAltPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                          {errors.billingAltPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit number required</p>}
+                          <input type="tel" value={billingAltPhone} onChange={e => setBillingAltPhone(e.target.value)} placeholder="Alternate Number" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
                         </div>
                       </div>
 
@@ -1245,7 +1242,7 @@ export default function CartPage() {
                       {errors.phone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Mobile Number is required</p>}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Alternate Number</label>
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Alternate Number (Optional)</label>
                       <input type="tel" value={altPhone} onChange={e => setAltPhone(e.target.value)} placeholder="Alternate Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.altPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                       {errors.altPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit number required</p>}
                     </div>
@@ -1266,11 +1263,11 @@ export default function CartPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Landmark</label>
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Landmark (Optional)</label>
                       <input type="text" value={landmark} onChange={e => setLandmark(e.target.value)} placeholder="e.g. Near Grand Hyatt" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Area/Sector</label>
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Area/Sector (Optional)</label>
                       <input type="text" value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. Saket, Sector 4" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
                     </div>
                   </div>
@@ -1403,11 +1400,11 @@ export default function CartPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Landmark</label>
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Landmark (Optional)</label>
                         <input type="text" value={billingLandmark} onChange={e => setBillingLandmark(e.target.value)} placeholder="e.g. Near Grand Hyatt" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Area/Sector</label>
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Area/Sector (Optional)</label>
                         <input type="text" value={billingArea} onChange={e => setBillingArea(e.target.value)} placeholder="e.g. Saket, Sector 4" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
                       </div>
                     </div>
