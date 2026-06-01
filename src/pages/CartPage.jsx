@@ -51,18 +51,17 @@ export default function CartPage() {
   const [selectedAddressId, setSelectedAddressId] = useState(null)
 
   const prefillAddress = (addr) => {
-    if (addr.full_name) {
-      const parts = addr.full_name.trim().split(/\s+/);
-      setFirstName(parts[0] || '');
-      setLastName(parts.slice(1).join(' ') || '');
-    }
+    if (addr.full_name) setFullName(addr.full_name);
     if (addr.phone) setPhone(addr.phone);
+    if (addr.alt_phone) setAltPhone(addr.alt_phone || '');
+    if (addr.flat_number) setFlatNumber(addr.flat_number);
+    if (addr.street) setStreet(addr.street);
+    if (addr.landmark) setLandmark(addr.landmark || '');
+    if (addr.area) setArea(addr.area || '');
+    if (addr.city) setCity(addr.city);
+    if (addr.state) setState(addr.state);
+    if (addr.pincode) setPinCode(addr.pincode);
     if (user?.email) setEmail(user.email);
-    setAddress(`${addr.flat_number}, ${addr.street}`);
-    setApartment(addr.landmark || '');
-    setCity(addr.city);
-    setState(addr.state);
-    setPinCode(addr.pincode);
   }
 
   // Load user saved addresses from Supabase when user resolves
@@ -97,26 +96,32 @@ export default function CartPage() {
 
   const [activeStep, setActiveStep] = useState(1)
   const [email, setEmail] = useState('')
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [address, setAddress] = useState('')
-  const [apartment, setApartment] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [altPhone, setAltPhone] = useState('')
+  const [flatNumber, setFlatNumber] = useState('')
+  const [street, setStreet] = useState('')
+  const [landmark, setLandmark] = useState('')
+  const [area, setArea] = useState('')
   const [city, setCity] = useState('')
   const [state, setState] = useState('Delhi')
+  const [country, setCountry] = useState('India')
   const [pinCode, setPinCode] = useState('')
-  const [phone, setPhone] = useState('')
   const [saveInfo, setSaveInfo] = useState(false)
   const [newsOffers, setNewsOffers] = useState(false)
   const [billingSame, setBillingSame] = useState(true)
   const [billingEmail, setBillingEmail] = useState('')
-  const [billingFirstName, setBillingFirstName] = useState('')
-  const [billingLastName, setBillingLastName] = useState('')
-  const [billingAddress, setBillingAddress] = useState('')
-  const [billingApartment, setBillingApartment] = useState('')
+  const [billingFullName, setBillingFullName] = useState('')
+  const [billingPhone, setBillingPhone] = useState('')
+  const [billingAltPhone, setBillingAltPhone] = useState('')
+  const [billingFlatNumber, setBillingFlatNumber] = useState('')
+  const [billingStreet, setBillingStreet] = useState('')
+  const [billingLandmark, setBillingLandmark] = useState('')
+  const [billingArea, setBillingArea] = useState('')
   const [billingCity, setBillingCity] = useState('')
   const [billingState, setBillingState] = useState('Delhi')
+  const [billingCountry, setBillingCountry] = useState('India')
   const [billingPinCode, setBillingPinCode] = useState('')
-  const [billingPhone, setBillingPhone] = useState('')
   const [cardNumber, setCardNumber] = useState('')
   const [expiry, setExpiry] = useState('')
   const [cvv, setCvv] = useState('')
@@ -138,25 +143,31 @@ export default function CartPage() {
       if (savedInfo) {
         const info = JSON.parse(savedInfo);
         if (info.email) setEmail(info.email);
-        if (info.firstName) setFirstName(info.firstName);
-        if (info.lastName) setLastName(info.lastName);
-        if (info.address) setAddress(info.address);
-        if (info.apartment) setApartment(info.apartment);
+        if (info.fullName) setFullName(info.fullName);
+        if (info.phone) setPhone(info.phone);
+        if (info.altPhone) setAltPhone(info.altPhone);
+        if (info.flatNumber) setFlatNumber(info.flatNumber);
+        if (info.street) setStreet(info.street);
+        if (info.landmark) setLandmark(info.landmark);
+        if (info.area) setArea(info.area);
         if (info.city) setCity(info.city);
         if (info.state) setState(info.state);
         if (info.pinCode) setPinCode(info.pinCode);
-        if (info.phone) setPhone(info.phone);
+        if (info.country) setCountry(info.country);
         
         if (info.billingSame !== undefined) setBillingSame(info.billingSame);
         if (info.billingEmail) setBillingEmail(info.billingEmail);
-        if (info.billingFirstName) setBillingFirstName(info.billingFirstName);
-        if (info.billingLastName) setBillingLastName(info.billingLastName);
-        if (info.billingAddress) setBillingAddress(info.billingAddress);
-        if (info.billingApartment) setBillingApartment(info.billingApartment);
+        if (info.billingFullName) setBillingFullName(info.billingFullName);
+        if (info.billingPhone) setBillingPhone(info.billingPhone);
+        if (info.billingAltPhone) setBillingAltPhone(info.billingAltPhone);
+        if (info.billingFlatNumber) setBillingFlatNumber(info.billingFlatNumber);
+        if (info.billingStreet) setBillingStreet(info.billingStreet);
+        if (info.billingLandmark) setBillingLandmark(info.billingLandmark);
+        if (info.billingArea) setBillingArea(info.billingArea);
         if (info.billingCity) setBillingCity(info.billingCity);
         if (info.billingState) setBillingState(info.billingState);
         if (info.billingPinCode) setBillingPinCode(info.billingPinCode);
-        if (info.billingPhone) setBillingPhone(info.billingPhone);
+        if (info.billingCountry) setBillingCountry(info.billingCountry);
         setSaveInfo(true);
       }
       
@@ -175,24 +186,30 @@ export default function CartPage() {
       if (saveInfo) {
         const infoToSave = {
           email,
-          firstName,
-          lastName,
-          address,
-          apartment,
+          fullName,
+          phone,
+          altPhone,
+          flatNumber,
+          street,
+          landmark,
+          area,
           city,
           state,
           pinCode,
-          phone,
+          country,
           billingSame,
           billingEmail,
-          billingFirstName,
-          billingLastName,
-          billingAddress,
-          billingApartment,
+          billingFullName,
+          billingPhone,
+          billingAltPhone,
+          billingFlatNumber,
+          billingStreet,
+          billingLandmark,
+          billingArea,
           billingCity,
           billingState,
           billingPinCode,
-          billingPhone
+          billingCountry
         };
         localStorage.setItem('molvbriv_checkout_info', JSON.stringify(infoToSave));
       } else {
@@ -222,23 +239,25 @@ export default function CartPage() {
   const validateForm = () => {
     const newErrors = {}
     if (!email || !/\S+@\S+\.\S+/.test(email.trim())) newErrors.email = true
-    if (!firstName || !firstName.trim()) newErrors.firstName = true
-    if (!lastName || !lastName.trim()) newErrors.lastName = true
-    if (!address || !address.trim()) newErrors.address = true
+    if (!fullName || !fullName.trim()) newErrors.fullName = true
+    if (!phone || !/^\d{10}$/.test(phone.trim())) newErrors.phone = true
+    if (altPhone.trim() && !/^\d{10}$/.test(altPhone.trim())) newErrors.altPhone = true
+    if (!flatNumber || !flatNumber.trim()) newErrors.flatNumber = true
+    if (!street || !street.trim()) newErrors.street = true
     if (!city || !city.trim()) newErrors.city = true
     if (!state || !state.trim()) newErrors.state = true
     if (!pinCode || !/^\d{6}$/.test(pinCode.trim())) newErrors.pinCode = true
-    if (!phone || !/^\d{10}$/.test(phone.trim())) newErrors.phone = true
     
     if (!billingSame) {
       if (!billingEmail || !/\S+@\S+\.\S+/.test(billingEmail.trim())) newErrors.billingEmail = true
-      if (!billingFirstName || !billingFirstName.trim()) newErrors.billingFirstName = true
-      if (!billingLastName || !billingLastName.trim()) newErrors.billingLastName = true
-      if (!billingAddress || !billingAddress.trim()) newErrors.billingAddress = true
+      if (!billingFullName || !billingFullName.trim()) newErrors.billingFullName = true
+      if (!billingPhone || !/^\d{10}$/.test(billingPhone.trim())) newErrors.billingPhone = true
+      if (billingAltPhone.trim() && !/^\d{10}$/.test(billingAltPhone.trim())) newErrors.billingAltPhone = true
+      if (!billingFlatNumber || !billingFlatNumber.trim()) newErrors.billingFlatNumber = true
+      if (!billingStreet || !billingStreet.trim()) newErrors.billingStreet = true
       if (!billingCity || !billingCity.trim()) newErrors.billingCity = true
       if (!billingState || !billingState.trim()) newErrors.billingState = true
       if (!billingPinCode || !/^\d{6}$/.test(billingPinCode.trim())) newErrors.billingPinCode = true
-      if (!billingPhone || !/^\d{10}$/.test(billingPhone.trim())) newErrors.billingPhone = true
     }
     
     // Only validate Card fields if Credit Card payment method is chosen
@@ -276,38 +295,50 @@ export default function CartPage() {
 
     const billingAddressDetails = billingSame ? {
       email: email,
-      firstName: firstName,
-      lastName: lastName,
-      address: address,
-      apartment: apartment,
+      fullName: fullName,
+      phone: phone,
+      altPhone: altPhone,
+      flatNumber: flatNumber,
+      street: street,
+      landmark: landmark,
+      area: area,
       city: city,
       state: state,
-      pinCode: pinCode,
-      phone: phone
+      country: country,
+      pinCode: pinCode
     } : {
       email: billingEmail,
-      firstName: billingFirstName,
-      lastName: billingLastName,
-      address: billingAddress,
-      apartment: billingApartment,
+      fullName: billingFullName,
+      phone: billingPhone,
+      altPhone: billingAltPhone,
+      flatNumber: billingFlatNumber,
+      street: billingStreet,
+      landmark: billingLandmark,
+      area: billingArea,
       city: billingCity,
       state: billingState,
-      pinCode: billingPinCode,
-      phone: billingPhone
+      country: billingCountry,
+      pinCode: billingPinCode
     };
 
     const shippingAddress = {
-      address: address,
-      apartment: apartment,
+      fullName: fullName,
+      phone: phone,
+      altPhone: altPhone,
+      flatNumber: flatNumber,
+      street: street,
+      landmark: landmark,
+      area: area,
       city: city,
       state: state,
+      country: country,
       pinCode: pinCode,
       billingAddress: billingAddressDetails
     };
 
     const checkoutDetails = {
       userId: user?.id || null,
-      customerName: `${firstName} ${lastName}`,
+      customerName: fullName,
       customerEmail: email,
       customerPhone: phone,
       shippingAddress: shippingAddress,
@@ -520,12 +551,12 @@ export default function CartPage() {
             }
           },
           prefill: {
-            name: `${firstName} ${lastName}`,
+            name: fullName,
             email: email,
             contact: phone
           },
           notes: {
-            address: `${address}, ${apartment}, ${city}, ${state} - ${pinCode}`
+            address: `${flatNumber}, ${street}, ${city}, ${state} - ${pinCode}`
           },
           theme: {
             color: '#1a4a35'
@@ -696,54 +727,74 @@ export default function CartPage() {
                       </div>
                     )}
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
-                      <div className="relative">
-                        <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                          <option>India</option>
-                        </select>
-                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Country/Region</label>
+                        <div className="relative">
+                          <select value={country} onChange={e => setCountry(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                            <option value="India">India</option>
+                          </select>
+                          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Email Address</label>
+                        <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.email ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.email && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
-                      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.email ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                      {errors.email && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
+                      <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Full Name</label>
+                      <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Recipient's Name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.fullName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.fullName && <p className="text-[10px] text-red-500 ml-1">Full Name is required</p>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
-                        <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.firstName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.firstName && <p className="text-[10px] text-red-500 ml-1">First name is required</p>}
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Mobile Number (10 digits)</label>
+                        <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Mobile Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.phone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.phone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Mobile Number is required</p>}
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
-                        <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.lastName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.lastName && <p className="text-[10px] text-red-500 ml-1">Last name is required</p>}
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Alternate Number (Optional)</label>
+                        <input type="tel" value={altPhone} onChange={e => setAltPhone(e.target.value)} placeholder="Alternate Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.altPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.altPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit number required</p>}
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
-                      <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.address ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                      {errors.address && <p className="text-[10px] text-red-500 ml-1">Address is required</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
-                      <input type="text" value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">House/Flat Number</label>
+                        <input type="text" value={flatNumber} onChange={e => setFlatNumber(e.target.value)} placeholder="e.g. A-301, 3rd Floor" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.flatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.flatNumber && <p className="text-[10px] text-red-500 ml-1">House/Flat Number is required</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Street / Apartment Name</label>
+                        <input type="text" value={street} onChange={e => setStreet(e.target.value)} placeholder="Street/Road/Apartment name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.street ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.street && <p className="text-[10px] text-red-500 ml-1">Street / Apartment Name is required</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Landmark (Optional)</label>
+                        <input type="text" value={landmark} onChange={e => setLandmark(e.target.value)} placeholder="e.g. Near Grand Hyatt Hotel" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Area/Sector (Optional)</label>
+                        <input type="text" value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. Saket, Sector 4" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">City</label>
                         <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.city ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                         {errors.city && <p className="text-[10px] text-red-500 ml-1">City is required</p>}
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                         <div className="relative">
                           <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
                             {INDIAN_STATES.map((s) => (
@@ -753,18 +804,10 @@ export default function CartPage() {
                           <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">PIN code (6 digits)</label>
                         <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.pinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                         {errors.pinCode && <p className="text-[10px] text-red-500 ml-1">Valid 6-digit PIN is required</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
-                        <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.phone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.phone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Phone is required</p>}
                       </div>
                     </div>
 
@@ -823,54 +866,74 @@ export default function CartPage() {
                     <div className="pt-6 space-y-4 border-t border-outline-variant/20 transition-all duration-300">
                       <h4 className="font-headline text-lg text-primary mb-4 font-semibold">Billing Details</h4>
                       
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
-                        <div className="relative">
-                          <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                            <option>India</option>
-                          </select>
-                          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Country/Region</label>
+                          <div className="relative">
+                            <select value={billingCountry} onChange={e => setBillingCountry(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                              <option value="India">India</option>
+                            </select>
+                            <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Email Address</label>
+                          <input type="email" value={billingEmail} onChange={e => setBillingEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingEmail ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingEmail && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
                         </div>
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
-                        <input type="email" value={billingEmail} onChange={e => setBillingEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingEmail ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.billingEmail && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Full Name</label>
+                        <input type="text" value={billingFullName} onChange={e => setBillingFullName(e.target.value)} placeholder="Recipient's Name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFullName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingFullName && <p className="text-[10px] text-red-500 ml-1">Full Name is required</p>}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
-                          <input type="text" value={billingFirstName} onChange={e => setBillingFirstName(e.target.value)} placeholder="First name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFirstName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                          {errors.billingFirstName && <p className="text-[10px] text-red-500 ml-1">First name is required</p>}
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Mobile Number (10 digits)</label>
+                          <input type="tel" value={billingPhone} onChange={e => setBillingPhone(e.target.value)} placeholder="Mobile Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Mobile Number is required</p>}
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
-                          <input type="text" value={billingLastName} onChange={e => setBillingLastName(e.target.value)} placeholder="Last name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingLastName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                          {errors.billingLastName && <p className="text-[10px] text-red-500 ml-1">Last name is required</p>}
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Alternate Number (Optional)</label>
+                          <input type="tel" value={billingAltPhone} onChange={e => setBillingAltPhone(e.target.value)} placeholder="Alternate Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingAltPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingAltPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit number required</p>}
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
-                        <input type="text" value={billingAddress} onChange={e => setBillingAddress(e.target.value)} placeholder="Address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingAddress ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.billingAddress && <p className="text-[10px] text-red-500 ml-1">Address is required</p>}
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
-                        <input type="text" value={billingApartment} onChange={e => setBillingApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">House/Flat Number</label>
+                          <input type="text" value={billingFlatNumber} onChange={e => setBillingFlatNumber(e.target.value)} placeholder="e.g. A-301, 3rd Floor" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFlatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingFlatNumber && <p className="text-[10px] text-red-500 ml-1">House/Flat Number is required</p>}
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Street / Apartment Name</label>
+                          <input type="text" value={billingStreet} onChange={e => setBillingStreet(e.target.value)} placeholder="Street/Road/Apartment name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingStreet ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingStreet && <p className="text-[10px] text-red-500 ml-1">Street / Apartment Name is required</p>}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Landmark (Optional)</label>
+                          <input type="text" value={billingLandmark} onChange={e => setBillingLandmark(e.target.value)} placeholder="e.g. Near Grand Hyatt Hotel" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Area/Sector (Optional)</label>
+                          <input type="text" value={billingArea} onChange={e => setBillingArea(e.target.value)} placeholder="e.g. Saket, Sector 4" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">City</label>
                           <input type="text" value={billingCity} onChange={e => setBillingCity(e.target.value)} placeholder="City" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingCity ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                           {errors.billingCity && <p className="text-[10px] text-red-500 ml-1">City is required</p>}
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                           <div className="relative">
                             <select value={billingState} onChange={e => setBillingState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
                               {INDIAN_STATES.map((s) => (
@@ -880,18 +943,10 @@ export default function CartPage() {
                             <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                           </div>
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">PIN code (6 digits)</label>
                           <input type="text" value={billingPinCode} onChange={e => setBillingPinCode(e.target.value)} placeholder="PIN code" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                           {errors.billingPinCode && <p className="text-[10px] text-red-500 ml-1">Valid 6-digit PIN is required</p>}
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
-                          <input type="tel" value={billingPhone} onChange={e => setBillingPhone(e.target.value)} placeholder="Phone" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                          {errors.billingPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Phone is required</p>}
                         </div>
                       </div>
                     </div>
@@ -1162,74 +1217,85 @@ export default function CartPage() {
                   )}
 
                   <div className="space-y-2">
-                    <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
+                    <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Country/Region</label>
                     <div className="relative">
-                      <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                        <option>India</option>
+                      <select value={country} onChange={e => setCountry(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                        <option value="India">India</option>
                       </select>
-                      <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
+                    <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Email Address</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.email ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                     {errors.email && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
-                      <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="First name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.firstName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                      {errors.firstName && <p className="text-[10px] text-red-500 ml-1">First name is required</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
-                      <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Last name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.lastName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                      {errors.lastName && <p className="text-[10px] text-red-500 ml-1">Last name is required</p>}
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
-                    <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
-                    <input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="Address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.address ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                    {errors.address && <p className="text-[10px] text-red-500 ml-1">Address is required</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
-                    <input type="text" value={apartment} onChange={e => setApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Full Name</label>
+                    <input type="text" value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Recipient's Name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.fullName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                    {errors.fullName && <p className="text-[10px] text-red-500 ml-1">Full Name is required</p>}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Mobile Number</label>
+                      <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Mobile Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.phone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.phone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Mobile Number is required</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Alternate Number</label>
+                      <input type="tel" value={altPhone} onChange={e => setAltPhone(e.target.value)} placeholder="Alternate Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.altPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.altPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit number required</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">House/Flat Number</label>
+                      <input type="text" value={flatNumber} onChange={e => setFlatNumber(e.target.value)} placeholder="e.g. A-301, 3rd Floor" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.flatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.flatNumber && <p className="text-[10px] text-red-500 ml-1">House/Flat Number is required</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Street Name</label>
+                      <input type="text" value={street} onChange={e => setStreet(e.target.value)} placeholder="Street/Road name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.street ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.street && <p className="text-[10px] text-red-500 ml-1">Street is required</p>}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Landmark</label>
+                      <input type="text" value={landmark} onChange={e => setLandmark(e.target.value)} placeholder="e.g. Near Grand Hyatt" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Area/Sector</label>
+                      <input type="text" value={area} onChange={e => setArea(e.target.value)} placeholder="e.g. Saket, Sector 4" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">City</label>
                       <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="City" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.city ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                       {errors.city && <p className="text-[10px] text-red-500 ml-1">City is required</p>}
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                       <div className="relative">
                         <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
                           {INDIAN_STATES.map((s) => (
                             <option key={s} value={s}>{s}</option>
                           ))}
                         </select>
-                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
-                      <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="PIN code" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.pinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                      {errors.pinCode && <p className="text-[10px] text-red-500 ml-1">Valid 6-digit PIN is required</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
-                      <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Phone" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.phone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                      {errors.phone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Phone is required</p>}
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Pincode</label>
+                      <input type="text" value={pinCode} onChange={e => setPinCode(e.target.value)} placeholder="Pincode" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.pinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.pinCode && <p className="text-[10px] text-red-500 ml-1">Pincode is required</p>}
                     </div>
                   </div>
 
@@ -1287,76 +1353,86 @@ export default function CartPage() {
                 {!billingSame && (
                   <div className="pt-6 space-y-4 border-t border-outline-variant/20 transition-all duration-300">
                     <h4 className="font-headline text-lg text-primary mb-4 font-semibold">Billing Details</h4>
-                    
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
+                     <div className="space-y-2">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Country/Region</label>
                       <div className="relative">
-                        <select className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
-                          <option>India</option>
+                        <select value={billingCountry} onChange={e => setBillingCountry(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                          <option value="India">India</option>
                         </select>
-                        <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Email</label>
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Email Address</label>
                       <input type="email" value={billingEmail} onChange={e => setBillingEmail(e.target.value)} placeholder="Email address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingEmail ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                       {errors.billingEmail && <p className="text-[10px] text-red-500 ml-1">Email is required</p>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">First name</label>
-                        <input type="text" value={billingFirstName} onChange={e => setBillingFirstName(e.target.value)} placeholder="First name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFirstName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.billingFirstName && <p className="text-[10px] text-red-500 ml-1">First name is required</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Last name</label>
-                        <input type="text" value={billingLastName} onChange={e => setBillingLastName(e.target.value)} placeholder="Last name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingLastName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.billingLastName && <p className="text-[10px] text-red-500 ml-1">Last name is required</p>}
-                      </div>
-                    </div>
-
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Address</label>
-                      <input type="text" value={billingAddress} onChange={e => setBillingAddress(e.target.value)} placeholder="Address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingAddress ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                      {errors.billingAddress && <p className="text-[10px] text-red-500 ml-1">Address is required</p>}
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Apartment, suite, etc. (optional)</label>
-                      <input type="text" value={billingApartment} onChange={e => setBillingApartment(e.target.value)} placeholder="Apartment, suite, etc. (optional)" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Full Name</label>
+                      <input type="text" value={billingFullName} onChange={e => setBillingFullName(e.target.value)} placeholder="Recipient's Name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFullName ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.billingFullName && <p className="text-[10px] text-red-500 ml-1">Full Name is required</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">City</label>
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Mobile Number</label>
+                        <input type="tel" value={billingPhone} onChange={e => setBillingPhone(e.target.value)} placeholder="Mobile Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Mobile Number is required</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Alternate Number</label>
+                        <input type="tel" value={billingAltPhone} onChange={e => setBillingAltPhone(e.target.value)} placeholder="Alternate Number" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingAltPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingAltPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit number required</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">House/Flat Number</label>
+                        <input type="text" value={billingFlatNumber} onChange={e => setBillingFlatNumber(e.target.value)} placeholder="e.g. A-301, 3rd Floor" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFlatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingFlatNumber && <p className="text-[10px] text-red-500 ml-1">House/Flat Number is required</p>}
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Street Name</label>
+                        <input type="text" value={billingStreet} onChange={e => setBillingStreet(e.target.value)} placeholder="Street/Road name" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingStreet ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingStreet && <p className="text-[10px] text-red-500 ml-1">Street is required</p>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Landmark</label>
+                        <input type="text" value={billingLandmark} onChange={e => setBillingLandmark(e.target.value)} placeholder="e.g. Near Grand Hyatt" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Area/Sector</label>
+                        <input type="text" value={billingArea} onChange={e => setBillingArea(e.target.value)} placeholder="e.g. Saket, Sector 4" className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm" />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">City</label>
                         <input type="text" value={billingCity} onChange={e => setBillingCity(e.target.value)} placeholder="City" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingCity ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
                         {errors.billingCity && <p className="text-[10px] text-red-500 ml-1">City is required</p>}
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">State</label>
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                         <div className="relative">
                           <select value={billingState} onChange={e => setBillingState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
                             {INDIAN_STATES.map((s) => (
                               <option key={s} value={s}>{s}</option>
                             ))}
                           </select>
-                          <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
+                          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">PIN code</label>
-                        <input type="text" value={billingPinCode} onChange={e => setBillingPinCode(e.target.value)} placeholder="PIN code" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.billingPinCode && <p className="text-[10px] text-red-500 ml-1">Valid 6-digit PIN is required</p>}
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone</label>
-                        <input type="tel" value={billingPhone} onChange={e => setBillingPhone(e.target.value)} placeholder="Phone" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPhone ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.billingPhone && <p className="text-[10px] text-red-500 ml-1">Valid 10-digit Phone is required</p>}
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Pincode</label>
+                        <input type="text" value={billingPinCode} onChange={e => setBillingPinCode(e.target.value)} placeholder="Pincode" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingPinCode ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingPinCode && <p className="text-[10px] text-red-500 ml-1">Pincode is required</p>}
                       </div>
                     </div>
                   </div>
