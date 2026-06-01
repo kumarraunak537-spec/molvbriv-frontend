@@ -232,7 +232,8 @@ export default function CartPage() {
   const onlineDiscount = paymentMethod === 'razorpay' ? Math.round(subtotal * 0.1) : 0
   const grandTotal = Math.max(0, subtotal - discount - onlineDiscount + taxes)
 
-  const applyCode = () => {
+  const applyCode = (e) => {
+    if (e) e.preventDefault();
     setCouponError('')
     setCouponSuccess('')
     const code = privilegeCode.trim().toLowerCase()
@@ -1052,7 +1053,7 @@ export default function CartPage() {
                       placeholder="Privilege Code"
                       className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/30 text-xs flex-1 outline-none"
                     />
-                    <button onClick={applyCode} className="text-[10px] uppercase tracking-widest text-secondary-fixed font-bold">Apply</button>
+                    <button type="button" onClick={applyCode} className="text-[10px] uppercase tracking-widest text-secondary-fixed font-bold">Apply</button>
                   </div>
                   {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
                   {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
@@ -1537,7 +1538,7 @@ export default function CartPage() {
                   placeholder="Privilege Code"
                   className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/30 text-xs flex-1 outline-none"
                 />
-                <button onClick={applyCode} className="text-[10px] uppercase tracking-widest text-[#d4af37] font-bold">Apply</button>
+                <button type="button" onClick={applyCode} className="text-[10px] uppercase tracking-widest text-[#d4af37] font-bold">Apply</button>
               </div>
               {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
               {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
