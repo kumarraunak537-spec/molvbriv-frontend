@@ -477,19 +477,7 @@ export default function CartPage() {
 
             {/* Personal Details */}
             <section className="bg-surface p-8 md:p-12 space-y-6">
-              <h2 className="font-headline text-3xl text-primary mb-8">Personal Details</h2>
-              
-              {!user && (
-                <div className="p-4 bg-[#765931]/10 border border-[#765931]/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-                  <div className="flex items-center gap-3 text-primary text-xs">
-                    <span className="material-symbols-outlined text-sm text-[#765931]">info</span>
-                    <span>You are checking out as a <strong>Guest</strong>. Have an account?</span>
-                  </div>
-                  <Link to="/login?redirect=cart" className="text-xs uppercase tracking-widest text-[#765931] hover:underline font-bold">
-                    Login for faster checkout
-                  </Link>
-                </div>
-              )}
+              <h2 className="font-headline text-3xl text-primary mb-8">Delivery Details</h2>
                   
                   <div className="space-y-4">
                     <div className="space-y-2">
@@ -802,19 +790,7 @@ export default function CartPage() {
 
               {/* Personal Details */}
               <div className="mt-12 space-y-6">
-                <h2 className="font-headline text-2xl text-primary mb-6">Personal Details</h2>
-
-                {!user && (
-                  <div className="p-4 bg-[#765931]/10 border border-[#765931]/20 flex flex-col gap-3 mb-6">
-                    <div className="flex items-center gap-3 text-primary text-xs">
-                      <span className="material-symbols-outlined text-sm text-[#765931]">info</span>
-                      <span>Checking out as <strong>Guest</strong>.</span>
-                    </div>
-                    <Link to="/login?redirect=cart" className="text-xs uppercase tracking-widest text-[#765931] hover:underline font-bold self-start">
-                      Login for faster checkout
-                    </Link>
-                  </div>
-                )}
+                <h2 className="font-headline text-2xl text-primary mb-6">Delivery Details</h2>
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
