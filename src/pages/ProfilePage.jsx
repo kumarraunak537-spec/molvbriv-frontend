@@ -402,8 +402,7 @@ export default function ProfilePage() {
         .update({
           name: settingsName.trim(),
           phone: settingsPhone.trim(),
-          avatar_url: settingsAvatar.trim(),
-          updated_at: new Date().toISOString()
+          avatar_url: settingsAvatar.trim()
         })
         .eq('id', user.id)
 
@@ -510,8 +509,7 @@ export default function ProfilePage() {
         .update({
           name: editName.trim(),
           email: editEmail.trim(),
-          phone: editPhone.trim() || null,
-          updated_at: new Date().toISOString()
+          phone: editPhone.trim() || null
         })
         .eq('id', user.id)
 
