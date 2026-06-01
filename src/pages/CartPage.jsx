@@ -431,7 +431,7 @@ export default function CartPage() {
           <div className="lg:col-span-8 space-y-12">
             
             {/* Cart Items Section */}
-            <section className="p-8 md:p-12 shadow-sm rounded-none border border-white/10" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)' }}>
+            <section className="p-8 md:p-12 shadow-sm rounded-none" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)' }}>
               <div className="flex justify-between items-end mb-10 pb-4 border-b border-on-surface/5">
                 <h2 className="font-headline text-2xl text-primary">Shopping Cart</h2>
                 <span className="font-label text-sm text-on-surface-variant">{cartItems.length} {cartItems.length === 1 ? 'Item' : 'Items'}</span>
