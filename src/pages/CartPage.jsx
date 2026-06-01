@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -72,6 +72,63 @@ export default function CartPage() {
   const [errors, setErrors] = useState({})
   const [isPaymentLoading, setIsPaymentLoading] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+
+  // Load saved checkout information on mount
+  useEffect(() => {
+    try {
+      const savedInfo = localStorage.getItem('molvbriv_checkout_info');
+      if (savedInfo) {
+        const info = JSON.parse(savedInfo);
+        if (info.email) setEmail(info.email);
+        if (info.firstName) setFirstName(info.firstName);
+        if (info.lastName) setLastName(info.lastName);
+        if (info.address) setAddress(info.address);
+        if (info.apartment) setApartment(info.apartment);
+        if (info.city) setCity(info.city);
+        if (info.state) setState(info.state);
+        if (info.pinCode) setPinCode(info.pinCode);
+        if (info.phone) setPhone(info.phone);
+        setSaveInfo(true);
+      }
+      
+      const savedNews = localStorage.getItem('molvbriv_news_offers');
+      if (savedNews === 'true') {
+        setNewsOffers(true);
+      }
+    } catch (err) {
+      console.warn('Failed to load saved checkout info from localStorage:', err);
+    }
+  }, []);
+
+  // Helper to save or clear checkout information in localStorage
+  const saveOrClearCheckoutInfo = () => {
+    try {
+      if (saveInfo) {
+        const infoToSave = {
+          email,
+          firstName,
+          lastName,
+          address,
+          apartment,
+          city,
+          state,
+          pinCode,
+          phone
+        };
+        localStorage.setItem('molvbriv_checkout_info', JSON.stringify(infoToSave));
+      } else {
+        localStorage.removeItem('molvbriv_checkout_info');
+      }
+
+      if (newsOffers) {
+        localStorage.setItem('molvbriv_news_offers', 'true');
+      } else {
+        localStorage.removeItem('molvbriv_news_offers');
+      }
+    } catch (err) {
+      console.warn('Failed to save checkout info to localStorage:', err);
+    }
+  };
 
   const taxes = Math.round(subtotal * 0.08)
   const onlineDiscount = paymentMethod === 'razorpay' ? Math.round(subtotal * 0.1) : 0
@@ -166,6 +223,7 @@ export default function CartPage() {
         
         const result = await response.json();
         if (result.success) {
+          saveOrClearCheckoutInfo();
           clearCart();
           navigate('/payment-success', { state: { order: result.order } });
         } else {
@@ -200,6 +258,7 @@ export default function CartPage() {
             .single();
 
           if (error) throw error;
+          saveOrClearCheckoutInfo();
           clearCart();
           navigate('/payment-success', { state: { order: data } });
         } catch (dbErr) {
@@ -274,6 +333,7 @@ export default function CartPage() {
                 
                 const verifyResult = await verifyResponse.json();
                 if (verifyResult.success) {
+                  saveOrClearCheckoutInfo();
                   clearCart();
                   navigate('/payment-success', { state: { order: verifyResult.order } });
                 } else {
@@ -296,6 +356,7 @@ export default function CartPage() {
                     .single();
 
                   if (error) throw error;
+                  saveOrClearCheckoutInfo();
                   clearCart();
                   navigate('/payment-success', { state: { order: data } });
                 } catch (dbErr) {
@@ -333,6 +394,7 @@ export default function CartPage() {
                   .single();
 
                 if (error) throw error;
+                saveOrClearCheckoutInfo();
                 clearCart();
                 navigate('/payment-success', { state: { order: data } });
               } catch (dbErr) {
@@ -553,18 +615,18 @@ export default function CartPage() {
                     </div>
 
                     <div className="pt-2 space-y-4">
-                      <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setSaveInfo(!saveInfo)}>
+                      <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setSaveInfo(!saveInfo)}>
+                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all \${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
                           {saveInfo && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                         </div>
-                        <span className="text-sm text-on-surface-variant">Save this information for next time</span>
+                        <span className="text-sm text-on-surface-variant select-none">Save this information for next time</span>
                       </label>
 
-                      <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setNewsOffers(!newsOffers)}>
+                      <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setNewsOffers(!newsOffers)}>
+                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all \${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
                           {newsOffers && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                         </div>
-                        <span className="text-sm text-on-surface-variant">Text me with news and offers</span>
+                        <span className="text-sm text-on-surface-variant select-none">Text me with news and offers</span>
                       </label>
                     </div>
                   </div>
@@ -866,18 +928,18 @@ export default function CartPage() {
                   </div>
 
                   <div className="pt-2 space-y-4">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setSaveInfo(!saveInfo)}>
+                    <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setSaveInfo(!saveInfo)}>
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all \${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
                         {saveInfo && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                       </div>
-                      <span className="text-sm text-on-surface-variant">Save this information for next time</span>
+                      <span className="text-sm text-on-surface-variant select-none">Save this information for next time</span>
                     </label>
 
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`} onClick={() => setNewsOffers(!newsOffers)}>
+                    <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setNewsOffers(!newsOffers)}>
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all \${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
                         {newsOffers && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                       </div>
-                      <span className="text-sm text-on-surface-variant">Text me with news and offers</span>
+                      <span className="text-sm text-on-surface-variant select-none">Text me with news and offers</span>
                     </label>
                   </div>
                 </div>
