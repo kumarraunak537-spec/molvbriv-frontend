@@ -46,7 +46,7 @@ const INDIAN_STATES = [
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { isLoggedIn, user, toggleWishlist, addToCart } = useCart()
+  const { isLoggedIn, user, isSessionLoaded, toggleWishlist, addToCart } = useCart()
   
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard', 'orders', 'wishlist', 'addresses', 'settings'
   const [profileData, setProfileData] = useState(null)
@@ -96,17 +96,18 @@ export default function ProfilePage() {
   const [isAddrSaving, setIsAddrSaving] = useState(false)
 
   useEffect(() => {
-    if (!isLoggedIn && !isLoading) {
+    if (isSessionLoaded && !isLoggedIn && !isLoading) {
       navigate('/login?redirect=profile')
     }
-  }, [isLoggedIn, isLoading, navigate])
+  }, [isLoggedIn, isSessionLoaded, isLoading, navigate])
 
   // Initial Data Fetch
   useEffect(() => {
-    if (!user) {
-      const timer = setTimeout(() => setIsLoading(false), 1500)
-      return () => clearTimeout(timer)
+    if (isSessionLoaded && !user) {
+      setIsLoading(false)
+      return
     }
+    if (!user) return
 
     async function loadData() {
       setIsLoading(true)
@@ -149,7 +150,7 @@ export default function ProfilePage() {
     }
 
     loadData()
-  }, [user])
+  }, [user, isSessionLoaded])
 
   const fetchAddresses = async () => {
     if (!user) return
@@ -575,7 +576,7 @@ export default function ProfilePage() {
       <Navbar />
 
       <main className="flex-1 pt-32 pb-24 px-4 md:px-12 max-w-7xl mx-auto w-full">
-        {isLoading ? (
+        {isLoading || !isSessionLoaded ? (
           <div className="flex items-center justify-center py-32">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>

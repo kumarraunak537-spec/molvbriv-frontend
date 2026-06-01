@@ -7,6 +7,7 @@ export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
+  const [isSessionLoaded, setIsSessionLoaded] = useState(false)
   const [wishlist, setWishlist] = useState([])
   const [isCartLoaded, setIsCartLoaded] = useState(false)
   const [isWishlistLoaded, setIsWishlistLoaded] = useState(false)
@@ -15,11 +16,13 @@ export function CartProvider({ children }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session)
       setUser(session?.user || null)
+      setIsSessionLoaded(true)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session)
       setUser(session?.user || null)
+      setIsSessionLoaded(true)
     })
 
     return () => subscription.unsubscribe()
@@ -206,7 +209,7 @@ export function CartProvider({ children }) {
     <CartContext.Provider value={{
       cartItems, addToCart, removeFromCart, updateQuantity, clearCart,
       cartCount, subtotal, taxes, grandTotal,
-      isLoggedIn, setIsLoggedIn, user,
+      isLoggedIn, setIsLoggedIn, user, isSessionLoaded,
       wishlist, toggleWishlist, isInWishlist
     }}>
       {children}
