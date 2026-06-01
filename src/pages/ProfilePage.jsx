@@ -598,7 +598,7 @@ export default function ProfilePage() {
 
               <nav className="flex flex-col gap-1">
                 {[
-                  { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+                  { id: 'dashboard', label: 'Account Details', icon: 'dashboard' },
                   { id: 'orders', label: 'Order History', icon: 'history', count: orders.length },
                   { id: 'wishlist', label: 'My Wishlist', icon: 'favorite', count: wishlistProducts.length },
                   { id: 'addresses', label: 'Saved Addresses', icon: 'location_on', count: addresses.length },
@@ -636,7 +636,7 @@ export default function ProfilePage() {
                 <div className="space-y-10 animate-fadeIn">
                   <div className="border-b border-on-surface/5 pb-6">
                     <span className="text-secondary tracking-[0.25em] uppercase text-[9px] font-bold block mb-1">Overview</span>
-                    <h2 className="font-headline text-3xl text-primary font-bold">Dashboard</h2>
+                    <h2 className="font-headline text-3xl text-primary font-bold">Account Details</h2>
                   </div>
 
                   {isEditingProfile ? (
