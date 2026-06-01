@@ -176,25 +176,65 @@ export default function ProfilePage() {
     if (!user) return
     setIsWlLoading(true)
     try {
+      let productIds = []
+      
+      // 1. Fetch wishlist_id and active item IDs from Supabase
       const { data: wlData, error: wlErr } = await supabase
         .from('wishlists')
         .select('id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
       
       if (!wlErr && wlData) {
         const { data: items, error: itemsErr } = await supabase
           .from('wishlist_items')
-          .select('products (*)')
+          .select('product_id')
           .eq('wishlist_id', wlData.id)
         
         if (!itemsErr && items) {
-          const productsList = items.map(i => i.products).filter(Boolean)
-          setWishlistProducts(productsList)
+          productIds = items.map(i => i.product_id).filter(Boolean)
+        }
+      } else {
+        // Fallback to localStorage if Supabase wishlist tables do not exist
+        const localWl = localStorage.getItem(`molvbriv_wishlist_${user.id}`)
+        if (localWl) {
+          productIds = JSON.parse(localWl).filter(Boolean)
         }
       }
+
+      // 2. Fetch full product information directly for those IDs
+      if (productIds.length > 0) {
+        const { data: prods, error: prodsErr } = await supabase
+          .from('products')
+          .select('*')
+          .in('id', productIds)
+        
+        if (!prodsErr && prods) {
+          setWishlistProducts(prods)
+        } else {
+          setWishlistProducts([])
+        }
+      } else {
+        setWishlistProducts([])
+      }
     } catch (err) {
-      console.error(err)
+      console.warn('Failed to load wishlist products from database:', err)
+      // Ultimate local fallback
+      try {
+        const localWl = localStorage.getItem(`molvbriv_wishlist_${user.id}`)
+        if (localWl) {
+          const productIds = JSON.parse(localWl).filter(Boolean)
+          if (productIds.length > 0) {
+            const { data: prods } = await supabase
+              .from('products')
+              .select('*')
+              .in('id', productIds)
+            if (prods) setWishlistProducts(prods)
+          }
+        }
+      } catch (localErr) {
+        console.error('Failed to load from local storage fallback:', localErr)
+      }
     } finally {
       setIsWlLoading(false)
     }

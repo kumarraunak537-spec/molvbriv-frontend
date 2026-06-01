@@ -136,7 +136,7 @@ export default function CollectionsPage() {
                         <svg width="18" height="18" viewBox="0 0 24 24"
                           className="transition-transform duration-300 group-hover/heart:scale-110"
                           fill={wishlist.includes(product.id) ? '#ef4444' : 'none'}
-                          stroke={wishlist.includes(product.id) ? '#000000' : '#000000'}
+                          stroke={wishlist.includes(product.id) ? '#ef4444' : '#000000'}
                           strokeWidth="2.5"
                           strokeLinecap="round"
                           strokeLinejoin="round"

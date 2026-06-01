@@ -203,7 +203,7 @@ export default function ProductPage() {
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24"
                     fill={wishlist?.includes(product?.id) ? '#ef4444' : 'none'}
-                    stroke={wishlist?.includes(product?.id) ? '#000000' : '#000000'}
+                    stroke={wishlist?.includes(product?.id) ? '#ef4444' : '#000000'}
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
