@@ -8,7 +8,7 @@ import { supabase } from '../supabaseClient'
 export default function ProductPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { addToCart } = useCart()
+  const { addToCart, wishlist, toggleWishlist } = useCart()
   const [product, setProduct] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [addedToCart, setAddedToCart] = useState(false)
@@ -197,10 +197,20 @@ export default function ProductPage() {
                   {addedToCart ? 'Added to Cart ✓' : 'Add to Cart'}
                 </button>
                 <button 
-                  onClick={() => setIsLiked(!isLiked)} 
-                  className={`w-16 flex items-center justify-center border transition-all ${isLiked ? 'border-[#8B0000] bg-[#8B0000]/5' : 'border-outline-variant/30 hover:bg-surface-container-highest'}`}
+                  onClick={() => toggleWishlist(product.id)} 
+                  className={`w-16 flex items-center justify-center border transition-all hover:scale-105 hover:shadow-sm ${wishlist?.includes(product?.id) ? 'border-black bg-red-50' : 'border-outline-variant/30 hover:bg-surface-container-highest'}`}
+                  aria-label="Toggle Wishlist"
                 >
-                  <span className="material-symbols-outlined" style={{ color: isLiked ? '#8B0000' : 'var(--secondary)', fontVariationSettings: isLiked ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+                  <svg width="22" height="22" viewBox="0 0 24 24"
+                    fill={wishlist?.includes(product?.id) ? '#ef4444' : 'none'}
+                    stroke={wishlist?.includes(product?.id) ? '#000000' : '#000000'}
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="transition-transform duration-300 hover:scale-110"
+                  >
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
                 </button>
               </div>
               <button onClick={handleBuyNow} className="w-full border border-primary text-primary py-5 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-primary hover:text-white transition-all duration-500">

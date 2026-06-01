@@ -58,6 +58,14 @@ export default function ProfilePage() {
   const [isWlLoading, setIsWlLoading] = useState(false)
   const [isAddrLoading, setIsAddrLoading] = useState(false)
   
+  // Inline Edit Profile Form State
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editError, setEditError] = useState('')
+  const [isSavingProfile, setIsSavingProfile] = useState(false)
+
   // Settings Form
   const [settingsName, setSettingsName] = useState('')
   const [settingsPhone, setSettingsPhone] = useState('')
@@ -115,6 +123,9 @@ export default function ProfilePage() {
           setSettingsName(prof.name || '')
           setSettingsPhone(prof.phone || '')
           setSettingsAvatar(prof.avatar_url || '')
+          setEditName(prof.name || '')
+          setEditEmail(prof.email || user.email || '')
+          setEditPhone(prof.phone || '')
         }
 
         // 2. Fetch Orders history
@@ -394,10 +405,116 @@ export default function ProfilePage() {
         phone: settingsPhone.trim(),
         avatar_url: settingsAvatar.trim()
       }))
+      setEditName(settingsName.trim())
+      setEditPhone(settingsPhone.trim())
     } catch (err) {
       setSettingsMsg({ text: err.message || 'Failed to save changes.', type: 'error' })
     } finally {
       setIsSettingsSaving(false)
+    }
+  }
+
+  const getInitials = (name) => {
+    if (!name) return 'U'
+    const parts = name.trim().split(/\s+/)
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase()
+    }
+    return parts[0][0].toUpperCase()
+  }
+
+  const renderAvatar = () => {
+    if (profileData?.avatar_url || settingsAvatar) {
+      return (
+        <img 
+          src={profileData?.avatar_url || settingsAvatar} 
+          alt="Profile avatar" 
+          className="w-full h-full object-cover rounded-full animate-fadeIn" 
+          onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
+        />
+      )
+    }
+    const initials = getInitials(profileData?.name || user?.user_metadata?.full_name || user?.email)
+    return (
+      <div 
+        className="w-full h-full rounded-full flex items-center justify-center bg-gradient-to-br from-[#1a4a35] via-[#0f2c1f] to-[#081811] text-[#d4af37] border border-[#d4af37]/30 font-headline font-bold text-lg select-none shadow-md shadow-black/10 animate-fadeIn"
+        style={{ letterSpacing: '0.05em' }}
+      >
+        {initials}
+      </div>
+    )
+  }
+
+  const handleUpdateProfile = async (e) => {
+    e.preventDefault()
+    setEditError('')
+
+    if (!editName.trim()) {
+      setEditError('Full Name is required')
+      return
+    }
+    if (!editEmail.trim() || !/\S+@\S+\.\S+/.test(editEmail.trim())) {
+      setEditError('Valid email address is required')
+      return
+    }
+    if (editPhone.trim() && !/^\d{10}$/.test(editPhone.trim())) {
+      setEditError('Valid 10-digit phone number is required')
+      return
+    }
+
+    setIsSavingProfile(true)
+    try {
+      // 1. Update profiles table
+      const { error: profErr } = await supabase
+        .from('profiles')
+        .update({
+          name: editName.trim(),
+          email: editEmail.trim(),
+          phone: editPhone.trim() || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (profErr) throw profErr
+
+      // 2. Update Auth metadata
+      const updateData = {
+        data: {
+          full_name: editName.trim(),
+          phone: editPhone.trim() || null
+        }
+      }
+
+      if (editEmail.trim() !== user.email) {
+        updateData.email = editEmail.trim()
+      }
+
+      const { error: authErr } = await supabase.auth.updateUser(updateData)
+      if (authErr) throw authErr
+
+      // 3. Immediately refresh state
+      const { data: updatedProf, error: getErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (!getErr && updatedProf) {
+        setProfileData(updatedProf)
+        setSettingsName(updatedProf.name || '')
+        setSettingsPhone(updatedProf.phone || '')
+        setSettingsAvatar(updatedProf.avatar_url || '')
+        setEditName(updatedProf.name || '')
+        setEditEmail(updatedProf.email || user.email || '')
+        setEditPhone(updatedProf.phone || '')
+      }
+
+      setIsEditingProfile(false)
+      alert('Profile details updated successfully!')
+    } catch (err) {
+      setEditError(err.message || 'An error occurred while updating your profile.')
+    } finally {
+      setIsSavingProfile(false)
     }
   }
 
@@ -421,9 +538,8 @@ export default function ProfilePage() {
 
       <main className="flex-1 pt-32 pb-24 px-4 md:px-12 max-w-7xl mx-auto w-full">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-32 space-y-4">
+          <div className="flex items-center justify-center py-32">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs uppercase tracking-widest text-on-surface-variant font-semibold">Resolving Sourcing Archives...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -431,15 +547,13 @@ export default function ProfilePage() {
             {/* Sidebar Navigation */}
             <aside className="lg:col-span-3 bg-surface p-6 border border-outline-variant/10 flex flex-col gap-6 shadow-sm">
               <div className="flex items-center gap-4 border-b border-on-surface/5 pb-6">
-                <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 border border-primary/20 flex items-center justify-center bg-primary/10 text-primary text-xl font-bold">
-                  {settingsAvatar ? (
-                    <img src={settingsAvatar} alt="Profile avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    settingsName?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'
-                  )}
+                <div className="w-14 h-14 rounded-full overflow-hidden shrink-0 border border-[#765931]/20 flex items-center justify-center relative">
+                  {renderAvatar()}
                 </div>
-                <div>
-                  <h3 className="font-headline font-semibold text-lg text-primary">{settingsName || 'Client Patron'}</h3>
+                <div className="overflow-hidden">
+                  <h3 className="font-headline font-semibold text-lg text-primary truncate" title={profileData?.name || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Client Patron')}>
+                    {profileData?.name || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Client Patron')}
+                  </h3>
                   <span className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-semibold">Molvbriv Member</span>
                 </div>
               </div>
@@ -484,65 +598,126 @@ export default function ProfilePage() {
                 <div className="space-y-10 animate-fadeIn">
                   <div className="border-b border-on-surface/5 pb-6">
                     <span className="text-secondary tracking-[0.25em] uppercase text-[9px] font-bold block mb-1">Overview</span>
-                    <h2 className="font-headline text-3xl text-primary font-bold">Client Dashboard</h2>
+                    <h2 className="font-headline text-3xl text-primary font-bold">Dashboard</h2>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="p-6 bg-[#faf8f5] border border-black/5 rounded-sm flex flex-col justify-between">
-                      <div>
-                        <span className="material-symbols-outlined text-secondary text-3xl mb-4">shopping_bag</span>
-                        <h4 className="font-headline text-lg font-semibold text-primary">Sourcing Orders</h4>
+                  {isEditingProfile ? (
+                    <div className="bg-[#fdfbf7] border border-[#765931]/10 p-8 rounded-sm space-y-6">
+                      <div className="flex justify-between items-center border-b border-[#765931]/10 pb-4">
+                        <h3 className="font-headline text-xl text-primary font-bold">Account Details</h3>
+                        <span className="text-[9px] font-label uppercase tracking-widest text-secondary font-bold">Editing Profile</span>
                       </div>
-                      <div className="mt-8 flex justify-between items-baseline">
-                        <span className="text-4xl font-headline text-primary font-bold">{orders.length}</span>
-                        <button onClick={() => setActiveTab('orders')} className="text-[10px] font-label uppercase tracking-widest text-[#765931] hover:underline font-bold">View history</button>
-                      </div>
-                    </div>
 
-                    <div className="p-6 bg-[#faf8f5] border border-black/5 rounded-sm flex flex-col justify-between">
-                      <div>
-                        <span className="material-symbols-outlined text-secondary text-3xl mb-4">favorite</span>
-                        <h4 className="font-headline text-lg font-semibold text-primary">Wishlisted Pieces</h4>
-                      </div>
-                      <div className="mt-8 flex justify-between items-baseline">
-                        <span className="text-4xl font-headline text-primary font-bold">{wishlistProducts.length}</span>
-                        <button onClick={() => setActiveTab('wishlist')} className="text-[10px] font-label uppercase tracking-widest text-[#765931] hover:underline font-bold">Browse selection</button>
-                      </div>
-                    </div>
+                      {editError && (
+                        <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-xs font-semibold rounded-sm">
+                          {editError}
+                        </div>
+                      )}
 
-                    <div className="p-6 bg-[#faf8f5] border border-black/5 rounded-sm flex flex-col justify-between">
-                      <div>
-                        <span className="material-symbols-outlined text-secondary text-3xl mb-4">location_on</span>
-                        <h4 className="font-headline text-lg font-semibold text-primary">Saved Addresses</h4>
-                      </div>
-                      <div className="mt-8 flex justify-between items-baseline">
-                        <span className="text-4xl font-headline text-primary font-bold">{addresses.length}</span>
-                        <button onClick={() => setActiveTab('addresses')} className="text-[10px] font-label uppercase tracking-widest text-[#765931] hover:underline font-bold">Manage book</button>
-                      </div>
-                    </div>
-                  </div>
+                      <form onSubmit={handleUpdateProfile} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant font-semibold ml-1">Full Name</label>
+                            <input 
+                              type="text"
+                              value={editName}
+                              onChange={e => setEditName(e.target.value)}
+                              placeholder="Full Name"
+                              className="w-full bg-[#f7f3ed] p-4 border border-[#765931]/20 focus:border-[#765931] outline-none text-sm rounded-sm transition-colors text-primary font-medium"
+                              required
+                            />
+                          </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant font-semibold ml-1">Email Address</label>
+                            <input 
+                              type="email"
+                              value={editEmail}
+                              onChange={e => setEditEmail(e.target.value)}
+                              placeholder="Email Address"
+                              className="w-full bg-[#f7f3ed] p-4 border border-[#765931]/20 focus:border-[#765931] outline-none text-sm rounded-sm transition-colors text-primary font-medium"
+                              required
+                            />
+                          </div>
 
-                  <div className="bg-[#fdfbf7] border border-[#765931]/10 p-8 rounded-sm space-y-6">
-                    <h3 className="font-headline text-xl text-primary font-bold border-b border-[#765931]/10 pb-4">Patron Account Details</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Registered Email</p>
-                        <p className="text-primary font-medium">{user?.email}</p>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant font-semibold ml-1">Phone Number</label>
+                            <input 
+                              type="tel"
+                              value={editPhone}
+                              onChange={e => setEditPhone(e.target.value)}
+                              placeholder="Phone Number (10 digits)"
+                              className="w-full bg-[#f7f3ed] p-4 border border-[#765931]/20 focus:border-[#765931] outline-none text-sm rounded-sm transition-colors text-primary font-medium"
+                            />
+                          </div>
+
+                          <div className="space-y-2 flex flex-col justify-end">
+                            <div className="flex gap-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsEditingProfile(false)
+                                  setEditError('')
+                                }}
+                                className="flex-1 bg-transparent border border-outline-variant/30 text-on-surface py-3.5 px-4 text-[10px] font-label uppercase tracking-widest font-bold transition-all text-center"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={isSavingProfile}
+                                className="flex-1 bg-primary hover:bg-[#082717] text-white py-3.5 px-4 text-[10px] font-label uppercase tracking-widest font-bold transition-colors text-center"
+                              >
+                                {isSavingProfile ? 'Saving...' : 'Save Details'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="bg-[#fdfbf7] border border-[#765931]/10 p-8 rounded-sm space-y-6">
+                      <div className="flex justify-between items-center border-b border-[#765931]/10 pb-4">
+                        <h3 className="font-headline text-xl text-primary font-bold">Account Details</h3>
+                        <button 
+                          onClick={() => {
+                            setIsEditingProfile(true)
+                            setEditName(profileData?.name || '')
+                            setEditEmail(profileData?.email || user?.email || '')
+                            setEditPhone(profileData?.phone || '')
+                            setEditError('')
+                          }}
+                          className="border border-[#765931]/30 hover:border-[#765931] text-[#765931] py-2 px-4 text-[9px] font-label uppercase tracking-widest font-bold transition-all flex items-center gap-1.5 rounded-sm"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">edit</span>
+                          Edit Profile
+                        </button>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Phone Number</p>
-                        <p className="text-primary font-medium">{profileData?.phone || 'Not Specified'}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Account Status</p>
-                        <p className="text-primary font-semibold text-[#1a4a35]">Active VIP Client</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Member Since</p>
-                        <p className="text-primary font-medium">{profileData?.created_at ? new Date(profileData.created_at).toLocaleDateString('en-IN', { dateStyle: 'long' }) : 'Unknown'}</p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                        <div className="space-y-1">
+                          <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Full Name</p>
+                          <p className="text-primary font-medium">{profileData?.name || 'Not Specified'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Registered Email</p>
+                          <p className="text-primary font-medium">{profileData?.email || user?.email}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Phone Number</p>
+                          <p className="text-primary font-medium">{profileData?.phone || 'Not Specified'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Account Status</p>
+                          <p className="text-primary font-semibold text-[#1a4a35]">Active VIP Client</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] uppercase tracking-widest text-on-surface-variant/60 font-semibold">Member Since</p>
+                          <p className="text-primary font-medium">{profileData?.created_at ? new Date(profileData.created_at).toLocaleDateString('en-IN', { dateStyle: 'long' }) : 'Unknown'}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
