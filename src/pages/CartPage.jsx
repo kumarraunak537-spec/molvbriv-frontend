@@ -135,6 +135,8 @@ export default function CartPage() {
   const [errors, setErrors] = useState({})
   const [isPaymentLoading, setIsPaymentLoading] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [couponError, setCouponError] = useState('')
+  const [couponSuccess, setCouponSuccess] = useState('')
 
   // Load saved checkout information on mount
   useEffect(() => {
@@ -231,8 +233,24 @@ export default function CartPage() {
   const grandTotal = Math.max(0, subtotal - discount - onlineDiscount + taxes)
 
   const applyCode = () => {
-    if (privilegeCode.toLowerCase() === 'molvbriv10') {
-      setDiscount(Math.round(subtotal * 0.1))
+    setCouponError('')
+    setCouponSuccess('')
+    const code = privilegeCode.trim().toLowerCase()
+    
+    if (code === 'molvbriv10') {
+      const amount = Math.round(subtotal * 0.1)
+      setDiscount(amount)
+      setCouponSuccess('10% Privilege discount applied!')
+    } else if (code === 'molvwel15off') {
+      const amount = Math.round(subtotal * 0.15)
+      setDiscount(amount)
+      setCouponSuccess('15% Welcome discount applied!')
+    } else if (code === '') {
+      setCouponError('Please enter a privilege code.')
+      setDiscount(0)
+    } else {
+      setCouponError('Invalid privilege code.')
+      setDiscount(0)
     }
   }
 
@@ -1034,9 +1052,10 @@ export default function CartPage() {
                       placeholder="Privilege Code"
                       className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/30 text-xs flex-1 outline-none"
                     />
-                    <button onClick={applyCode} className="text-[10px] uppercase tracking-widest text-secondary-fixed">Apply</button>
+                    <button onClick={applyCode} className="text-[10px] uppercase tracking-widest text-secondary-fixed font-bold">Apply</button>
                   </div>
-                  {discount > 0 && <p className="text-[10px] text-secondary-fixed mt-2">-₹{discount.toLocaleString()}.00 discount applied!</p>}
+                  {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
+                  {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
                 </div>
                 
                 <div className="pt-6 border-t border-white/10 flex justify-between items-end">
@@ -1508,9 +1527,20 @@ export default function CartPage() {
               )}
             </div>
 
-            <div className="flex justify-between items-center border-t border-white/10 pt-6 mb-6">
-              <span className="text-[10px] font-label uppercase tracking-widest text-white/50">Privilege Code</span>
-              <button onClick={applyCode} className="text-[10px] font-label uppercase tracking-widest text-[#d4af37]">Apply</button>
+            {/* Privilege Code Field */}
+            <div className="pt-6 pb-2 border-t border-white/10">
+              <div className="flex border-b border-white/20 pb-2">
+                <input
+                  type="text"
+                  value={privilegeCode}
+                  onChange={(e) => setPrivilegeCode(e.target.value)}
+                  placeholder="Privilege Code"
+                  className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/30 text-xs flex-1 outline-none"
+                />
+                <button onClick={applyCode} className="text-[10px] uppercase tracking-widest text-[#d4af37] font-bold">Apply</button>
+              </div>
+              {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
+              {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
             </div>
 
             <div className="flex justify-between items-end mb-8 pt-4">
