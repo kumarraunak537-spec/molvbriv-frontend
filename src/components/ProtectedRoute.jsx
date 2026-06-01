@@ -4,10 +4,10 @@ import { useCart } from '../context/CartContext';
 import { useRole } from '../hooks/useRole';
 
 export default function ProtectedRoute({ children, requireAdmin = false }) {
-  const { isLoggedIn, user } = useCart();
+  const { isLoggedIn, user, isSessionLoaded } = useCart();
   const { isAdmin, loading } = useRole();
 
-  if (loading) {
+  if (!isSessionLoaded || loading) {
     return (
       <div className="bg-surface min-h-screen flex items-center justify-center">
         <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin"></div>
