@@ -616,14 +616,14 @@ export default function CartPage() {
 
                     <div className="pt-2 space-y-4">
                       <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setSaveInfo(!saveInfo)}>
-                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all \${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
+                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${saveInfo ? 'bg-black border-black' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
                           {saveInfo && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                         </div>
                         <span className="text-sm text-on-surface-variant select-none">Save this information for next time</span>
                       </label>
 
                       <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setNewsOffers(!newsOffers)}>
-                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all \${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
+                        <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${newsOffers ? 'bg-black border-black' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
                           {newsOffers && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                         </div>
                         <span className="text-sm text-on-surface-variant select-none">Text me with news and offers</span>
@@ -929,14 +929,14 @@ export default function CartPage() {
 
                   <div className="pt-2 space-y-4">
                     <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setSaveInfo(!saveInfo)}>
-                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all \${saveInfo ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${saveInfo ? 'bg-black border-black' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
                         {saveInfo && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                       </div>
                       <span className="text-sm text-on-surface-variant select-none">Save this information for next time</span>
                     </label>
 
                     <label className="flex items-center gap-3 cursor-pointer group" onClick={() => setNewsOffers(!newsOffers)}>
-                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all \${newsOffers ? 'bg-primary border-primary' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
+                      <div className={`w-5 h-5 rounded-sm border flex items-center justify-center transition-all ${newsOffers ? 'bg-black border-black' : 'border-outline-variant/30 group-hover:border-primary/50'}`}>
                         {newsOffers && <span className="material-symbols-outlined text-white text-[16px]">check</span>}
                       </div>
                       <span className="text-sm text-on-surface-variant select-none">Text me with news and offers</span>
