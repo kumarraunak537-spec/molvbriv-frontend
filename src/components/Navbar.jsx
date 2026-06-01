@@ -54,7 +54,10 @@ export default function Navbar() {
     { label: 'New Arrivals', path: '/new-arrivals' },
     { label: 'About', path: '/about' },
     { label: 'Track Order', path: '/track-order' },
-    ...(isLoggedIn ? [{ label: 'My Orders', path: '/orders' }] : [])
+    ...(isLoggedIn ? [
+      { label: 'My Profile', path: '/profile' },
+      { label: 'My Orders', path: '/orders' }
+    ] : [])
   ]
 
   const handleLogout = async () => {
@@ -279,15 +282,19 @@ export default function Navbar() {
           <div className={`px-6 pb-8 pt-6 border-t border-black/5 shrink-0 transition-all duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] ${isMenuOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: isMenuOpen ? '350ms' : '0ms' }}>
             {isLoggedIn ? (
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-4 text-[#2c2c2c]">
+                <Link 
+                  to="/profile" 
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-4 text-[#2c2c2c] hover:opacity-80 transition-opacity group"
+                >
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
                     {user?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-manrope text-[13px] font-medium">{user?.user_metadata?.full_name || 'My Account'}</span>
+                    <span className="font-manrope text-[13px] font-medium group-hover:text-primary transition-colors">{user?.user_metadata?.full_name || 'My Account'}</span>
                     <span className="font-manrope text-[10px] text-text-muted">{user?.email}</span>
                   </div>
-                </div>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-4 text-red-500/80 font-manrope font-light hover:text-red-500 transition-colors group w-full text-left"

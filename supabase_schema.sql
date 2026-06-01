@@ -396,3 +396,134 @@ CREATE POLICY "Admins can view subscribers" ON public.subscribers
 -- However, you can run the statement below inside your Supabase SQL Editor if you prefer to have a dedicated billing_address column:
 --
 -- ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS billing_address JSONB;
+
+-- ==================================================
+-- SYSTEM UPGRADE: CUSTOMER PROFILE & ADDRESS BOOK & WISHLIST
+-- ==================================================
+
+-- 1. Add optional avatar_url to profiles
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+
+-- 2. Create addresses table
+CREATE TABLE IF NOT EXISTS public.addresses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  address_type TEXT DEFAULT 'Home' CHECK (address_type IN ('Home', 'Work', 'Business', 'Other')),
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  alt_phone TEXT,
+  flat_number TEXT NOT NULL,
+  street TEXT NOT NULL,
+  landmark TEXT,
+  area TEXT,
+  city TEXT NOT NULL,
+  state TEXT NOT NULL,
+  country TEXT DEFAULT 'India',
+  pincode TEXT NOT NULL,
+  is_default BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Index for fast user addresses lookups
+CREATE INDEX IF NOT EXISTS addresses_user_id_idx ON public.addresses(user_id);
+
+-- Enable RLS
+ALTER TABLE public.addresses ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if any
+DROP POLICY IF EXISTS "Users can manage their own addresses" ON public.addresses;
+DROP POLICY IF EXISTS "Admins can view all addresses" ON public.addresses;
+
+-- Create secure policies
+CREATE POLICY "Users can manage their own addresses" ON public.addresses
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Admins can view all addresses" ON public.addresses
+  FOR SELECT USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'));
+
+-- 3. Automatic single default address handler
+CREATE OR REPLACE FUNCTION public.handle_address_default()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.is_default = true THEN
+    UPDATE public.addresses
+    SET is_default = false
+    WHERE user_id = NEW.user_id AND id != NEW.id;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_address_default ON public.addresses;
+CREATE TRIGGER trigger_address_default
+  BEFORE INSERT OR UPDATE ON public.addresses
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_address_default();
+
+-- 4. Create wishlists table
+CREATE TABLE IF NOT EXISTS public.wishlists (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID UNIQUE NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.wishlists ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage their own wishlist" ON public.wishlists;
+CREATE POLICY "Users can manage their own wishlist" ON public.wishlists
+  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+-- 5. Create wishlist_items table
+CREATE TABLE IF NOT EXISTS public.wishlist_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  wishlist_id UUID NOT NULL REFERENCES public.wishlists(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(wishlist_id, product_id)
+);
+
+-- Index for wishlist item lookups
+CREATE INDEX IF NOT EXISTS wishlist_items_wishlist_id_idx ON public.wishlist_items(wishlist_id);
+
+-- Enable RLS
+ALTER TABLE public.wishlist_items ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage their own wishlist items" ON public.wishlist_items;
+CREATE POLICY "Users can manage their own wishlist items" ON public.wishlist_items
+  FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM public.wishlists 
+      WHERE wishlists.id = wishlist_items.wishlist_id 
+      AND wishlists.user_id = auth.uid()
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.wishlists 
+      WHERE wishlists.id = wishlist_items.wishlist_id 
+      AND wishlists.user_id = auth.uid()
+    )
+  );
+
+-- Auto-provision a wishlist when a new profile is created
+CREATE OR REPLACE FUNCTION public.handle_wishlist_auto_provision()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.wishlists (user_id)
+  VALUES (NEW.id)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trigger_wishlist_auto_provision ON public.profiles;
+CREATE TRIGGER trigger_wishlist_auto_provision
+  AFTER INSERT ON public.profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_wishlist_auto_provision();
+
+-- Provision wishlists for all existing profiles right now
+INSERT INTO public.wishlists (user_id)
+SELECT id FROM public.profiles
+ON CONFLICT (user_id) DO NOTHING;

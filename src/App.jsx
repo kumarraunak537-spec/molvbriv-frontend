@@ -18,6 +18,7 @@ import ShippingReturnsPage from './pages/ShippingReturnsPage.jsx'
 import TermsOfServicePage from './pages/TermsOfServicePage.jsx'
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 import { CartProvider } from './context/CartContext.jsx'
 
 function ScrollToTop() {
@@ -88,6 +89,7 @@ function App() {
           <Route path="/payment-success" element={<PaymentSuccessPage />} />
           <Route path="/payment-failed" element={<PaymentFailedPage />} />
           <Route path="/orders" element={<UserOrdersPage />} />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
         </Routes>
       </div>
     </CartProvider>

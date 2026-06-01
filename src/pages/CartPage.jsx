@@ -46,7 +46,55 @@ const INDIAN_STATES = [
 
 export default function CartPage() {
   const navigate = useNavigate()
-  const { cartItems, removeFromCart, updateQuantity, subtotal, clearCart, user } = useCart()
+  const { cartItems, removeFromCart, updateQuantity, subtotal, clearCart, user, isLoggedIn } = useCart()
+  const [savedAddresses, setSavedAddresses] = useState([])
+  const [selectedAddressId, setSelectedAddressId] = useState(null)
+
+  const prefillAddress = (addr) => {
+    if (addr.full_name) {
+      const parts = addr.full_name.trim().split(/\s+/);
+      setFirstName(parts[0] || '');
+      setLastName(parts.slice(1).join(' ') || '');
+    }
+    if (addr.phone) setPhone(addr.phone);
+    if (user?.email) setEmail(user.email);
+    setAddress(`${addr.flat_number}, ${addr.street}`);
+    setApartment(addr.landmark || '');
+    setCity(addr.city);
+    setState(addr.state);
+    setPinCode(addr.pincode);
+  }
+
+  // Load user saved addresses from Supabase when user resolves
+  useEffect(() => {
+    if (user) {
+      async function loadSavedAddresses() {
+        try {
+          const { data, error } = await supabase
+            .from('addresses')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('is_default', { ascending: false });
+          
+          if (!error && data) {
+            setSavedAddresses(data);
+            const defaultAddr = data.find(a => a.is_default);
+            if (defaultAddr) {
+              setSelectedAddressId(defaultAddr.id);
+              prefillAddress(defaultAddr);
+            } else if (data.length > 0) {
+              setSelectedAddressId(data[0].id);
+              prefillAddress(data[0]);
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to load saved addresses from Supabase:', err);
+        }
+      }
+      loadSavedAddresses();
+    }
+  }, [user]);
+
   const [activeStep, setActiveStep] = useState(1)
   const [email, setEmail] = useState('')
   const [firstName, setFirstName] = useState('')
@@ -608,6 +656,46 @@ export default function CartPage() {
               <h2 className="font-headline text-3xl text-primary mb-8">Delivery Details</h2>
                   
                   <div className="space-y-4">
+                    {/* Saved Addresses Section for authed users */}
+                    {isLoggedIn && savedAddresses.length > 0 && (
+                      <div className="space-y-3 pb-6 border-b border-on-surface/5 mb-6 text-left">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Select from Saved Addresses</label>
+                        <div className="flex gap-4 overflow-x-auto pb-4 pt-1 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#765931]/20 [&::-webkit-scrollbar-thumb]:rounded-full">
+                          {savedAddresses.map((addr) => (
+                            <div 
+                              key={addr.id}
+                              onClick={() => {
+                                setSelectedAddressId(addr.id);
+                                prefillAddress(addr);
+                              }}
+                              className={`p-4 rounded-sm border cursor-pointer shrink-0 w-64 text-left transition-all relative
+                              ${selectedAddressId === addr.id 
+                                ? 'border-[#765931] bg-[#f7f3ed]' 
+                                : 'border-outline-variant/30 hover:border-[#765931]/50 bg-white'
+                              }`}
+                            >
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="text-[8px] font-label uppercase tracking-widest bg-primary/10 text-primary px-1.5 py-0.5 font-bold">
+                                  {addr.address_type || 'Home'}
+                                </span>
+                                {addr.is_default && (
+                                  <span className="text-[8px] text-[#765931] font-bold uppercase tracking-widest">Default</span>
+                                )}
+                              </div>
+                              <p className="text-xs font-semibold text-primary truncate">{addr.full_name}</p>
+                              <p className="text-[10px] text-on-surface-variant truncate mt-1">{addr.flat_number}, {addr.street}</p>
+                              <p className="text-[10px] text-on-surface-variant truncate">{addr.city}, {addr.state} - {addr.pincode}</p>
+                              <p className="text-[10px] text-primary/70 font-semibold mt-2">+91 {addr.phone}</p>
+                              
+                              {selectedAddressId === addr.id && (
+                                <span className="material-symbols-outlined text-[16px] text-primary absolute right-3 bottom-3">check_circle</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="space-y-2">
                       <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
                       <div className="relative">
@@ -1033,6 +1121,46 @@ export default function CartPage() {
                 <h2 className="font-headline text-2xl text-primary mb-6">Delivery Details</h2>
                 
                 <div className="space-y-4">
+                  {/* Saved Addresses Section for authed users */}
+                  {isLoggedIn && savedAddresses.length > 0 && (
+                    <div className="space-y-3 pb-6 border-b border-on-surface/5 mb-6 text-left">
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Select from Saved Addresses</label>
+                      <div className="flex gap-4 overflow-x-auto pb-4 pt-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#765931]/20 [&::-webkit-scrollbar-thumb]:rounded-full">
+                        {savedAddresses.map((addr) => (
+                          <div 
+                            key={addr.id}
+                            onClick={() => {
+                              setSelectedAddressId(addr.id);
+                              prefillAddress(addr);
+                            }}
+                            className={`p-4 rounded-sm border cursor-pointer shrink-0 w-60 text-left transition-all relative
+                            ${selectedAddressId === addr.id 
+                              ? 'border-[#765931] bg-[#f7f3ed]' 
+                              : 'border-outline-variant/30 hover:border-[#765931]/50 bg-white'
+                            }`}
+                          >
+                            <div className="flex justify-between items-center mb-1.5">
+                              <span className="text-[8px] font-label uppercase tracking-widest bg-primary/10 text-primary px-1.5 py-0.5 font-bold">
+                                {addr.address_type || 'Home'}
+                              </span>
+                              {addr.is_default && (
+                                <span className="text-[8px] text-[#765931] font-bold uppercase tracking-widest">Default</span>
+                              )}
+                            </div>
+                            <p className="text-xs font-semibold text-primary truncate">{addr.full_name}</p>
+                            <p className="text-[9px] text-on-surface-variant truncate mt-0.5">{addr.flat_number}, {addr.street}</p>
+                            <p className="text-[9px] text-on-surface-variant truncate">{addr.city}, {addr.state} - {addr.pincode}</p>
+                            <p className="text-[9px] text-primary/70 font-semibold mt-1.5">+91 {addr.phone}</p>
+                            
+                            {selectedAddressId === addr.id && (
+                              <span className="material-symbols-outlined text-[14px] text-primary absolute right-3 bottom-3">check_circle</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <label className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Country/Region</label>
                     <div className="relative">

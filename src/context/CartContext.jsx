@@ -39,13 +39,46 @@ export function CartProvider({ children }) {
       }
       setIsCartLoaded(true)
 
-      try {
-        const savedWishlist = localStorage.getItem(`molvbriv_wishlist_${user.id}`)
-        setWishlist(savedWishlist ? JSON.parse(savedWishlist) : [])
-      } catch (e) {
-        setWishlist([])
+      // Fetch wishlist from Supabase
+      async function fetchSupabaseWishlist() {
+        try {
+          let { data: wlData, error: wlErr } = await supabase
+            .from('wishlists')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+
+          if (wlErr || !wlData) {
+            const { data: newWl, error: insErr } = await supabase
+              .from('wishlists')
+              .insert([{ user_id: user.id }])
+              .select('id')
+              .single();
+            if (insErr) throw insErr;
+            wlData = newWl;
+          }
+
+          const { data: items, error: itemsErr } = await supabase
+            .from('wishlist_items')
+            .select('product_id')
+            .eq('wishlist_id', wlData.id);
+
+          if (itemsErr) throw itemsErr;
+          const fetchedIds = (items || []).map(i => i.product_id);
+          setWishlist(fetchedIds);
+        } catch (err) {
+          console.warn('Failed to sync wishlist with DB, falling back to localStorage:', err);
+          try {
+            const savedWishlist = localStorage.getItem(`molvbriv_wishlist_${user.id}`);
+            setWishlist(savedWishlist ? JSON.parse(savedWishlist) : []);
+          } catch (e) {
+            setWishlist([]);
+          }
+        } finally {
+          setIsWishlistLoaded(true);
+        }
       }
-      setIsWishlistLoaded(true)
+      fetchSupabaseWishlist();
     } else {
       // Load guest cart for non-logged-in sessions
       try {
@@ -115,18 +148,55 @@ export function CartProvider({ children }) {
   const taxes = Math.round(subtotal * 0.08)
   const grandTotal = subtotal + taxes
 
-  const toggleWishlist = useCallback((productId) => {
+  const toggleWishlist = useCallback(async (productId) => {
     if (!user) {
       alert("Please login to manage your wishlist.")
       window.location.href = "/login"
       return
     }
+    
+    // Toggle state locally first for instant feedback (optimistic UI)
+    const exists = wishlist.includes(productId);
     setWishlist(prev =>
-      prev.includes(productId)
-        ? prev.filter(id => id !== productId)
-        : [...prev, productId]
-    )
-  }, [user])
+      exists ? prev.filter(id => id !== productId) : [...prev, productId]
+    );
+
+    try {
+      // 1. Get or create wishlist ID
+      let { data: wlData, error: wlErr } = await supabase
+        .from('wishlists')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (wlErr || !wlData) {
+        const { data: newWl, error: insErr } = await supabase
+          .from('wishlists')
+          .insert([{ user_id: user.id }])
+          .select('id')
+          .single();
+        if (insErr) throw insErr;
+        wlData = newWl;
+      }
+      const wishlistId = wlData.id;
+
+      if (exists) {
+        // Remove from Supabase
+        await supabase
+          .from('wishlist_items')
+          .delete()
+          .eq('wishlist_id', wishlistId)
+          .eq('product_id', productId);
+      } else {
+        // Add to Supabase
+        await supabase
+          .from('wishlist_items')
+          .insert([{ wishlist_id: wishlistId, product_id: productId }]);
+      }
+    } catch (err) {
+      console.warn('Database wishlist toggle sync failed:', err);
+    }
+  }, [user, wishlist]);
 
   const isInWishlist = useCallback((productId) => {
     return wishlist.includes(productId)
