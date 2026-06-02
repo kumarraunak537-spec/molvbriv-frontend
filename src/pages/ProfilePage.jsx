@@ -416,7 +416,8 @@ export default function ProfilePage() {
       const { error: metaErr } = await supabase.auth.updateUser({
         data: {
           full_name: settingsName.trim(),
-          phone: settingsPhone.trim()
+          phone: settingsPhone.trim(),
+          avatar_url: settingsAvatar.trim()
         }
       })
       if (metaErr) throw metaErr
@@ -481,10 +482,11 @@ export default function ProfilePage() {
   }
 
   const renderAvatar = () => {
-    if (profileData?.avatar_url || settingsAvatar) {
+    const activeAvatar = settingsAvatar || profileData?.avatar_url || user?.user_metadata?.avatar_url
+    if (activeAvatar) {
       return (
         <img 
-          src={profileData?.avatar_url || settingsAvatar} 
+          src={activeAvatar} 
           alt="Profile avatar" 
           className="w-full h-full object-cover rounded-full animate-fadeIn" 
           onError={(e) => { e.target.onerror = null; e.target.src = ''; }}
@@ -625,7 +627,19 @@ export default function ProfilePage() {
 
       if (data && data.publicUrl) {
         setSettingsAvatar(data.publicUrl)
-        setSettingsMsg({ text: 'Profile photo uploaded successfully. Remember to click Commit Updates.', type: 'success' })
+        setSettingsMsg({ text: 'Profile photo uploaded successfully. Syncing globally...', type: 'success' })
+        
+        // Instant global sync
+        await supabase.auth.updateUser({
+          data: { avatar_url: data.publicUrl }
+        })
+        await supabase
+          .from('profiles')
+          .update({ avatar_url: data.publicUrl })
+          .eq('id', user.id)
+          
+        setProfileData(prev => ({ ...prev, avatar_url: data.publicUrl }))
+        setSettingsMsg({ text: 'Profile photo uploaded and synced globally!', type: 'success' })
       }
     } catch (err) {
       setSettingsMsg({ text: err.message || 'Failed to upload image.', type: 'error' })

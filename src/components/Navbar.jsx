@@ -287,8 +287,12 @@ export default function Navbar() {
                   onClick={() => setIsMenuOpen(false)}
                   className="flex items-center gap-4 text-[#2c2c2c] hover:opacity-80 transition-opacity group"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {user?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'}
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden relative group shrink-0">
+                    {user?.user_metadata?.avatar_url ? (
+                      <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      user?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'
+                    )}
                   </div>
                   <div className="flex flex-col">
                     <span className="font-manrope text-[13px] font-medium group-hover:text-primary transition-colors">{user?.user_metadata?.full_name || 'My Account'}</span>
