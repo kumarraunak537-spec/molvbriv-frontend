@@ -70,6 +70,7 @@ export default function ProfilePage() {
   const [settingsName, setSettingsName] = useState('')
   const [settingsPhone, setSettingsPhone] = useState('')
   const [settingsAvatar, setSettingsAvatar] = useState('')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [settingsMsg, setSettingsMsg] = useState({ text: '', type: '' })
@@ -401,12 +402,13 @@ export default function ProfilePage() {
       // 1. Update profiles table
       const { error: profErr } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: user.id,
+          email: user?.email,
           name: settingsName.trim(),
           phone: settingsPhone.trim(),
           avatar_url: settingsAvatar.trim()
         })
-        .eq('id', user.id)
 
       if (profErr) throw profErr
 
@@ -421,6 +423,9 @@ export default function ProfilePage() {
 
       // 2. Optional password update
       if (newPassword) {
+        if (!currentPassword) {
+          throw new Error('Please enter your current password to set a new password.')
+        }
         if (newPassword.length < 8) {
           throw new Error('New password must be at least 8 characters long.')
         }
@@ -428,11 +433,22 @@ export default function ProfilePage() {
           throw new Error('Confirm password does not match new password.')
         }
 
+        // Verify current password first
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: currentPassword
+        })
+
+        if (signInErr) {
+          throw new Error('Incorrect current password. Please try again.')
+        }
+
         const { error: passErr } = await supabase.auth.updateUser({
           password: newPassword
         })
         if (passErr) throw passErr
         
+        setCurrentPassword('')
         setNewPassword('')
         setConfirmPassword('')
       }
@@ -508,12 +524,12 @@ export default function ProfilePage() {
       // 1. Update profiles table
       const { error: profErr } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: user.id,
           name: editName.trim(),
           email: editEmail.trim(),
           phone: editPhone.trim() || null
         })
-        .eq('id', user.id)
 
       if (profErr) throw profErr
 
@@ -1151,6 +1167,17 @@ export default function ProfilePage() {
                     <div className="border-t border-on-surface/5 pt-6 space-y-6">
                       <h3 className="font-headline text-lg text-primary font-bold">Update Account Security</h3>
                       
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Current Password</label>
+                        <input 
+                          type="password" 
+                          value={currentPassword} 
+                          onChange={e => setCurrentPassword(e.target.value)} 
+                          placeholder="Current Password" 
+                          className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm"
+                        />
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">New Password</label>
