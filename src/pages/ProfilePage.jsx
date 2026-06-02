@@ -67,11 +67,8 @@ export default function ProfilePage() {
   const [isSavingProfile, setIsSavingProfile] = useState(false)
 
   // Settings Form
-  const [settingsName, setSettingsName] = useState('')
-  const [settingsPhone, setSettingsPhone] = useState('')
   const [settingsAvatar, setSettingsAvatar] = useState('')
   const [settingsMsg, setSettingsMsg] = useState({ text: '', type: '' })
-  const [isSettingsSaving, setIsSettingsSaving] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   // Address Dialog Modal
@@ -120,8 +117,6 @@ export default function ProfilePage() {
         
         if (!profErr && prof) {
           setProfileData(prof)
-          setSettingsName(prof.name || '')
-          setSettingsPhone(prof.phone || '')
           setSettingsAvatar(prof.avatar_url || '')
           setEditName(prof.name || '')
           setEditEmail(prof.email || user.email || '')
@@ -385,62 +380,6 @@ export default function ProfilePage() {
     setWishlistProducts(prev => prev.filter(p => p.id !== productId))
   }
 
-  // Profile Settings Actions
-  const handleSaveSettings = async (e) => {
-    e.preventDefault()
-    setSettingsMsg({ text: '', type: '' })
-    if (!settingsName.trim()) {
-      setSettingsMsg({ text: 'Full Name is required', type: 'error' })
-      return
-    }
-    
-    setIsSettingsSaving(true)
-    try {
-      // 1. Update profiles table
-      const { error: profErr } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          email: user?.email,
-          name: settingsName.trim(),
-          phone: settingsPhone.trim(),
-          avatar_url: settingsAvatar.trim()
-        })
-
-      if (profErr) throw profErr
-
-      // Update Auth metadata
-      const { error: metaErr } = await supabase.auth.updateUser({
-        data: {
-          full_name: settingsName.trim(),
-          phone: settingsPhone.trim(),
-          avatar_url: settingsAvatar.trim()
-        }
-      })
-      if (metaErr) throw metaErr
-
-      setSettingsMsg({ text: 'Settings updated successfully!', type: 'success' })
-      
-      // Update local profile state
-      setProfileData(prev => ({
-        ...prev,
-        name: settingsName.trim(),
-        phone: settingsPhone.trim(),
-        avatar_url: settingsAvatar.trim()
-      }))
-      setEditName(settingsName.trim())
-      setEditPhone(settingsPhone.trim())
-    } catch (err) {
-      if (err.message === 'Failed to fetch') {
-         setSettingsMsg({ text: 'Network error or rate limit exceeded. Please disable ad-blockers and try again later.', type: 'error' })
-      } else {
-         setSettingsMsg({ text: err.message || 'Failed to save changes.', type: 'error' })
-      }
-    } finally {
-      setIsSettingsSaving(false)
-    }
-  }
-
   const getInitials = (name) => {
     if (!name) return 'U'
     const parts = name.trim().split(/\s+/)
@@ -528,8 +467,6 @@ export default function ProfilePage() {
 
       if (!getErr && updatedProf) {
         setProfileData(updatedProf)
-        setSettingsName(updatedProf.name || '')
-        setSettingsPhone(updatedProf.phone || '')
         setSettingsAvatar(updatedProf.avatar_url || '')
         setEditName(updatedProf.name || '')
         setEditEmail(updatedProf.email || user.email || '')
@@ -653,8 +590,7 @@ export default function ProfilePage() {
                   { id: 'dashboard', label: 'Account Details', icon: 'dashboard' },
                   { id: 'orders', label: 'Order History', icon: 'history', count: orders.length },
                   { id: 'wishlist', label: 'My Wishlist', icon: 'favorite', count: wishlistProducts.length },
-                  { id: 'addresses', label: 'Saved Addresses', icon: 'location_on', count: addresses.length },
-                  { id: 'settings', label: 'Account Settings', icon: 'settings' }
+                  { id: 'addresses', label: 'Saved Addresses', icon: 'location_on', count: addresses.length }
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -694,6 +630,13 @@ export default function ProfilePage() {
                   {/* Profile Photo Section */}
                   <div className="bg-[#fdfbf7] border border-[#765931]/10 p-8 rounded-sm space-y-6">
                     <h3 className="font-headline text-xl text-primary font-bold border-b border-[#765931]/10 pb-4">Profile Photo</h3>
+                    {settingsMsg.text && (
+                      <div className={`p-4 rounded-sm text-xs font-semibold text-center border
+                      ${settingsMsg.type === 'success' ? 'bg-[#1a4a35]/5 border-[#1a4a35]/20 text-[#1a4a35]' : 'bg-red-50 border-red-200 text-red-600'}
+                      `}>
+                        {settingsMsg.text}
+                      </div>
+                    )}
                     <div className="flex items-center gap-6">
                       <div className="w-20 h-20 rounded-full overflow-hidden border border-[#765931]/20 flex items-center justify-center bg-white shrink-0 relative group shadow-sm">
                         {settingsAvatar ? (
@@ -1101,66 +1044,6 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* TAB 5: ACCOUNT SETTINGS */}
-              {activeTab === 'settings' && (
-                <div className="space-y-8 animate-fadeIn">
-                  <div className="border-b border-on-surface/5 pb-6">
-                    <span className="text-secondary tracking-[0.25em] uppercase text-[9px] font-bold block mb-1">Preferences</span>
-                    <h2 className="font-headline text-3xl text-primary font-bold">Account Settings</h2>
-                  </div>
-
-                  {settingsMsg.text && (
-                    <div className={`p-4 rounded-sm text-xs font-semibold text-center border
-                    ${settingsMsg.type === 'success' ? 'bg-[#1a4a35]/5 border-[#1a4a35]/20 text-[#1a4a35]' : 'bg-red-50 border-red-200 text-red-600'}
-                    `}>
-                      {settingsMsg.text}
-                    </div>
-                  )}
-
-                  <form onSubmit={handleSaveSettings} className="space-y-6 max-w-xl">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Full Name</label>
-                      <input 
-                        type="text" 
-                        value={settingsName} 
-                        onChange={e => setSettingsName(e.target.value)} 
-                        placeholder="Your Full Name" 
-                        className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Phone Number</label>
-                        <input 
-                          type="tel" 
-                          value={settingsPhone} 
-                          onChange={e => setSettingsPhone(e.target.value)} 
-                          placeholder="Your Phone Number" 
-                          className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Registered Email (Read Only)</label>
-                        <input 
-                          type="email" 
-                          value={user?.email || ''} 
-                          disabled
-                          className="w-full bg-[#f7f3ed]/60 p-4 border-none outline-none text-sm rounded-sm text-on-surface-variant/50 cursor-not-allowed"
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSettingsSaving}
-                      className="w-full bg-primary text-white py-4 text-[10px] font-label uppercase tracking-widest font-bold hover:bg-[#082717] disabled:opacity-50 transition-colors"
-                    >
-                      {isSettingsSaving ? 'Saving Updates...' : 'Commit Profiles Updates'}
-                    </button>
-                  </form>
-                </div>
-              )}
 
             </section>
 
