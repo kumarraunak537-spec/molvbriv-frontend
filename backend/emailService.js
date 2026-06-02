@@ -323,6 +323,27 @@ const templates = {
       `
     };
   }
+  // 9. PASSWORD RESET
+  password_reset: (data) => {
+    return {
+      title: 'Password Reset Request',
+      preheader: 'Securely reset your MOLVBRIV account password.',
+      heading: 'Password Reset Request',
+      body: `
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 20px;">Dear Patron,</p>
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 25px;">
+          We received a request to reset the password for your MOLVBRIV account associated with this email address.
+        </p>
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 25px;">
+          If you did not make this request, please safely ignore this email. Otherwise, you can securely reset your password by clicking the button below:
+        </p>
+      `,
+      action: {
+        text: 'Reset My Password',
+        url: data.recoveryLink
+      }
+    };
+  }
 };
 
 /**
@@ -730,8 +751,73 @@ async function sendNewsletterEmail(subscriber, emailType) {
   return sentResult ? { success: true } : { success: false, error: lastError?.message };
 }
 
+/**
+ * Transactional Email Sender for Password Recovery
+ */
+async function sendRecoveryEmail(email, recoveryLink) {
+  const fromEmail = process.env.EMAIL_FROM || '"MOLVBRIV Security" <security@molvbriv.in>';
+  
+  if (!isValidEmail(email)) {
+    return { success: false, error: 'Invalid recipient email' };
+  }
+
+  const templateBuilder = templates.password_reset;
+  const compiledContent = templateBuilder({ recoveryLink });
+  const emailHtml = buildHtmlWrapper(compiledContent);
+  const subject = `[MOLVBRIV] Secure Password Reset`;
+
+  const maxRetries = 3;
+  let attempt = 0;
+  let sentResult = null;
+  let lastError = null;
+
+  while (attempt < maxRetries) {
+    try {
+      attempt++;
+      if (process.env.RESEND_API_KEY) {
+        sentResult = await sendResendRestApi(process.env.RESEND_API_KEY, {
+          from: fromEmail,
+          to: email,
+          subject: subject,
+          html: emailHtml
+        });
+        break;
+      } else if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        const transporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST || 'smtp.gmail.com',
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: process.env.SMTP_PORT === '465',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS
+          }
+        });
+        sentResult = await transporter.sendMail({
+          from: fromEmail,
+          to: email,
+          subject: subject,
+          html: emailHtml
+        });
+        break;
+      } else {
+        console.log(`[SIMULATION RECOVERY EMAIL] Sent successfully to ${email}. Link: ${recoveryLink}`);
+        sentResult = { simulated: true };
+        break;
+      }
+    } catch (sendErr) {
+      lastError = sendErr;
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, attempt - 1)));
+      }
+    }
+  }
+
+  return sentResult ? { success: true } : { success: false, error: lastError?.message };
+}
+
 module.exports = {
   sendOrderEmail,
   sendNewsletterEmail,
+  sendRecoveryEmail,
   isValidEmail
 };

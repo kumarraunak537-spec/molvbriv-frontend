@@ -229,12 +229,23 @@ export default function LoginPage() {
       setErrors({ email: 'Please enter a valid email first' })
       return
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email)
-    if (error) {
-      setAuthError(error.message)
-    } else {
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://backend.molvbriv.in'}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to send recovery email');
+      }
+
       setForgotMessage(true)
       setTimeout(() => setForgotMessage(false), 4000)
+    } catch (error) {
+      setAuthError(error.message)
     }
   }
 

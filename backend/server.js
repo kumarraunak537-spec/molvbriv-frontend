@@ -98,6 +98,54 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET || ''
 });
 
+// Custom Password Reset Endpoint (bypasses Supabase default email limits)
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { email } = req.body;
+  
+  if (!email || !emailService.isValidEmail(email)) {
+    return res.status(400).json({ success: false, error: 'Valid email is required' });
+  }
+
+  try {
+    const supabaseUrl = process.env.SUPABASE_URL || 'https://oiksafoujlduutkcgays.supabase.co';
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+    
+    if (!supabaseServiceKey) {
+      return res.status(500).json({ success: false, error: 'Server configuration error: missing service key.' });
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: 'https://www.molvbriv.in/profile'
+      }
+    });
+
+    if (error) {
+      console.error("Generate recovery link error:", error.message);
+      return res.status(200).json({ success: true, message: 'If the email exists, a recovery link was sent.' });
+    }
+
+    const recoveryLink = data.properties.action_link;
+    const sendResult = await emailService.sendRecoveryEmail(email, recoveryLink);
+
+    if (!sendResult.success) {
+      throw new Error(sendResult.error || 'Failed to send email via backend emailService');
+    }
+
+    res.json({ success: true, message: 'Recovery link sent successfully.' });
+  } catch (error) {
+    console.error("Password reset endpoint error:", error);
+    res.status(500).json({ success: false, error: 'Failed to process password reset request.' });
+  }
+});
+
+
 // Initialize Supabase Client (bypasses RLS to write verified payments securely)
 const supabaseUrl = process.env.SUPABASE_URL || 'https://oiksafoujlduutkcgays.supabase.co';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
