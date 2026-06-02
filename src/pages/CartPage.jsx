@@ -955,6 +955,7 @@ export default function CartPage() {
                         <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                         <div className="relative">
                           <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                            <option value="">Select State</option>
                             {INDIAN_STATES.map((s) => (
                               <option key={s} value={s}>{s}</option>
                             ))}
@@ -1093,6 +1094,7 @@ export default function CartPage() {
                           <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                           <div className="relative">
                             <select value={billingState} onChange={e => setBillingState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                              <option value="">Select State</option>
                               {INDIAN_STATES.map((s) => (
                                 <option key={s} value={s}>{s}</option>
                               ))}
@@ -1465,6 +1467,7 @@ export default function CartPage() {
                       <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                       <div className="relative">
                         <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                          <option value="">Select State</option>
                           {INDIAN_STATES.map((s) => (
                             <option key={s} value={s}>{s}</option>
                           ))}
@@ -1602,6 +1605,7 @@ export default function CartPage() {
                         <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                         <div className="relative">
                           <select value={billingState} onChange={e => setBillingState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                            <option value="">Select State</option>
                             {INDIAN_STATES.map((s) => (
                               <option key={s} value={s}>{s}</option>
                             ))}

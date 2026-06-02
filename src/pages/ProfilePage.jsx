@@ -83,7 +83,7 @@ export default function ProfilePage() {
     landmark: '',
     area: '',
     city: '',
-    state: 'Delhi',
+    state: '',
     pincode: '',
     is_default: false
   })
@@ -265,7 +265,7 @@ export default function ProfilePage() {
         landmark: '',
         area: '',
         city: '',
-        state: 'Delhi',
+        state: '',
         pincode: '',
         is_default: addresses.length === 0 // Default to true if it is their first address
       })
@@ -1194,6 +1194,7 @@ export default function ProfilePage() {
                       onChange={e => setAddrForm(prev => ({ ...prev, state: e.target.value }))}
                       className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm"
                     >
+                      <option value="">Select State</option>
                       {INDIAN_STATES.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
