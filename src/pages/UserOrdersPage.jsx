@@ -11,6 +11,7 @@ export default function UserOrdersPage() {
   const [orders, setOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [actionLoadingId, setActionLoadingId] = useState(null)
 
   useEffect(() => {
     if (!isLoggedIn && !isLoading) {
@@ -49,6 +50,84 @@ export default function UserOrdersPage() {
     }
   }, [isLoggedIn, user, navigate])
 
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to cancel this bespoke order?')) return;
+    
+    setActionLoadingId(orderId);
+    try {
+      const { data: { session: activeSession } } = await supabase.auth.getSession();
+      const token = activeSession?.access_token;
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://backend.molvbriv.in'}/api/orders/${orderId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to cancel order.');
+      }
+      
+      // Update local state smoothly
+      setOrders(prevOrders => 
+        prevOrders.map(ord => 
+          ord.id === orderId 
+            ? { ...ord, order_status: 'Cancelled', status: 'cancelled', payment_status: ord.payment_status === 'paid' ? 'refunded' : ord.payment_status }
+            : ord
+        )
+      );
+      
+      alert('Order cancelled successfully.');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Failed to cancel order. Please try again.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
+  const handleReturnOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to request a return for this delivered jewelry item?')) return;
+    
+    setActionLoadingId(orderId);
+    try {
+      const { data: { session: activeSession } } = await supabase.auth.getSession();
+      const token = activeSession?.access_token;
+      
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://backend.molvbriv.in'}/api/orders/${orderId}/return`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to process return request.');
+      }
+      
+      // Update local state smoothly
+      setOrders(prevOrders => 
+        prevOrders.map(ord => 
+          ord.id === orderId 
+            ? { ...ord, order_status: 'Returned', status: 'returned' }
+            : ord
+        )
+      );
+      
+      alert('Your return request has been recorded. Our concierge will contact you shortly to coordinate return pickup.');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Failed to process return request. Please try again.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
   const getStatusStep = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending': return 0
@@ -57,6 +136,7 @@ export default function UserOrdersPage() {
       case 'shipped': return 3
       case 'delivered': return 4
       case 'cancelled': return -1
+      case 'returned': return -2
       default: return 0
     }
   }
@@ -101,6 +181,7 @@ export default function UserOrdersPage() {
             {orders.map((order) => {
               const currentStep = getStatusStep(order.order_status)
               const isCancelled = currentStep === -1
+              const isReturned = currentStep === -2
 
               return (
                 <div 
@@ -114,6 +195,7 @@ export default function UserOrdersPage() {
                       <div className="flex items-center gap-3">
                         <span className="font-headline text-lg text-primary font-bold">Order ID: {order.razorpay_order_id || order.id?.substring(0, 13)}</span>
                         {isCancelled && <span className="bg-red-500/10 text-red-600 text-[9px] font-label uppercase tracking-widest px-2 py-0.5 font-bold">Cancelled</span>}
+                        {isReturned && <span className="bg-orange-500/10 text-orange-600 text-[9px] font-label uppercase tracking-widest px-2 py-0.5 font-bold">Returned</span>}
                       </div>
                       <p className="text-[10px] text-on-surface-variant uppercase tracking-widest mt-1">Placed on: {new Date(order.created_at).toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
                     </div>
@@ -148,7 +230,7 @@ export default function UserOrdersPage() {
                   </div>
 
                   {/* Tracking Timeline Bar */}
-                  {!isCancelled && (
+                  {!isCancelled && !isReturned && (
                     <div className="pt-6 border-t border-on-surface/5 space-y-6">
                       <div className="flex justify-between items-center">
                         <span className="font-label text-[10px] uppercase tracking-widest font-bold text-primary">Sourcing & Courier Progress</span>
@@ -208,12 +290,36 @@ export default function UserOrdersPage() {
                       {order.payment_id && <p>Transaction ID: <span className="font-mono text-[10px]">{order.payment_id}</span></p>}
                     </div>
 
-                    <Link 
-                      to={`/track-order?id=${order.razorpay_order_id || order.id}&email=${order.customer_email}`}
-                      className="w-full sm:w-auto inline-block border border-primary/30 text-primary font-label uppercase tracking-widest text-[9px] px-6 py-3.5 hover:border-primary transition-all font-bold text-center"
-                    >
-                      Track Order
-                    </Link>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto justify-end font-semibold">
+                      {/* Cancel Order Button */}
+                      {!isCancelled && !isReturned && ['pending', 'paid', 'processing'].includes(order.order_status?.toLowerCase()) && (
+                        <button
+                          onClick={() => handleCancelOrder(order.id)}
+                          disabled={actionLoadingId === order.id}
+                          className="w-full sm:w-auto bg-red-600/10 text-red-600 font-label uppercase tracking-widest text-[9px] px-6 py-3.5 hover:bg-red-600 hover:text-white transition-all font-bold text-center disabled:opacity-50"
+                        >
+                          {actionLoadingId === order.id ? 'Processing...' : 'Cancel Order'}
+                        </button>
+                      )}
+
+                      {/* Return Order Button */}
+                      {!isCancelled && !isReturned && order.order_status?.toLowerCase() === 'delivered' && (
+                        <button
+                          onClick={() => handleReturnOrder(order.id)}
+                          disabled={actionLoadingId === order.id}
+                          className="w-full sm:w-auto bg-orange-600/10 text-orange-600 font-label uppercase tracking-widest text-[9px] px-6 py-3.5 hover:bg-orange-600 hover:text-white transition-all font-bold text-center disabled:opacity-50"
+                        >
+                          {actionLoadingId === order.id ? 'Processing...' : 'Return Order'}
+                        </button>
+                      )}
+
+                      <Link 
+                        to={`/track-order?id=${order.razorpay_order_id || order.id}&email=${order.customer_email}`}
+                        className="w-full sm:w-auto inline-block border border-primary/30 text-primary font-label uppercase tracking-widest text-[9px] px-6 py-3.5 hover:border-primary transition-all font-bold text-center"
+                      >
+                        Track Order
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )

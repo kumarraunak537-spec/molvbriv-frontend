@@ -186,6 +186,28 @@ const authenticateAdmin = async (req, res, next) => {
   }
 };
 
+// Middleware: Authenticate Standard User
+const authenticateUser = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, error: 'Access denied. Missing authorization token.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const { data: { user }, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !user) {
+      return res.status(401).json({ success: false, error: 'Unauthorized. Invalid authentication token.' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('User authentication check failure:', error);
+    res.status(500).json({ success: false, error: 'User authentication checkpoint failure.' });
+  }
+};
+
 // --- SHIPROCKET SECURE LOGISTICS SERVICES ---
 let shiprocketToken = null;
 let tokenExpiry = null;
@@ -843,6 +865,110 @@ app.post('/api/payments/webhook', async (req, res) => {
   } catch (error) {
     console.error('Webhook processing error:', error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// --- CUSTOMER ORDER SERVICES: CANCEL & RETURN ---
+
+app.post('/api/orders/:id/cancel', authenticateUser, async (req, res) => {
+  const orderId = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order) {
+      return res.status(404).json({ success: false, error: 'Order not found.' });
+    }
+
+    if (order.user_id !== userId) {
+      return res.status(403).json({ success: false, error: 'Access denied. You do not own this order.' });
+    }
+
+    const cancellableStatuses = ['pending', 'paid', 'processing'];
+    if (!cancellableStatuses.includes(order.order_status?.toLowerCase())) {
+      return res.status(400).json({ success: false, error: `Order cannot be cancelled in '${order.order_status}' status.` });
+    }
+
+    const { data: updated, error: updErr } = await supabase
+      .from('orders')
+      .update({
+        order_status: 'Cancelled',
+        status: 'cancelled',
+        payment_status: order.payment_status === 'paid' ? 'refunded' : order.payment_status,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (updErr) throw updErr;
+
+    try {
+      await emailService.sendOrderEmail(updated, 'cancelled');
+    } catch (emailErr) {
+      console.error('Error sending cancellation email:', emailErr);
+    }
+
+    if (order.shiprocket_order_id) {
+      try {
+        await cancelShiprocketOrder(order.shiprocket_order_id);
+      } catch (srErr) {
+        console.error('Error cancelling Shiprocket order:', srErr);
+      }
+    }
+
+    res.json({ success: true, message: 'Order cancelled successfully.', order: updated });
+  } catch (err) {
+    console.error('Cancel order error:', err);
+    res.status(500).json({ success: false, error: 'Failed to cancel order.' });
+  }
+});
+
+app.post('/api/orders/:id/return', authenticateUser, async (req, res) => {
+  const orderId = req.params.id;
+  const userId = req.user.id;
+
+  try {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order) {
+      return res.status(404).json({ success: false, error: 'Order not found.' });
+    }
+
+    if (order.user_id !== userId) {
+      return res.status(403).json({ success: false, error: 'Access denied. You do not own this order.' });
+    }
+
+    if (order.order_status?.toLowerCase() !== 'delivered') {
+      return res.status(400).json({ success: false, error: 'Only delivered orders can be returned.' });
+    }
+
+    const { data: updated, error: updErr } = await supabase
+      .from('orders')
+      .update({
+        order_status: 'Returned',
+        status: 'returned',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (updErr) throw updErr;
+
+    res.json({ success: true, message: 'Order return request processed successfully.', order: updated });
+  } catch (err) {
+    console.error('Return order error:', err);
+    res.status(500).json({ success: false, error: 'Failed to return order.' });
   }
 });
 
