@@ -104,7 +104,7 @@ export default function CartPage() {
   const [landmark, setLandmark] = useState('')
   const [area, setArea] = useState('')
   const [city, setCity] = useState('')
-  const [state, setState] = useState('Delhi')
+  const [state, setState] = useState('')
   const [country, setCountry] = useState('India')
   const [pinCode, setPinCode] = useState('')
   const [saveInfo, setSaveInfo] = useState(false)
@@ -119,7 +119,7 @@ export default function CartPage() {
   const [billingLandmark, setBillingLandmark] = useState('')
   const [billingArea, setBillingArea] = useState('')
   const [billingCity, setBillingCity] = useState('')
-  const [billingState, setBillingState] = useState('Delhi')
+  const [billingState, setBillingState] = useState('')
   const [billingCountry, setBillingCountry] = useState('India')
   const [billingPinCode, setBillingPinCode] = useState('')
   const [cardNumber, setCardNumber] = useState('')
@@ -283,14 +283,17 @@ export default function CartPage() {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
+          console.log(`[Use Current Address] Fetched GPS: Lat: ${latitude}, Lon: ${longitude}`);
+          
           const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`);
           const data = await response.json();
+          console.log('[Use Current Address] Reverse Geocoding Response:', data);
           
           if (data && data.address) {
             const { address } = data;
             
             // Extract City
-            const cityName = address.city || address.town || address.village || address.county;
+            const cityName = address.city || address.town || address.village || address.city_district || address.state_district || address.county;
             if (cityName) setCity(cityName);
 
             // Extract State robustly
@@ -300,6 +303,9 @@ export default function CartPage() {
               if (isoCode === 'IN-DL') stateName = 'Delhi';
               else if (isoCode === 'IN-CH') stateName = 'Chandigarh';
               else if (isoCode === 'IN-PY') stateName = 'Puducherry';
+              else if (isoCode === 'IN-HR') stateName = 'Haryana';
+              else if (isoCode === 'IN-UP') stateName = 'Uttar Pradesh';
+              else if (isoCode === 'IN-MH') stateName = 'Maharashtra';
             }
             if (stateName) {
               const matchedState = INDIAN_STATES.find(s => 
@@ -307,25 +313,42 @@ export default function CartPage() {
                 stateName.toLowerCase().includes(s.toLowerCase()) || 
                 s.toLowerCase().includes(stateName.toLowerCase())
               );
-              if (matchedState) setState(matchedState);
+              if (matchedState) {
+                setState(matchedState);
+                console.log(`[Use Current Address] Mapped State: ${matchedState}`);
+              } else {
+                console.warn(`[Use Current Address] Unmatched state from API: ${stateName}`);
+              }
             }
 
             // Extract Pincode
             if (address.postcode) setPinCode(address.postcode);
 
-            // Extract Street / Area
-            const streetInfo = [address.road, address.neighbourhood, address.suburb].filter(Boolean).join(', ');
+            // Extract Street
+            const streetInfo = [address.road, address.pedestrian, address.path].filter(Boolean).join(', ');
             if (streetInfo) setStreet(streetInfo);
 
+            // Extract Area/Locality
+            const areaInfo = [address.neighbourhood, address.suburb, address.residential, address.industrial].filter(Boolean).join(', ');
+            if (areaInfo) setArea(areaInfo);
+
+            // Extract Landmark
+            if (address.commercial || address.retail || address.landmark) {
+              setLandmark(address.commercial || address.retail || address.landmark);
+            }
+
             // Extract House Number / Flat
-            if (address.house_number) {
-              setFlatNumber(address.house_number);
+            const houseInfo = [address.house_number, address.building, address.apartments, address.complex].filter(Boolean).join(', ');
+            if (houseInfo) {
+              setFlatNumber(houseInfo);
             }
 
             // Extract Country
             if (address.country) setCountry(address.country);
 
-            setLocationSuccessMsg('Current address detected successfully.');
+            console.log(`[Use Current Address] Final Mapped Fields -> City: ${cityName}, State: ${stateName}, Pincode: ${address.postcode}, Street: ${streetInfo}, Area: ${areaInfo}, House: ${houseInfo}`);
+
+            setLocationSuccessMsg('Current location detected successfully.');
             setTimeout(() => setLocationSuccessMsg(''), 5000);
           }
         } catch (error) {
