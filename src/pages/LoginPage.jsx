@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
 import { supabase } from '../supabaseClient'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-backend.onrender.com';
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const { setIsLoggedIn } = useCart()
@@ -231,7 +233,7 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://backend.molvbriv.in'}/api/auth/reset-password`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

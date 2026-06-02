@@ -5,6 +5,8 @@ import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-backend.onrender.com';
+
 const INDIAN_STATES = [
   "Andhra Pradesh",
   "Arunachal Pradesh",
@@ -50,6 +52,7 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard', 'orders', 'wishlist', 'addresses', 'settings'
   const [profileData, setProfileData] = useState(null)
   const [orders, setOrders] = useState([])
+  const [actionLoadingId, setActionLoadingId] = useState(null)
   const [wishlistProducts, setWishlistProducts] = useState([])
   const [addresses, setAddresses] = useState([])
   
@@ -361,6 +364,84 @@ export default function ProfilePage() {
     }
   }
 
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to cancel this bespoke order?')) return;
+    
+    setActionLoadingId(orderId);
+    try {
+      const { data: { session: activeSession } } = await supabase.auth.getSession();
+      const token = activeSession?.access_token;
+      
+      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to cancel order.');
+      }
+      
+      // Update local state smoothly
+      setOrders(prevOrders => 
+        prevOrders.map(ord => 
+          ord.id === orderId 
+            ? { ...ord, order_status: 'Cancelled', status: 'cancelled', payment_status: ord.payment_status === 'paid' ? 'refunded' : ord.payment_status }
+            : ord
+        )
+      );
+      
+      alert('Order cancelled successfully.');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Failed to cancel order. Please try again.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
+  const handleReturnOrder = async (orderId) => {
+    if (!window.confirm('Are you sure you want to request a return for this delivered jewelry item?')) return;
+    
+    setActionLoadingId(orderId);
+    try {
+      const { data: { session: activeSession } } = await supabase.auth.getSession();
+      const token = activeSession?.access_token;
+      
+      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/return`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to process return request.');
+      }
+      
+      // Update local state smoothly
+      setOrders(prevOrders => 
+        prevOrders.map(ord => 
+          ord.id === orderId 
+            ? { ...ord, order_status: 'Returned', status: 'returned' }
+            : ord
+        )
+      );
+      
+      alert('Your return request has been recorded. Our concierge will contact you shortly to coordinate return pickup.');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Failed to process return request. Please try again.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
   // Wishlist Actions
   const handleMoveToCart = (product) => {
     addToCart({
@@ -489,6 +570,7 @@ export default function ProfilePage() {
       case 'shipped': return 3
       case 'delivered': return 4
       case 'cancelled': return -1
+      case 'returned': return -2
       default: return 0
     }
   }
@@ -805,6 +887,7 @@ export default function ProfilePage() {
                       {orders.map((order) => {
                         const currentStep = getStatusStep(order.order_status)
                         const isCancelled = currentStep === -1
+                        const isReturned = currentStep === -2
 
                         return (
                           <div 
@@ -816,6 +899,7 @@ export default function ProfilePage() {
                                 <div className="flex items-center gap-3">
                                   <span className="font-headline text-md text-primary font-bold">ID: {order.razorpay_order_id || order.id?.substring(0, 13)}</span>
                                   {isCancelled && <span className="bg-red-500/10 text-red-600 text-[8px] font-label uppercase tracking-widest px-2 py-0.5 font-bold">Cancelled</span>}
+                                  {isReturned && <span className="bg-orange-500/10 text-orange-600 text-[8px] font-label uppercase tracking-widest px-2 py-0.5 font-bold">Returned</span>}
                                 </div>
                                 <p className="text-[9px] text-on-surface-variant uppercase tracking-widest mt-1">Placed on: {new Date(order.created_at).toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
                               </div>
@@ -847,7 +931,7 @@ export default function ProfilePage() {
                               ))}
                             </div>
 
-                            {!isCancelled && (
+                            {!isCancelled && !isReturned && (
                               <div className="pt-4 border-t border-on-surface/5 space-y-4">
                                 <div className="flex justify-between items-center">
                                   <span className="font-label text-[9px] uppercase tracking-widest font-bold text-primary">Courier Status</span>
@@ -897,12 +981,36 @@ export default function ProfilePage() {
                                 <p>Status: <span className="font-semibold text-primary">{order.payment_status}</span></p>
                               </div>
 
-                              <Link 
-                                to={`/track-order?id=${order.razorpay_order_id || order.id}&email=${order.customer_email}`}
-                                className="w-full sm:w-auto inline-block border border-primary/30 text-primary font-label uppercase tracking-widest text-[8px] px-5 py-3 hover:border-primary transition-all font-bold text-center"
-                              >
-                                Track Sourcing Route
-                              </Link>
+                              <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto justify-end font-semibold">
+                                {/* Cancel Order Button */}
+                                {!isCancelled && !isReturned && ['pending', 'paid', 'processing'].includes(order.order_status?.toLowerCase()) && (
+                                  <button
+                                    onClick={() => handleCancelOrder(order.id)}
+                                    disabled={actionLoadingId === order.id}
+                                    className="w-full sm:w-auto bg-red-600/10 text-red-600 font-label uppercase tracking-widest text-[8px] px-5 py-3 hover:bg-red-600 hover:text-white transition-all font-bold text-center disabled:opacity-50"
+                                  >
+                                    {actionLoadingId === order.id ? 'Processing...' : 'Cancel Order'}
+                                  </button>
+                                )}
+
+                                {/* Return Order Button */}
+                                {!isCancelled && !isReturned && order.order_status?.toLowerCase() === 'delivered' && (
+                                  <button
+                                    onClick={() => handleReturnOrder(order.id)}
+                                    disabled={actionLoadingId === order.id}
+                                    className="w-full sm:w-auto bg-orange-600/10 text-orange-600 font-label uppercase tracking-widest text-[8px] px-5 py-3 hover:bg-orange-600 hover:text-white transition-all font-bold text-center disabled:opacity-50"
+                                  >
+                                    {actionLoadingId === order.id ? 'Processing...' : 'Return Order'}
+                                  </button>
+                                )}
+
+                                <Link 
+                                  to={`/track-order?id=${order.razorpay_order_id || order.id}&email=${order.customer_email}`}
+                                  className="w-full sm:w-auto inline-block border border-primary/30 text-primary font-label uppercase tracking-widest text-[8px] px-5 py-3 hover:border-primary transition-all font-bold text-center"
+                                >
+                                  Track Sourcing Route
+                                </Link>
+                              </div>
                             </div>
                           </div>
                         )

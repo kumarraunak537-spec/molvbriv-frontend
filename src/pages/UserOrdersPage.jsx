@@ -5,6 +5,8 @@ import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-backend.onrender.com';
+
 export default function UserOrdersPage() {
   const { isLoggedIn, user } = useCart()
   const navigate = useNavigate()
@@ -58,7 +60,7 @@ export default function UserOrdersPage() {
       const { data: { session: activeSession } } = await supabase.auth.getSession();
       const token = activeSession?.access_token;
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://backend.molvbriv.in'}/api/orders/${orderId}/cancel`, {
+      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,7 +99,7 @@ export default function UserOrdersPage() {
       const { data: { session: activeSession } } = await supabase.auth.getSession();
       const token = activeSession?.access_token;
       
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://backend.molvbriv.in'}/api/orders/${orderId}/return`, {
+      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/return`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
