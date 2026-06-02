@@ -360,10 +360,18 @@ export default function CartPage() {
       },
       (error) => {
         console.error("Geolocation error:", error);
-        alert("Failed to access your location. Please check your browser permissions and ensure GPS is enabled.");
+        let errorMessage = "Failed to access your location. Please check your browser permissions and ensure GPS is enabled.";
+        if (error.code === error.TIMEOUT) {
+          errorMessage = "Location request timed out. Please try again or step outside for a better GPS signal.";
+        } else if (error.code === error.PERMISSION_DENIED) {
+          errorMessage = "Location permission denied. Please allow location access in your browser site settings.";
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          errorMessage = "Location information is currently unavailable on your device.";
+        }
+        alert(errorMessage);
         setIsLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
     );
   };
 
