@@ -4,7 +4,7 @@ import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
 
 export default function Navbar() {
-  const { cartCount, isLoggedIn, user, setIsLoggedIn } = useCart()
+  const { cartCount, isLoggedIn, user, setIsLoggedIn, globalProfile } = useCart()
   const navigate = useNavigate()
   const [isScrolled, setIsScrolled] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
@@ -288,14 +288,14 @@ export default function Navbar() {
                   className="flex items-center gap-4 text-[#2c2c2c] hover:opacity-80 transition-opacity group"
                 >
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold overflow-hidden relative group shrink-0">
-                    {user?.user_metadata?.avatar_url ? (
-                      <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                    {globalProfile?.avatar_url || user?.user_metadata?.avatar_url ? (
+                      <img src={globalProfile?.avatar_url || user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      user?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'
+                      globalProfile?.name?.charAt(0)?.toUpperCase() || user?.user_metadata?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'U'
                     )}
                   </div>
                   <div className="flex flex-col">
-                    <span className="font-manrope text-[13px] font-medium group-hover:text-primary transition-colors">{user?.user_metadata?.full_name || 'My Account'}</span>
+                    <span className="font-manrope text-[13px] font-medium group-hover:text-primary transition-colors">{globalProfile?.name || user?.user_metadata?.full_name || 'My Account'}</span>
                     <span className="font-manrope text-[10px] text-text-muted">{user?.email}</span>
                   </div>
                 </Link>

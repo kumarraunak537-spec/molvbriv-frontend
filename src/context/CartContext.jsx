@@ -7,6 +7,7 @@ export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([])
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [user, setUser] = useState(null)
+  const [globalProfile, setGlobalProfile] = useState(null)
   const [isSessionLoaded, setIsSessionLoaded] = useState(false)
   const [wishlist, setWishlist] = useState([])
   const [isCartLoaded, setIsCartLoaded] = useState(false)
@@ -41,6 +42,23 @@ export function CartProvider({ children }) {
         setCartItems([])
       }
       setIsCartLoaded(true)
+
+      // Fetch Profile Data
+      async function fetchProfileData() {
+        try {
+          const { data: prof, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          if (!error && prof) {
+            setGlobalProfile(prof);
+          }
+        } catch (err) {
+          console.warn('Failed to fetch profile in context:', err);
+        }
+      }
+      fetchProfileData();
 
       // Fetch wishlist from Supabase
       async function fetchSupabaseWishlist() {
@@ -93,6 +111,7 @@ export function CartProvider({ children }) {
       setIsCartLoaded(true)
 
       setWishlist([])
+      setGlobalProfile(null)
       setIsWishlistLoaded(true)
     }
   }, [user])
@@ -210,7 +229,8 @@ export function CartProvider({ children }) {
       cartItems, addToCart, removeFromCart, updateQuantity, clearCart,
       cartCount, subtotal, taxes, grandTotal,
       isLoggedIn, setIsLoggedIn, user, isSessionLoaded,
-      wishlist, toggleWishlist, isInWishlist
+      wishlist, toggleWishlist, isInWishlist,
+      globalProfile, setGlobalProfile
     }}>
       {children}
     </CartContext.Provider>

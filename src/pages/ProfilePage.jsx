@@ -46,7 +46,7 @@ const INDIAN_STATES = [
 
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { isLoggedIn, user, isSessionLoaded, toggleWishlist, addToCart } = useCart()
+  const { isLoggedIn, user, isSessionLoaded, toggleWishlist, addToCart, setGlobalProfile } = useCart()
   
   const [activeTab, setActiveTab] = useState('dashboard') // 'dashboard', 'orders', 'wishlist', 'addresses', 'settings'
   const [profileData, setProfileData] = useState(null)
@@ -639,6 +639,9 @@ export default function ProfilePage() {
           .eq('id', user.id)
           
         setProfileData(prev => ({ ...prev, avatar_url: data.publicUrl }))
+        if (setGlobalProfile) {
+          setGlobalProfile(prev => ({ ...prev, avatar_url: data.publicUrl }))
+        }
         setSettingsMsg({ text: 'Profile photo uploaded and synced globally!', type: 'success' })
       }
     } catch (err) {
