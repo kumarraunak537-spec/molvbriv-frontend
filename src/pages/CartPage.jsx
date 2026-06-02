@@ -924,9 +924,9 @@ export default function CartPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">House/Flat Number</label>
-                        <input type="text" value={flatNumber} onChange={e => setFlatNumber(e.target.value)} placeholder="e.g. A-301, 3rd Floor" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.flatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.flatNumber && <p className="text-[10px] text-red-500 ml-1">House/Flat Number is required</p>}
+                        <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Full Address</label>
+                        <input type="text" value={flatNumber} onChange={e => setFlatNumber(e.target.value)} placeholder="Enter your complete address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.flatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.flatNumber && <p className="text-[10px] text-red-500 ml-1">Full Address is required</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Street / Apartment Name</label>
@@ -1062,9 +1062,9 @@ export default function CartPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">House/Flat Number</label>
-                          <input type="text" value={billingFlatNumber} onChange={e => setBillingFlatNumber(e.target.value)} placeholder="e.g. A-301, 3rd Floor" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFlatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                          {errors.billingFlatNumber && <p className="text-[10px] text-red-500 ml-1">House/Flat Number is required</p>}
+                          <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Full Address</label>
+                          <input type="text" value={billingFlatNumber} onChange={e => setBillingFlatNumber(e.target.value)} placeholder="Enter your complete address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFlatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                          {errors.billingFlatNumber && <p className="text-[10px] text-red-500 ml-1">Full Address is required</p>}
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Street / Apartment Name</label>
@@ -1434,9 +1434,9 @@ export default function CartPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">House/Flat Number</label>
-                      <input type="text" value={flatNumber} onChange={e => setFlatNumber(e.target.value)} placeholder="e.g. A-301, 3rd Floor" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.flatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                      {errors.flatNumber && <p className="text-[10px] text-red-500 ml-1">House/Flat Number is required</p>}
+                      <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Full Address</label>
+                      <input type="text" value={flatNumber} onChange={e => setFlatNumber(e.target.value)} placeholder="Enter your complete address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.flatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                      {errors.flatNumber && <p className="text-[10px] text-red-500 ml-1">Full Address is required</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Street Name</label>
@@ -1571,9 +1571,9 @@ export default function CartPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">House/Flat Number</label>
-                        <input type="text" value={billingFlatNumber} onChange={e => setBillingFlatNumber(e.target.value)} placeholder="e.g. A-301, 3rd Floor" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFlatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
-                        {errors.billingFlatNumber && <p className="text-[10px] text-red-500 ml-1">House/Flat Number is required</p>}
+                        <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Full Address</label>
+                        <input type="text" value={billingFlatNumber} onChange={e => setBillingFlatNumber(e.target.value)} placeholder="Enter your complete address" className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm transition-colors ${errors.billingFlatNumber ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`} />
+                        {errors.billingFlatNumber && <p className="text-[10px] text-red-500 ml-1">Full Address is required</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Street Name</label>
