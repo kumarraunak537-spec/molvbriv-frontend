@@ -74,6 +74,7 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [settingsMsg, setSettingsMsg] = useState({ text: '', type: '' })
   const [isSettingsSaving, setIsSettingsSaving] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   // Address Dialog Modal
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
@@ -566,6 +567,54 @@ export default function ProfilePage() {
       case 'delivered': return 4
       case 'cancelled': return -1
       default: return 0
+    }
+  }
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    // Validate type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      setSettingsMsg({ text: 'Please upload a valid image file (JPG, PNG, WEBP).', type: 'error' })
+      return
+    }
+
+    // Validate size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setSettingsMsg({ text: 'Image size exceeds 2MB limit. Please choose a smaller file.', type: 'error' })
+      return
+    }
+
+    setIsUploadingAvatar(true)
+    setSettingsMsg({ text: 'Uploading profile photo...', type: 'success' })
+
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`
+      const filePath = `avatars/${fileName}`
+
+      // Upload to Supabase Storage
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file)
+
+      if (uploadErr) throw uploadErr
+
+      // Get public URL
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath)
+
+      if (data && data.publicUrl) {
+        setSettingsAvatar(data.publicUrl)
+        setSettingsMsg({ text: 'Profile photo uploaded successfully. Remember to click Commit Updates.', type: 'success' })
+      }
+    } catch (err) {
+      setSettingsMsg({ text: err.message || 'Failed to upload image.', type: 'error' })
+    } finally {
+      setIsUploadingAvatar(false)
     }
   }
 
@@ -1068,15 +1117,35 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Profile Photo URL (Optional)</label>
-                      <input 
-                        type="url" 
-                        value={settingsAvatar} 
-                        onChange={e => setSettingsAvatar(e.target.value)} 
-                        placeholder="https://images.unsplash.com/..." 
-                        className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm"
-                      />
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Profile Photo</label>
+                      <div className="flex items-center gap-6 bg-[#f7f3ed] p-4 rounded-sm border border-[#765931]/10">
+                        <div className="w-16 h-16 rounded-full overflow-hidden border border-[#765931]/20 flex items-center justify-center bg-white shrink-0 relative group">
+                          {settingsAvatar ? (
+                            <img src={settingsAvatar} alt="Profile preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="material-symbols-outlined text-3xl text-on-surface-variant/40">person</span>
+                          )}
+                          {isUploadingAvatar && (
+                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
+                               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <label className={`inline-flex items-center justify-center px-5 py-2.5 text-[9px] font-label uppercase tracking-widest font-bold border rounded-sm transition-colors cursor-pointer ${isUploadingAvatar ? 'opacity-50 cursor-not-allowed bg-black/5 border-black/10 text-black/40' : 'border-[#765931]/50 text-[#765931] hover:bg-[#765931] hover:border-[#765931] hover:text-white'}`}>
+                            {isUploadingAvatar ? 'Uploading...' : 'Upload New Photo'}
+                            <input 
+                              type="file" 
+                              accept="image/jpeg, image/jpg, image/png, image/webp" 
+                              onChange={handleAvatarUpload} 
+                              className="hidden" 
+                              disabled={isUploadingAvatar}
+                            />
+                          </label>
+                          <p className="text-[9px] text-on-surface-variant leading-relaxed">Supported formats: JPG, PNG, WEBP.<br/>Max file size: 2MB.</p>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="border-t border-on-surface/5 pt-6 space-y-6">

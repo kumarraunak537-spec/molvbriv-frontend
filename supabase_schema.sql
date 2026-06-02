@@ -401,8 +401,24 @@ CREATE POLICY "Admins can view subscribers" ON public.subscribers
 -- SYSTEM UPGRADE: CUSTOMER PROFILE & ADDRESS BOOK & WISHLIST
 -- ==================================================
 
--- 1. Add optional avatar_url to profiles
+-- 1. Add optional avatar_url and updated_at to profiles
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
+
+-- 1b. Create Storage Bucket for User Avatars
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true) ON CONFLICT DO NOTHING;
+
+-- Storage Policies for Avatars
+CREATE POLICY "Avatar images are publicly accessible" ON storage.objects FOR SELECT USING (bucket_id = 'avatars');
+CREATE POLICY "Users can upload avatars" ON storage.objects FOR INSERT WITH CHECK (
+  bucket_id = 'avatars' AND auth.role() = 'authenticated'
+);
+CREATE POLICY "Users can update avatars" ON storage.objects FOR UPDATE USING (
+  bucket_id = 'avatars' AND auth.role() = 'authenticated'
+);
+CREATE POLICY "Users can delete avatars" ON storage.objects FOR DELETE USING (
+  bucket_id = 'avatars' AND auth.role() = 'authenticated'
+);
 
 -- 2. Create addresses table
 CREATE TABLE IF NOT EXISTS public.addresses (
