@@ -139,6 +139,7 @@ export default function CartPage() {
   const [couponSuccess, setCouponSuccess] = useState('')
   const [appliedCode, setAppliedCode] = useState('')
   const [isLocating, setIsLocating] = useState(false)
+  const [locationSuccessMsg, setLocationSuccessMsg] = useState('')
 
   // Monitor coupon changes, clear discount on input edit, and scale discount with subtotal changes
   useEffect(() => {
@@ -323,6 +324,9 @@ export default function CartPage() {
 
             // Extract Country
             if (address.country) setCountry(address.country);
+
+            setLocationSuccessMsg('Current address detected successfully.');
+            setTimeout(() => setLocationSuccessMsg(''), 5000);
           }
         } catch (error) {
           console.error("Error fetching address from coordinates:", error);
@@ -802,6 +806,13 @@ export default function CartPage() {
                   {isLocating ? 'Locating...' : 'Use Current Location'}
                 </button>
               </div>
+
+              {locationSuccessMsg && (
+                <div className="bg-green-50 text-green-700 p-3 rounded-sm text-xs font-medium border border-green-200 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                  {locationSuccessMsg}
+                </div>
+              )}
                   
                   <div className="space-y-4">
                     {/* Saved Addresses Section for authed users */}
@@ -1307,6 +1318,13 @@ export default function CartPage() {
                   </button>
                 </div>
                 
+                {locationSuccessMsg && (
+                  <div className="bg-green-50 text-green-700 p-3 rounded-sm text-[10px] font-medium border border-green-200 flex items-center gap-2 mb-4">
+                    <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                    {locationSuccessMsg}
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   {/* Saved Addresses Section for authed users */}
                   {isLoggedIn && savedAddresses.length > 0 && (
