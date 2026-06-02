@@ -1,12 +1,28 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { supabase } from '../supabaseClient'
+import { useCart } from '../context/CartContext'
 
 export default function NewArrivalsPage() {
+  const navigate = useNavigate()
+  const { addToCart } = useCart()
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+
+  const handleQuickShop = (e, product) => {
+    e.preventDefault()
+    e.stopPropagation()
+    addToCart({
+      id: product.id,
+      name: product.title,
+      price: product.price,
+      description: product.description || '',
+      image: (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop',
+    })
+    navigate('/cart')
+  }
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -66,7 +82,12 @@ export default function NewArrivalsPage() {
                       />
                       <div className="absolute top-4 left-4 bg-white/90 px-3 py-1 text-[10px] uppercase tracking-tighter text-black">New</div>
                       <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 bg-white/40 backdrop-blur-md">
-                        <button className="w-full bg-primary text-white py-3 text-[10px] uppercase tracking-widest">Quick Shop</button>
+                        <button 
+                          onClick={(e) => handleQuickShop(e, product)}
+                          className="w-full bg-primary text-white py-3 text-[10px] uppercase tracking-widest hover:bg-[#765931] transition-colors"
+                        >
+                          Quick Shop
+                        </button>
                       </div>
                     </div>
                     <div className="text-center">
