@@ -287,32 +287,53 @@ export default function CartPage() {
           
           if (data && data.address) {
             const { address } = data;
-            if (address.city || address.town || address.village) {
-               setCity(address.city || address.town || address.village);
+            
+            // Extract City
+            const cityName = address.city || address.town || address.village || address.county;
+            if (cityName) setCity(cityName);
+
+            // Extract State robustly
+            let stateName = address.state;
+            const isoCode = address['ISO3166-2-lvl4'];
+            if (!stateName && isoCode) {
+              if (isoCode === 'IN-DL') stateName = 'Delhi';
+              else if (isoCode === 'IN-CH') stateName = 'Chandigarh';
+              else if (isoCode === 'IN-PY') stateName = 'Puducherry';
             }
-            if (address.state) {
-               setState(address.state);
+            if (stateName) {
+              const matchedState = INDIAN_STATES.find(s => 
+                s.toLowerCase() === stateName.toLowerCase() || 
+                stateName.toLowerCase().includes(s.toLowerCase()) || 
+                s.toLowerCase().includes(stateName.toLowerCase())
+              );
+              if (matchedState) setState(matchedState);
             }
-            if (address.postcode) {
-               setPinCode(address.postcode);
+
+            // Extract Pincode
+            if (address.postcode) setPinCode(address.postcode);
+
+            // Extract Street / Area
+            const streetInfo = [address.road, address.neighbourhood, address.suburb].filter(Boolean).join(', ');
+            if (streetInfo) setStreet(streetInfo);
+
+            // Extract House Number / Flat
+            if (address.house_number) {
+              setFlatNumber(address.house_number);
             }
-            if (address.road || address.neighbourhood || address.suburb) {
-               setStreet(`${address.road || ''} ${address.neighbourhood || address.suburb || ''}`.trim());
-            }
-            if (address.country) {
-               setCountry(address.country);
-            }
+
+            // Extract Country
+            if (address.country) setCountry(address.country);
           }
         } catch (error) {
           console.error("Error fetching address from coordinates:", error);
-          alert("Failed to retrieve address details from your location.");
+          alert("Failed to retrieve address details from your location. You may need to fill them manually.");
         } finally {
           setIsLocating(false);
         }
       },
       (error) => {
         console.error("Geolocation error:", error);
-        alert("Failed to access your location. Please check your browser permissions.");
+        alert("Failed to access your location. Please check your browser permissions and ensure GPS is enabled.");
         setIsLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
