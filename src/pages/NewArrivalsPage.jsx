@@ -73,13 +73,15 @@ export default function NewArrivalsPage() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
                 {products.map(product => (
-                  <Link key={product.id} to={`/product/${product.id}`} className="group cursor-pointer">
+                  <div key={product.id} className="group cursor-pointer">
                     <div className="relative overflow-hidden mb-6 bg-surface-container-low aspect-[3/4]">
-                      <img 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                        alt={product.title} 
-                        src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop'}
-                      />
+                      <Link to={`/product/${product.id}`}>
+                        <img 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                          alt={product.title} 
+                          src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop'}
+                        />
+                      </Link>
                       <div className="absolute top-4 left-4 bg-white/90 px-3 py-1 text-[10px] uppercase tracking-tighter text-black">New</div>
                       <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 bg-white/40 backdrop-blur-md">
                         <button 
@@ -90,11 +92,11 @@ export default function NewArrivalsPage() {
                         </button>
                       </div>
                     </div>
-                    <div className="text-center">
+                    <Link to={`/product/${product.id}`} className="text-center block">
                       <h3 className="text-primary font-body font-semibold text-sm mb-1">{product.title}</h3>
                       <p className="text-secondary font-manrope text-lg">₹{(product.price || 0).toLocaleString()}</p>
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 ))}
               </div>
             )}

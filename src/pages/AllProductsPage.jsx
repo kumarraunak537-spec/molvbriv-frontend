@@ -97,13 +97,15 @@ export default function AllProductsPage() {
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
                 {filteredProducts.map(product => (
-                  <Link key={product.id} to={`/product/${product.id}`} className="group cursor-pointer">
+                  <div key={product.id} className="group cursor-pointer">
                     <div className="relative overflow-hidden mb-6 bg-surface-container-low aspect-[3/4]">
-                      <img 
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                        alt={product.title} 
-                        src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop'}
-                      />
+                      <Link to={`/product/${product.id}`}>
+                        <img 
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                          alt={product.title} 
+                          src={(product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop'}
+                        />
+                      </Link>
                       {(product.tags && product.tags.length > 0) && (
                         <div className="absolute top-4 left-4 bg-white/90 px-3 py-1 text-[10px] uppercase tracking-tighter text-black">
                           {(product.tags && product.tags[0])}
@@ -118,7 +120,7 @@ export default function AllProductsPage() {
                         </button>
                       </div>
                     </div>
-                    <div className="text-center">
+                    <Link to={`/product/${product.id}`} className="text-center block">
                       <h3 className="text-primary font-body font-semibold text-sm mb-1">{product.title}</h3>
                       <div className="flex items-center justify-center gap-2">
                         <p className="text-secondary font-manrope text-lg">₹{(product.price || 0).toLocaleString()}</p>
@@ -126,8 +128,8 @@ export default function AllProductsPage() {
                           <p className="text-on-surface-variant font-manrope text-sm line-through opacity-60">₹{Number(product.compare_price).toLocaleString()}</p>
                         )}
                       </div>
-                    </div>
-                  </Link>
+                    </Link>
+                  </div>
                 ))}
               </div>
             )}
