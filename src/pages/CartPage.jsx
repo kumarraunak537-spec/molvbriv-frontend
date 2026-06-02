@@ -1294,8 +1294,6 @@ export default function CartPage() {
           </div>
         </header>
 
-
-
         <main className="flex-1 px-6">
           <h1 className="font-headline text-3xl text-primary mb-8">Your Selection</h1>
 
@@ -1304,7 +1302,7 @@ export default function CartPage() {
             {cartItems.length === 0 ? (
                <p className="text-on-surface-variant text-sm italic">Your cart is empty.</p>
             ) : (
-              cartItems.map(item => (
+               cartItems.map(item => (
                 <div key={item.id} className="flex gap-6 items-center">
                   <div className="w-24 aspect-square bg-black rounded-sm overflow-hidden shrink-0">
                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
@@ -1314,7 +1312,7 @@ export default function CartPage() {
                         <h3 className="font-headline text-lg text-primary">{item.name}</h3>
                         <button onClick={() => removeFromCart(item.id)} className="material-symbols-outlined text-on-surface-variant text-sm">close</button>
                      </div>
-                     <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant/70 mt-1 mb-2">18K YELLOW GOLD • 1.2CT</p>
+                     <p className="text-on-surface-variant text-xs leading-relaxed mt-1 mb-2 font-inter font-light max-w-xs">{item.description}</p>
                      <p className="font-headline text-sm">₹{item.price.toLocaleString()}</p>
                   </div>
                 </div>
@@ -1322,16 +1320,7 @@ export default function CartPage() {
             )}
           </div>
 
-          {/* Gift Packaging */}
-          <div className="mt-8 bg-[#f7f3ed] p-4 flex items-center justify-between rounded-sm">
-             <div className="flex items-center gap-3">
-               <span className="material-symbols-outlined text-[#765931] text-lg">redeem</span>
-               <span className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant">Complimentary Gift Packaging</span>
-             </div>
-             <span className="material-symbols-outlined text-on-surface-variant text-sm">chevron_right</span>
-          </div>
-
-              {/* Personal Details */}
+          {/* Personal Details */}
               <div className="mt-12 space-y-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="font-headline text-2xl text-primary">Delivery Details</h2>
