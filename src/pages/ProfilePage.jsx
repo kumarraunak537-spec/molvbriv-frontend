@@ -70,9 +70,6 @@ export default function ProfilePage() {
   const [settingsName, setSettingsName] = useState('')
   const [settingsPhone, setSettingsPhone] = useState('')
   const [settingsAvatar, setSettingsAvatar] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [settingsMsg, setSettingsMsg] = useState({ text: '', type: '' })
   const [isSettingsSaving, setIsSettingsSaving] = useState(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
@@ -422,25 +419,6 @@ export default function ProfilePage() {
       })
       if (metaErr) throw metaErr
 
-      // 2. Optional password update
-      if (newPassword) {
-        if (newPassword.length < 8) {
-          throw new Error('New password must be at least 8 characters long.')
-        }
-        if (newPassword !== confirmPassword) {
-          throw new Error('Confirm password does not match new password.')
-        }
-
-        const { error: passErr } = await supabase.auth.updateUser({
-          password: newPassword
-        })
-        if (passErr) throw passErr
-        
-        setCurrentPassword('')
-        setNewPassword('')
-        setConfirmPassword('')
-      }
-
       setSettingsMsg({ text: 'Settings updated successfully!', type: 'success' })
       
       // Update local profile state
@@ -711,6 +689,38 @@ export default function ProfilePage() {
                   <div className="border-b border-on-surface/5 pb-6">
                     <span className="text-secondary tracking-[0.25em] uppercase text-[9px] font-bold block mb-1">Overview</span>
                     <h2 className="font-headline text-3xl text-primary font-bold">Account Details</h2>
+                  </div>
+
+                  {/* Profile Photo Section */}
+                  <div className="bg-[#fdfbf7] border border-[#765931]/10 p-8 rounded-sm space-y-6">
+                    <h3 className="font-headline text-xl text-primary font-bold border-b border-[#765931]/10 pb-4">Profile Photo</h3>
+                    <div className="flex items-center gap-6">
+                      <div className="w-20 h-20 rounded-full overflow-hidden border border-[#765931]/20 flex items-center justify-center bg-white shrink-0 relative group shadow-sm">
+                        {settingsAvatar ? (
+                          <img src={settingsAvatar} alt="Profile preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="material-symbols-outlined text-4xl text-on-surface-variant/40">person</span>
+                        )}
+                        {isUploadingAvatar && (
+                          <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
+                              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <label className={`inline-flex items-center justify-center px-6 py-3 text-[10px] font-label uppercase tracking-widest font-bold border rounded-sm transition-colors cursor-pointer ${isUploadingAvatar ? 'opacity-50 cursor-not-allowed bg-black/5 border-black/10 text-black/40' : 'border-[#765931]/50 text-[#765931] hover:bg-[#765931] hover:border-[#765931] hover:text-white'}`}>
+                          {isUploadingAvatar ? 'Uploading...' : 'Upload New Photo'}
+                          <input 
+                            type="file" 
+                            accept="image/jpeg, image/jpg, image/png, image/webp" 
+                            onChange={handleAvatarUpload} 
+                            className="hidden" 
+                            disabled={isUploadingAvatar}
+                          />
+                        </label>
+                        <p className="text-[10px] text-on-surface-variant leading-relaxed">Supported formats: JPG, PNG, WEBP. Max file size: 2MB.</p>
+                      </div>
+                    </div>
                   </div>
 
                   {isEditingProfile ? (
@@ -1138,64 +1148,6 @@ export default function ProfilePage() {
                           disabled
                           className="w-full bg-[#f7f3ed]/60 p-4 border-none outline-none text-sm rounded-sm text-on-surface-variant/50 cursor-not-allowed"
                         />
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Profile Photo</label>
-                      <div className="flex items-center gap-6 bg-[#f7f3ed] p-4 rounded-sm border border-[#765931]/10">
-                        <div className="w-16 h-16 rounded-full overflow-hidden border border-[#765931]/20 flex items-center justify-center bg-white shrink-0 relative group">
-                          {settingsAvatar ? (
-                            <img src={settingsAvatar} alt="Profile preview" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="material-symbols-outlined text-3xl text-on-surface-variant/40">person</span>
-                          )}
-                          {isUploadingAvatar && (
-                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
-                               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <label className={`inline-flex items-center justify-center px-5 py-2.5 text-[9px] font-label uppercase tracking-widest font-bold border rounded-sm transition-colors cursor-pointer ${isUploadingAvatar ? 'opacity-50 cursor-not-allowed bg-black/5 border-black/10 text-black/40' : 'border-[#765931]/50 text-[#765931] hover:bg-[#765931] hover:border-[#765931] hover:text-white'}`}>
-                            {isUploadingAvatar ? 'Uploading...' : 'Upload New Photo'}
-                            <input 
-                              type="file" 
-                              accept="image/jpeg, image/jpg, image/png, image/webp" 
-                              onChange={handleAvatarUpload} 
-                              className="hidden" 
-                              disabled={isUploadingAvatar}
-                            />
-                          </label>
-                          <p className="text-[9px] text-on-surface-variant leading-relaxed">Supported formats: JPG, PNG, WEBP.<br/>Max file size: 2MB.</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-on-surface/5 pt-6 space-y-6">
-                      <h3 className="font-headline text-lg text-primary font-bold">Update Account Security</h3>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">New Password</label>
-                          <input 
-                            type="password" 
-                            value={newPassword} 
-                            onChange={e => setNewPassword(e.target.value)} 
-                            placeholder="At least 8 characters" 
-                            className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Confirm New Password</label>
-                          <input 
-                            type="password" 
-                            value={confirmPassword} 
-                            onChange={e => setConfirmPassword(e.target.value)} 
-                            placeholder="Confirm New Password" 
-                            className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm"
-                          />
-                        </div>
                       </div>
                     </div>
 
