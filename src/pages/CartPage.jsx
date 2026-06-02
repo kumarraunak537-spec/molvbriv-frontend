@@ -6,7 +6,6 @@ import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
 
 const INDIAN_STATES = [
-  "Andaman and Nicobar Islands",
   "Andhra Pradesh",
   "Arunachal Pradesh",
   "Assam",
