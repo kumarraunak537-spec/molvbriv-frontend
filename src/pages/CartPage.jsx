@@ -1305,17 +1305,24 @@ export default function CartPage() {
                <p className="text-on-surface-variant text-sm italic">Your cart is empty.</p>
             ) : (
                cartItems.map(item => (
-                <div key={item.id} className="flex gap-6 items-center">
+                <div key={item.id} className="flex gap-6 items-start py-4 border-b border-on-surface/5 last:border-b-0">
                   <div className="w-24 aspect-square bg-black rounded-sm overflow-hidden shrink-0">
                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                      <div className="flex justify-between items-start">
-                        <h3 className="font-headline text-lg text-primary">{item.name}</h3>
-                        <button onClick={() => removeFromCart(item.id)} className="material-symbols-outlined text-on-surface-variant text-sm">close</button>
+                        <h3 className="font-headline text-base text-primary truncate pr-2">{item.name}</h3>
+                        <button onClick={() => removeFromCart(item.id)} className="material-symbols-outlined text-on-surface-variant text-base hover:text-error transition-colors">close</button>
                      </div>
-                     <p className="text-on-surface-variant text-xs leading-relaxed mt-1 mb-2 font-inter font-light max-w-xs">{item.description}</p>
-                     <p className="font-headline text-sm">₹{item.price.toLocaleString()}</p>
+                     <p className="text-on-surface-variant text-[11px] leading-relaxed mt-0.5 mb-1.5 font-inter font-light truncate">{item.description}</p>
+                     <div className="flex items-center justify-between">
+                        <p className="font-headline text-sm font-semibold">₹{item.price.toLocaleString()}.00</p>
+                        <div className="flex items-center border border-outline-variant/30 px-2 py-0.5 rounded-sm">
+                          <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="material-symbols-outlined text-xs hover:text-primary transition-colors">remove</button>
+                          <span className="px-3 font-label text-xs font-semibold">{String(item.quantity).padStart(2, '0')}</span>
+                          <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="material-symbols-outlined text-xs hover:text-primary transition-colors">add</button>
+                        </div>
+                     </div>
                   </div>
                 </div>
               ))
@@ -1330,7 +1337,7 @@ export default function CartPage() {
                     type="button"
                     onClick={handleUseCurrentLocation}
                     disabled={isLocating}
-                    className="hidden flex items-center gap-1.5 text-[10px] font-label uppercase tracking-widest text-[#765931] hover:bg-[#765931]/10 px-3 py-1.5 rounded-sm border border-[#765931]/30 transition-all disabled:opacity-50 shrink-0"
+                    className="flex items-center gap-1.5 text-[10px] font-label uppercase tracking-widest text-[#765931] hover:bg-[#765931]/10 px-3 py-1.5 rounded-sm border border-[#765931]/30 transition-all disabled:opacity-50 shrink-0"
                   >
                     {isLocating ? (
                       <div className="w-3 h-3 border-2 border-[#765931] border-t-transparent rounded-full animate-spin"></div>
