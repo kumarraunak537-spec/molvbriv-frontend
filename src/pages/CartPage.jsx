@@ -954,7 +954,7 @@ export default function CartPage() {
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                         <div className="relative">
-                          <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                          <select value={state} onChange={e => setState(e.target.value)} className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm appearance-none rounded-sm transition-colors ${errors.state ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`}>
                             <option value="">Select State</option>
                             {INDIAN_STATES.map((s) => (
                               <option key={s} value={s}>{s}</option>
@@ -962,6 +962,7 @@ export default function CartPage() {
                           </select>
                           <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                         </div>
+                        {errors.state && <p className="text-[10px] text-red-500 ml-1">State is required</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">PIN code (6 digits)</label>
@@ -1093,7 +1094,7 @@ export default function CartPage() {
                         <div className="space-y-2">
                           <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                           <div className="relative">
-                            <select value={billingState} onChange={e => setBillingState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                            <select value={billingState} onChange={e => setBillingState(e.target.value)} className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm appearance-none rounded-sm transition-colors ${errors.billingState ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`}>
                               <option value="">Select State</option>
                               {INDIAN_STATES.map((s) => (
                                 <option key={s} value={s}>{s}</option>
@@ -1101,6 +1102,7 @@ export default function CartPage() {
                             </select>
                             <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                           </div>
+                          {errors.billingState && <p className="text-[10px] text-red-500 ml-1">State is required</p>}
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">PIN code (6 digits)</label>
@@ -1455,7 +1457,7 @@ export default function CartPage() {
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                       <div className="relative">
-                        <select value={state} onChange={e => setState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                        <select value={state} onChange={e => setState(e.target.value)} className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm appearance-none rounded-sm transition-colors ${errors.state ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`}>
                           <option value="">Select State</option>
                           {INDIAN_STATES.map((s) => (
                             <option key={s} value={s}>{s}</option>
@@ -1463,6 +1465,7 @@ export default function CartPage() {
                         </select>
                         <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                       </div>
+                      {errors.state && <p className="text-[10px] text-red-500 ml-1">State is required</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Pincode</label>
@@ -1593,7 +1596,7 @@ export default function CartPage() {
                       <div className="space-y-2">
                         <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">State</label>
                         <div className="relative">
-                          <select value={billingState} onChange={e => setBillingState(e.target.value)} className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm appearance-none rounded-sm">
+                          <select value={billingState} onChange={e => setBillingState(e.target.value)} className={`w-full bg-[#f7f3ed] p-4 border outline-none text-sm appearance-none rounded-sm transition-colors ${errors.billingState ? 'border-red-500' : 'border-transparent focus:border-[#765931]/30'}`}>
                             <option value="">Select State</option>
                             {INDIAN_STATES.map((s) => (
                               <option key={s} value={s}>{s}</option>
@@ -1601,6 +1604,7 @@ export default function CartPage() {
                           </select>
                           <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">expand_more</span>
                         </div>
+                        {errors.billingState && <p className="text-[10px] text-red-500 ml-1">State is required</p>}
                       </div>
                       <div className="space-y-2">
                         <label className="text-[9px] font-label uppercase tracking-widest text-[#765931] font-bold block ml-1">Pincode</label>
