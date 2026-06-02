@@ -320,6 +320,7 @@ export default function LoginPage() {
               )}
 
               {/* Login Method Segmented Switch */}
+              {/* TEMPORARILY HIDDEN AS PER REQUEST
               <div className="flex border border-[#C0B8A8] p-1 rounded-sm mb-8 max-w-[320px] mx-auto bg-[#Fdfbf7]">
                 <button
                   type="button"
@@ -344,6 +345,7 @@ export default function LoginPage() {
                   Phone OTP Login
                 </button>
               </div>
+              */}
 
               {loginMethod === 'email' ? (
                 <form onSubmit={handleSignIn} className="space-y-8">
