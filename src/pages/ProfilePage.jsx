@@ -424,24 +424,11 @@ export default function ProfilePage() {
 
       // 2. Optional password update
       if (newPassword) {
-        if (!currentPassword) {
-          throw new Error('Please enter your current password to set a new password.')
-        }
         if (newPassword.length < 8) {
           throw new Error('New password must be at least 8 characters long.')
         }
         if (newPassword !== confirmPassword) {
           throw new Error('Confirm password does not match new password.')
-        }
-
-        // Verify current password first
-        const { error: signInErr } = await supabase.auth.signInWithPassword({
-          email: user.email,
-          password: currentPassword
-        })
-
-        if (signInErr) {
-          throw new Error('Incorrect current password. Please try again.')
         }
 
         const { error: passErr } = await supabase.auth.updateUser({
@@ -466,7 +453,11 @@ export default function ProfilePage() {
       setEditName(settingsName.trim())
       setEditPhone(settingsPhone.trim())
     } catch (err) {
-      setSettingsMsg({ text: err.message || 'Failed to save changes.', type: 'error' })
+      if (err.message === 'Failed to fetch') {
+         setSettingsMsg({ text: 'Network error or rate limit exceeded. Please disable ad-blockers and try again later.', type: 'error' })
+      } else {
+         setSettingsMsg({ text: err.message || 'Failed to save changes.', type: 'error' })
+      }
     } finally {
       setIsSettingsSaving(false)
     }
@@ -1183,17 +1174,6 @@ export default function ProfilePage() {
 
                     <div className="border-t border-on-surface/5 pt-6 space-y-6">
                       <h3 className="font-headline text-lg text-primary font-bold">Update Account Security</h3>
-                      
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant ml-1">Current Password</label>
-                        <input 
-                          type="password" 
-                          value={currentPassword} 
-                          onChange={e => setCurrentPassword(e.target.value)} 
-                          placeholder="Current Password" 
-                          className="w-full bg-[#f7f3ed] p-4 border-none outline-none text-sm placeholder:text-on-surface-variant/40 rounded-sm"
-                        />
-                      </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
