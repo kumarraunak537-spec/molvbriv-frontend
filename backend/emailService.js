@@ -273,6 +273,45 @@ const templates = {
     };
   },
 
+  // 6.5. ORDER RETURNED
+  returned: (order) => {
+    return {
+      title: 'Return Request Initiated',
+      preheader: 'Your Molvbriv return request has been recorded and is being processed.',
+      heading: 'Return Request Confirmed',
+      body: `
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 20px;">Dear ${order.customer_name || 'Boutique Patron'},</p>
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 25px;">
+          This email confirms that we have successfully initiated a return request for your order **${order.razorpay_order_id || order.id}**.
+        </p>
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 25px;">
+          Our client advisory concierge team will contact you shortly to coordinate the secure return pickup details and instructions.
+        </p>
+        <p style="font-size: 14px; line-height: 1.6; color: #4a453a; margin-bottom: 30px;">
+          Upon secure receipt and authentication check of the jewelry piece at our Delhi studio, your refund will be automatically processed back to your original payment method.
+        </p>
+        
+        <!-- Return Details Table -->
+        <div style="background-color: #faf9f6; border: 1px solid #eae6db; padding: 24px; border-radius: 3px; margin-bottom: 30px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; color: #4a453a;">
+            <tr>
+              <td style="padding-bottom: 10px; width: 40%; font-weight: bold; color: #8c8573; text-transform: uppercase; letter-spacing: 0.1em;">Order Number</td>
+              <td style="padding-bottom: 10px; color: #1a4a35; font-weight: bold;">${order.razorpay_order_id || order.id}</td>
+            </tr>
+            <tr>
+              <td style="padding-bottom: 10px; font-weight: bold; color: #8c8573; text-transform: uppercase; letter-spacing: 0.1em;">Return Value</td>
+              <td style="padding-bottom: 10px; color: #765931; font-weight: bold; font-size: 13px;">₹${parseFloat(order.total_amount || order.total_price).toLocaleString()}.00</td>
+            </tr>
+            <tr>
+              <td style="font-weight: bold; color: #8c8573; text-transform: uppercase; letter-spacing: 0.1em;">Status</td>
+              <td style="color: #765931; font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.05em;">Return Initiated</td>
+            </tr>
+          </table>
+        </div>
+      `
+    };
+  },
+
   // 7. NEWSLETTER WELCOME
   newsletter_welcome: (subscriber) => {
     return {

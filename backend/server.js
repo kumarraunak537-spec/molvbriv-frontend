@@ -965,6 +965,12 @@ app.post('/api/orders/:id/return', authenticateUser, async (req, res) => {
 
     if (updErr) throw updErr;
 
+    try {
+      await emailService.sendOrderEmail(updated, 'returned');
+    } catch (emailErr) {
+      console.error('Error sending return confirmation email:', emailErr);
+    }
+
     res.json({ success: true, message: 'Order return request processed successfully.', order: updated });
   } catch (err) {
     console.error('Return order error:', err);
@@ -1185,6 +1191,8 @@ app.put('/api/orders/:id/status', authenticateAdmin, async (req, res, next) => {
       emailType = 'delivered';
     } else if (statusLower === 'cancelled') {
       emailType = 'cancelled';
+    } else if (statusLower === 'returned') {
+      emailType = 'returned';
     } else if (statusLower === 'refunded' || statusLower === 'refund_processed') {
       emailType = 'refund_processed';
     } else if (statusLower === 'processing' || statusLower === 'paid') {
