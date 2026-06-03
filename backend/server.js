@@ -908,18 +908,15 @@ app.post('/api/orders/:id/cancel', authenticateUser, async (req, res) => {
 
     if (updErr) throw updErr;
 
-    try {
-      await emailService.sendOrderEmail(updated, 'cancelled');
-    } catch (emailErr) {
-      console.error('Error sending cancellation email:', emailErr);
-    }
+    // Trigger email notification and Shiprocket cancellation in background to return response immediately
+    emailService.sendOrderEmail(updated, 'cancelled').catch(emailErr => {
+      console.error('Background error sending cancellation email:', emailErr);
+    });
 
     if (order.shiprocket_order_id) {
-      try {
-        await cancelShiprocketOrder(order.shiprocket_order_id);
-      } catch (srErr) {
-        console.error('Error cancelling Shiprocket order:', srErr);
-      }
+      cancelShiprocketOrder(order.shiprocket_order_id).catch(srErr => {
+        console.error('Background error cancelling Shiprocket order:', srErr);
+      });
     }
 
     res.json({ success: true, message: 'Order cancelled successfully.', order: updated });
@@ -965,11 +962,10 @@ app.post('/api/orders/:id/return', authenticateUser, async (req, res) => {
 
     if (updErr) throw updErr;
 
-    try {
-      await emailService.sendOrderEmail(updated, 'returned');
-    } catch (emailErr) {
-      console.error('Error sending return confirmation email:', emailErr);
-    }
+    // Trigger email notification in background to return response immediately
+    emailService.sendOrderEmail(updated, 'returned').catch(emailErr => {
+      console.error('Background error sending return confirmation email:', emailErr);
+    });
 
     res.json({ success: true, message: 'Order return request processed successfully.', order: updated });
   } catch (err) {
