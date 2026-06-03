@@ -174,6 +174,8 @@ export default function OrderTrackingPage() {
     }
   };
 
+  const status = (orderDetails?.order_status || orderDetails?.status || orderDetails?.shipment_status || '').toLowerCase();
+
   return (
     <div className="bg-background min-h-screen text-on-background font-body selection:bg-secondary/20">
       <Navbar />
@@ -232,14 +234,37 @@ export default function OrderTrackingPage() {
               </button>
             </form>
           ) : (
-            <div className="space-y-12 max-w-2xl mx-auto py-8">
+             <div className="space-y-12 max-w-2xl mx-auto py-8">
               <div className="text-center space-y-2">
                 <h3 className="font-manrope text-2xl text-primary font-bold">Order {orderId}</h3>
-                <p className="text-on-surface-variant text-sm">Estimated Delivery: <span className="text-primary font-medium">Within 3-5 Business Days</span></p>
+                {status !== 'cancelled' && status !== 'returned' && (
+                  <p className="text-on-surface-variant text-sm">Estimated Delivery: <span className="text-primary font-medium">Within 3-5 Business Days</span></p>
+                )}
               </div>
 
+              {/* Cancelled/Returned Notice Banners */}
+              {status === 'cancelled' && (
+                <div className="bg-red-600/5 border border-red-600/10 p-6 rounded-lg text-center space-y-2">
+                  <span className="bg-red-600/10 text-red-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider font-manrope">Cancelled</span>
+                  <p className="text-red-800 font-semibold font-manrope text-base mt-2">This order has been cancelled</p>
+                  <p className="text-red-700/80 text-xs max-w-md mx-auto">
+                    If this was a prepaid order, the refund transaction has been initialized and will reflect in your account within 5-7 business days.
+                  </p>
+                </div>
+              )}
+
+              {status === 'returned' && (
+                <div className="bg-orange-600/5 border border-orange-600/10 p-6 rounded-lg text-center space-y-2">
+                  <span className="bg-orange-600/10 text-orange-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider font-manrope">Returned</span>
+                  <p className="text-orange-800 font-semibold font-manrope text-base mt-2">Return Request Initiated</p>
+                  <p className="text-orange-700/80 text-xs max-w-md mx-auto">
+                    Our client advisory concierge team is coordinating the return package pickup. The refund will be released after physical verification at our studio.
+                  </p>
+                </div>
+              )}
+
               {/* Logistics Metadata Card */}
-              {orderDetails && orderDetails.awb_code && (
+              {orderDetails && orderDetails.awb_code && status !== 'cancelled' && (
                 <div className="bg-primary/5 p-6 rounded-lg border border-secondary/20 space-y-4">
                   <div className="flex items-center justify-between border-b border-black/5 pb-2">
                     <h4 className="text-xs uppercase tracking-widest text-secondary font-bold font-manrope">Logistics Information</h4>
@@ -271,42 +296,83 @@ export default function OrderTrackingPage() {
               )}
 
               {/* Status Timeline */}
-              <div className="relative border-l border-primary/20 ml-4 md:ml-8 space-y-10 py-2">
-                {/* Step 0: Order Placed */}
-                <div className="relative pl-8 group">
-                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 0 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 0 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Order Placed</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Your order has been received, verified, and secured.</p>
-                </div>
+              {status === 'cancelled' ? (
+                <div className="relative border-l border-red-600/20 ml-4 md:ml-8 space-y-10 py-2">
+                  {/* Step 0: Order Placed */}
+                  <div className="relative pl-8 group">
+                    <div className="absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.4)]"></div>
+                    <h4 className="text-sm tracking-wider uppercase font-manrope font-semibold text-secondary font-bold">Order Placed</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">Your order was received and verified.</p>
+                  </div>
 
-                {/* Step 1: Packed */}
-                <div className="relative pl-8 group">
-                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 1 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 1 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Packed & Prepared</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Your masterpiece has been polished, quality-checked, and packaged beautifully.</p>
+                  {/* Step 1: Cancelled */}
+                  <div className="relative pl-8 group">
+                    <div className="absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface bg-red-600 shadow-[0_0_10px_rgba(220,38,38,0.5)]"></div>
+                    <h4 className="text-sm tracking-wider uppercase font-manrope font-semibold text-red-600 font-bold">Order Cancelled</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">This order has been cancelled and will not be shipped.</p>
+                  </div>
                 </div>
+              ) : status === 'returned' ? (
+                <div className="relative border-l border-orange-600/20 ml-4 md:ml-8 space-y-10 py-2">
+                  {/* Step 0: Order Placed */}
+                  <div className="relative pl-8 group">
+                    <div className="absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface bg-secondary"></div>
+                    <h4 className="text-sm tracking-wider uppercase font-manrope font-semibold text-secondary font-bold">Order Placed</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">Your order was received and verified.</p>
+                  </div>
 
-                {/* Step 2: Shipped */}
-                <div className="relative pl-8 group">
-                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 2 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 2 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Shipped</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Dispatched via secure luxury logistics. Tracking has been assigned.</p>
-                </div>
+                  {/* Step 1: Delivered */}
+                  <div className="relative pl-8 group">
+                    <div className="absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface bg-secondary"></div>
+                    <h4 className="text-sm tracking-wider uppercase font-manrope font-semibold text-secondary font-bold">Delivered</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">The package was successfully hand-delivered.</p>
+                  </div>
 
-                {/* Step 3: Out for Delivery */}
-                <div className="relative pl-8 group">
-                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 3 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 3 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Out For Delivery</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">A curated courier partner is delivering your shipment today.</p>
+                  {/* Step 2: Return Initiated */}
+                  <div className="relative pl-8 group">
+                    <div className="absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface bg-orange-600 shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
+                    <h4 className="text-sm tracking-wider uppercase font-manrope font-semibold text-orange-600 font-bold">Return Initiated</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">Return request confirmed. Pickup coordinator will contact you shortly.</p>
+                  </div>
                 </div>
+              ) : (
+                <div className="relative border-l border-primary/20 ml-4 md:ml-8 space-y-10 py-2">
+                  {/* Step 0: Order Placed */}
+                  <div className="relative pl-8 group">
+                    <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 0 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                    <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 0 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Order Placed</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">Your order has been received, verified, and secured.</p>
+                  </div>
 
-                {/* Step 4: Delivered */}
-                <div className="relative pl-8 group">
-                  <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 4 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
-                  <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 4 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Delivered</h4>
-                  <p className="text-xs text-on-surface-variant mt-1">Successfully hand-delivered. We hope you cherish your Molvbriv creation.</p>
+                  {/* Step 1: Packed */}
+                  <div className="relative pl-8 group">
+                    <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 1 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                    <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 1 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Packed & Prepared</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">Your masterpiece has been polished, quality-checked, and packaged beautifully.</p>
+                  </div>
+
+                  {/* Step 2: Shipped */}
+                  <div className="relative pl-8 group">
+                    <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 2 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                    <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 2 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Shipped</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">Dispatched via secure luxury logistics. Tracking has been assigned.</p>
+                  </div>
+
+                  {/* Step 3: Out for Delivery */}
+                  <div className="relative pl-8 group">
+                    <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 3 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                    <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 3 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Out For Delivery</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">A curated courier partner is delivering your shipment today.</p>
+                  </div>
+
+                  {/* Step 4: Delivered */}
+                  <div className="relative pl-8 group">
+                    <div className={`absolute -left-[7px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-surface transition-all duration-300 ${trackingStep >= 4 ? 'bg-secondary shadow-[0_0_10px_rgba(212,175,55,0.6)]' : 'bg-black/10'}`}></div>
+                    <h4 className={`text-sm tracking-wider uppercase font-manrope font-semibold transition-colors ${trackingStep >= 4 ? 'text-secondary font-bold' : 'text-on-surface-variant'}`}>Delivered</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">Successfully hand-delivered. We hope you cherish your Molvbriv creation.</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Detailed Shipment History Activity Checkpoints */}
               {orderDetails && orderDetails.shipment_history && orderDetails.shipment_history.length > 0 && (
