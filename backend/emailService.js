@@ -322,7 +322,7 @@ const templates = {
         </div>
       `
     };
-  }
+  },
   // 9. PASSWORD RESET
   password_reset: (data) => {
     return {
