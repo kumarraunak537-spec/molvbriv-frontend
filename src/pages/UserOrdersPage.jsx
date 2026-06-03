@@ -5,7 +5,7 @@ import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-backend.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
 
 export default function UserOrdersPage() {
   const { isLoggedIn, user } = useCart()
@@ -305,11 +305,16 @@ export default function UserOrdersPage() {
                       )}
 
                       {/* Return Order Button */}
-                      {!isCancelled && !isReturned && order.order_status?.toLowerCase() === 'delivered' && (
+                      {!isCancelled && !isReturned && (
                         <button
                           onClick={() => handleReturnOrder(order.id)}
-                          disabled={actionLoadingId === order.id}
-                          className="w-full sm:w-auto bg-orange-600/10 text-orange-600 font-label uppercase tracking-widest text-[9px] px-6 py-3.5 hover:bg-orange-600 hover:text-white transition-all font-bold text-center disabled:opacity-50"
+                          disabled={actionLoadingId === order.id || order.order_status?.toLowerCase() !== 'delivered'}
+                          title={order.order_status?.toLowerCase() !== 'delivered' ? 'Return available only after delivery' : 'Request Return'}
+                          className={`w-full sm:w-auto font-label uppercase tracking-widest text-[9px] px-6 py-3.5 transition-all font-bold text-center disabled:opacity-50
+                            ${order.order_status?.toLowerCase() === 'delivered' 
+                              ? 'bg-orange-600/10 text-orange-600 hover:bg-orange-600 hover:text-white cursor-pointer' 
+                              : 'bg-black/5 text-on-surface-variant/40 cursor-not-allowed'
+                            }`}
                         >
                           {actionLoadingId === order.id ? 'Processing...' : 'Return Order'}
                         </button>

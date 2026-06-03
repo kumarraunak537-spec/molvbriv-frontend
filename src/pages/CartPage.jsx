@@ -421,7 +421,7 @@ export default function CartPage() {
     })
   }
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
 
   const completePurchase = async () => {
     if (!validateForm()) {

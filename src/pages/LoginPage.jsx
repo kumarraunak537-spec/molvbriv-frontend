@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
 import { supabase } from '../supabaseClient'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-backend.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
 
 export default function LoginPage() {
   const navigate = useNavigate()
