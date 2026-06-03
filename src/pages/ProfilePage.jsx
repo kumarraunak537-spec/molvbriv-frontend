@@ -1002,7 +1002,7 @@ export default function ProfilePage() {
                                     className={`w-full sm:w-auto font-label uppercase tracking-widest text-[8px] px-5 py-3 transition-all font-bold text-center disabled:opacity-50
                                       ${order.order_status?.toLowerCase() === 'delivered' 
                                         ? 'bg-orange-600/10 text-orange-600 hover:bg-orange-600 hover:text-white cursor-pointer' 
-                                        : 'bg-black/5 text-on-surface-variant/40 cursor-not-allowed'
+                                        : 'bg-[#faf8f5] border border-black/10 text-black/30 cursor-not-allowed'
                                       }`}
                                   >
                                     {actionLoadingId === order.id ? 'Processing...' : 'Return Order'}
