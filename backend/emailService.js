@@ -7,6 +7,42 @@ const supabaseUrl = process.env.SUPABASE_URL || 'https://oiksafoujlduutkcgays.su
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Global cached SMTP transporter singleton
+let cachedTransporter = null;
+
+function getTransporter() {
+  if (cachedTransporter) return cachedTransporter;
+
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  // Verify credentials exist and are NOT default placeholder values
+  if (user && pass && 
+      user !== 'your_email@gmail.com' && 
+      user.trim() !== '' &&
+      !user.includes('your_email')) {
+    
+    console.log("Initializing persistent, pooled SMTP transporter client...");
+    cachedTransporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_PORT === '465',
+      auth: {
+        user: user,
+        pass: pass
+      },
+      connectionTimeout: 3000,   // 3 seconds connection timeout
+      greetingTimeout: 3000,     // 3 seconds greeting timeout
+      socketTimeout: 5000,       // 5 seconds socket timeout
+      pool: true,                // Enable connection pooling
+      maxConnections: 5,         // Max 5 simultaneous connections
+      maxMessages: 100           // Max 100 messages per connection
+    });
+    return cachedTransporter;
+  }
+  return null;
+}
+
 /**
  * Standard Email Format Validation Helper
  */
@@ -610,35 +646,27 @@ async function sendOrderEmail(order, emailType) {
         });
         console.log(`Successfully sent email via Resend REST API! Result ID:`, sentResult.id || JSON.stringify(sentResult));
         break;
-      } else if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-        // SMTP Nodemailer Fallback
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_PORT === '465',
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-          }
-        });
-
-        sentResult = await transporter.sendMail({
-          from: fromEmail,
-          to: recipientEmail,
-          subject: subject,
-          html: emailHtml
-        });
-        console.log(`Successfully sent email via SMTP Transporter! MessageId:`, sentResult.messageId);
-        break;
       } else {
-        // Simulation Mode (Local development fallback)
-        console.log(`[SIMULATION MODE] Client Email sent successfully!
-          TO: ${recipientEmail}
-          FROM: ${fromEmail}
-          SUBJECT: ${subject}
-          TEMPLATE: ${emailType}`);
-        sentResult = { simulated: true };
-        break;
+        const transporter = getTransporter();
+        if (transporter) {
+          sentResult = await transporter.sendMail({
+            from: fromEmail,
+            to: recipientEmail,
+            subject: subject,
+            html: emailHtml
+          });
+          console.log(`Successfully sent email via SMTP Transporter! MessageId:`, sentResult.messageId);
+          break;
+        } else {
+          // Simulation Mode (Local development fallback)
+          console.log(`[SIMULATION MODE] Client Email sent successfully!
+            TO: ${recipientEmail}
+            FROM: ${fromEmail}
+            SUBJECT: ${subject}
+            TEMPLATE: ${emailType}`);
+          sentResult = { simulated: true };
+          break;
+        }
       }
     } catch (sendErr) {
       lastError = sendErr;
@@ -743,27 +771,21 @@ async function sendNewsletterEmail(subscriber, emailType) {
           html: emailHtml
         });
         break;
-      } else if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_PORT === '465',
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-          }
-        });
-        sentResult = await transporter.sendMail({
-          from: fromEmail,
-          to: recipientEmail,
-          subject: subject,
-          html: emailHtml
-        });
-        break;
       } else {
-        console.log(`[SIMULATION NEWSLETTER] Sent successfully to ${recipientEmail}`);
-        sentResult = { simulated: true };
-        break;
+        const transporter = getTransporter();
+        if (transporter) {
+          sentResult = await transporter.sendMail({
+            from: fromEmail,
+            to: recipientEmail,
+            subject: subject,
+            html: emailHtml
+          });
+          break;
+        } else {
+          console.log(`[SIMULATION NEWSLETTER] Sent successfully to ${recipientEmail}`);
+          sentResult = { simulated: true };
+          break;
+        }
       }
     } catch (sendErr) {
       lastError = sendErr;
@@ -821,27 +843,21 @@ async function sendRecoveryEmail(email, recoveryLink) {
           html: emailHtml
         });
         break;
-      } else if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          secure: process.env.SMTP_PORT === '465',
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-          }
-        });
-        sentResult = await transporter.sendMail({
-          from: fromEmail,
-          to: email,
-          subject: subject,
-          html: emailHtml
-        });
-        break;
       } else {
-        console.log(`[SIMULATION RECOVERY EMAIL] Sent successfully to ${email}. Link: ${recoveryLink}`);
-        sentResult = { simulated: true };
-        break;
+        const transporter = getTransporter();
+        if (transporter) {
+          sentResult = await transporter.sendMail({
+            from: fromEmail,
+            to: email,
+            subject: subject,
+            html: emailHtml
+          });
+          break;
+        } else {
+          console.log(`[SIMULATION RECOVERY EMAIL] Sent successfully to ${email}. Link: ${recoveryLink}`);
+          sentResult = { simulated: true };
+          break;
+        }
       }
     } catch (sendErr) {
       lastError = sendErr;

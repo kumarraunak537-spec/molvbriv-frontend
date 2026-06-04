@@ -543,3 +543,17 @@ CREATE TRIGGER trigger_wishlist_auto_provision
 INSERT INTO public.wishlists (user_id)
 SELECT id FROM public.profiles
 ON CONFLICT (user_id) DO NOTHING;
+
+-- ==================================================
+-- PERFORMANCE OPTIMIZATION INDEXES
+-- ==================================================
+-- Performance optimization indexes on public.orders
+CREATE INDEX IF NOT EXISTS orders_user_id_idx ON public.orders(user_id);
+CREATE INDEX IF NOT EXISTS orders_razorpay_order_id_idx ON public.orders(razorpay_order_id);
+CREATE INDEX IF NOT EXISTS orders_payment_id_idx ON public.orders(payment_id);
+CREATE INDEX IF NOT EXISTS orders_awb_code_idx ON public.orders(awb_code);
+
+-- Performance optimization indexes on public.email_logs
+CREATE INDEX IF NOT EXISTS email_logs_order_id_idx ON public.email_logs(order_id);
+CREATE INDEX IF NOT EXISTS email_logs_order_id_type_idx ON public.email_logs(order_id, email_type);
+

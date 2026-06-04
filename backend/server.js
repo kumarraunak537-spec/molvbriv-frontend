@@ -215,13 +215,13 @@ const authenticateUser = async (req, res, next) => {
 // --- SHIPROCKET SECURE LOGISTICS SERVICES ---
 let shiprocketToken = null;
 let tokenExpiry = null;
+let shiprocketDisabledUntil = null; // Circuit-breaker timestamp to temporarily disable live API calls
 
 async function getShiprocketToken() {
   const email = process.env.SHIPROCKET_EMAIL;
   const password = process.env.SHIPROCKET_PASSWORD;
 
-  if (!email || !password || password === 'YOUR_PASSWORD') {
-    console.warn('WARNING: SHIPROCKET_EMAIL or SHIPROCKET_PASSWORD is missing or set to placeholder in backend .env file. Running in Simulation Mode.');
+  if (!email || !password || password === 'YOUR_PASSWORD' || (shiprocketDisabledUntil && Date.now() < shiprocketDisabledUntil)) {
     return 'SIMULATED_TOKEN';
   }
 
@@ -231,15 +231,22 @@ async function getShiprocketToken() {
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds connection timeout
+
     const response = await fetch('https://apiv2.shiprocket.in/v1/external/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Shiprocket auth failed: ${response.statusText} - ${errText}`);
+      console.error(`Shiprocket auth failed: ${response.statusText} - ${errText}. Temporarily entering Simulation Mode.`);
+      shiprocketDisabledUntil = Date.now() + 10 * 60 * 1000; // 10 minutes cooldown
+      return 'SIMULATED_TOKEN';
     }
 
     const data = await response.json();
@@ -247,8 +254,9 @@ async function getShiprocketToken() {
     tokenExpiry = Date.now() + 23 * 60 * 60 * 1000; // Cache for 23 hours
     return shiprocketToken;
   } catch (err) {
-    console.error('Error fetching Shiprocket token:', err);
-    throw err;
+    console.error('Error fetching Shiprocket token, temporarily entering Simulation Mode:', err.message);
+    shiprocketDisabledUntil = Date.now() + 5 * 60 * 1000; // 5 minutes cooldown on network failure
+    return 'SIMULATED_TOKEN';
   }
 }
 
@@ -337,14 +345,19 @@ async function createShiprocketOrder(order) {
     console.log('Sending order payload to Shiprocket:', JSON.stringify(shiprocketOrderPayload));
 
     // A. CREATE ADHOC ORDER
+    const createController = new AbortController();
+    const createTimeout = setTimeout(() => createController.abort(), 5000);
+
     const createRes = await fetch('https://apiv2.shiprocket.in/v1/external/orders/create/adhoc', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify(shiprocketOrderPayload)
+      body: JSON.stringify(shiprocketOrderPayload),
+      signal: createController.signal
     });
+    clearTimeout(createTimeout);
 
     if (!createRes.ok) {
       const errText = await createRes.text();
@@ -369,14 +382,19 @@ async function createShiprocketOrder(order) {
 
     // B. GENERATE AWB & ASSIGN COURIER (Auto assignment)
     try {
+      const awbController = new AbortController();
+      const awbTimeout = setTimeout(() => awbController.abort(), 5000);
+      
       const awbRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/assign/awb', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ shipment_id: shipmentId })
+        body: JSON.stringify({ shipment_id: shipmentId }),
+        signal: awbController.signal
       });
+      clearTimeout(awbTimeout);
 
       if (awbRes.ok) {
         const awbData = await awbRes.json();
@@ -399,14 +417,19 @@ async function createShiprocketOrder(order) {
 
     // C. GENERATE SHIPPING LABEL
     try {
+      const labelController = new AbortController();
+      const labelTimeout = setTimeout(() => labelController.abort(), 5000);
+      
       const labelRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/generate/label', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ shipment_id: [shipmentId] })
+        body: JSON.stringify({ shipment_id: [shipmentId] }),
+        signal: labelController.signal
       });
+      clearTimeout(labelTimeout);
 
       if (labelRes.ok) {
         const labelData = await labelRes.json();
@@ -448,14 +471,19 @@ async function cancelShiprocketOrder(shiprocketOrderId) {
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 seconds cancel timeout
+    
     const response = await fetch('https://apiv2.shiprocket.in/v1/external/orders/cancel', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ ids: [parseInt(shiprocketOrderId)] })
+      body: JSON.stringify({ ids: [parseInt(shiprocketOrderId)] }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errText = await response.text();
@@ -716,8 +744,11 @@ app.post('/api/payments/verify', sensitiveLimiter, async (req, res, next) => {
       };
     }
 
-    sendConfirmationEmail(orderRecord).catch(err => console.error('Error sending confirmation email:', err));
-    autoFulfillShipment(orderRecord.id).catch(err => console.error('Error in autoFulfillShipment Prepaid:', err));
+    // Defer background notifications and fulfillment to execute AFTER the HTTP response is sent
+    setImmediate(() => {
+      sendConfirmationEmail(orderRecord).catch(err => console.error('Error sending confirmation email:', err));
+      autoFulfillShipment(orderRecord.id).catch(err => console.error('Error in autoFulfillShipment Prepaid:', err));
+    });
 
     res.json({ success: true, order: orderRecord });
   } catch (error) {
@@ -780,8 +811,11 @@ app.post('/api/payments/cod', sensitiveLimiter, async (req, res, next) => {
       };
     }
 
-    sendConfirmationEmail(orderRecord).catch(err => console.error('Error sending confirmation email:', err));
-    autoFulfillShipment(orderRecord.id).catch(err => console.error('Error in autoFulfillShipment COD:', err));
+    // Defer background notifications and fulfillment to execute AFTER the HTTP response is sent
+    setImmediate(() => {
+      sendConfirmationEmail(orderRecord).catch(err => console.error('Error sending confirmation email:', err));
+      autoFulfillShipment(orderRecord.id).catch(err => console.error('Error in autoFulfillShipment COD:', err));
+    });
 
     res.json({ success: true, order: orderRecord });
   } catch (error) {
@@ -844,8 +878,10 @@ app.post('/api/payments/webhook', async (req, res) => {
                 .single();
 
               if (isPaid && updated) {
-                sendConfirmationEmail(updated).catch(err => console.error('Email error:', err));
-                autoFulfillShipment(updated.id).catch(err => console.error('Error in autoFulfillShipment Webhook:', err));
+                setImmediate(() => {
+                  sendConfirmationEmail(updated).catch(err => console.error('Email error:', err));
+                  autoFulfillShipment(updated.id).catch(err => console.error('Error in autoFulfillShipment Webhook:', err));
+                });
               }
             }
           }
@@ -923,16 +959,18 @@ app.post('/api/orders/:id/cancel', authenticateUser, async (req, res) => {
 
     if (updErr) throw updErr;
 
-    // Trigger email notification and Shiprocket cancellation in background to return response immediately
-    emailService.sendOrderEmail(updated, 'cancelled').catch(emailErr => {
-      console.error('Background error sending cancellation email:', emailErr);
-    });
-
-    if (order.shiprocket_order_id) {
-      cancelShiprocketOrder(order.shiprocket_order_id).catch(srErr => {
-        console.error('Background error cancelling Shiprocket order:', srErr);
+    // Defer background email and logistics cancellations
+    setImmediate(() => {
+      emailService.sendOrderEmail(updated, 'cancelled').catch(emailErr => {
+        console.error('Background error sending cancellation email:', emailErr);
       });
-    }
+
+      if (order.shiprocket_order_id) {
+        cancelShiprocketOrder(order.shiprocket_order_id).catch(srErr => {
+          console.error('Background error cancelling Shiprocket order:', srErr);
+        });
+      }
+    });
 
     res.json({ success: true, message: 'Order cancelled successfully.', order: updated });
   } catch (err) {
@@ -977,9 +1015,11 @@ app.post('/api/orders/:id/return', authenticateUser, async (req, res) => {
 
     if (updErr) throw updErr;
 
-    // Trigger email notification in background to return response immediately
-    emailService.sendOrderEmail(updated, 'returned').catch(emailErr => {
-      console.error('Background error sending return confirmation email:', emailErr);
+    // Defer background email notification
+    setImmediate(() => {
+      emailService.sendOrderEmail(updated, 'returned').catch(emailErr => {
+        console.error('Background error sending return confirmation email:', emailErr);
+      });
     });
 
     res.json({ success: true, message: 'Order return request processed successfully.', order: updated });
@@ -1038,14 +1078,14 @@ app.post('/api/subscribe', sensitiveLimiter, async (req, res, next) => {
       console.error('SQLite subscribers insert failure:', sqlErr.message);
     }
 
-    // C. Trigger subscription-specific emails
-    // 1. Send Welcome email to subscriber
-    emailService.sendNewsletterEmail(subscriber, 'newsletter_welcome')
-      .catch(err => console.error('Error sending newsletter welcome email:', err));
+    // Defer newsletter email dispatches
+    setImmediate(() => {
+      emailService.sendNewsletterEmail(subscriber, 'newsletter_welcome')
+        .catch(err => console.error('Error sending newsletter welcome email:', err));
 
-    // 2. Send Notification email to admin
-    emailService.sendNewsletterEmail(subscriber, 'newsletter_admin')
-      .catch(err => console.error('Error sending newsletter admin notification email:', err));
+      emailService.sendNewsletterEmail(subscriber, 'newsletter_admin')
+        .catch(err => console.error('Error sending newsletter admin notification email:', err));
+    });
 
     res.json({ success: true, message: 'Welcome to the Boutique Circle! Check your email for details.' });
   } catch (error) {

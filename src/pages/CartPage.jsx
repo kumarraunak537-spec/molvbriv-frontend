@@ -197,6 +197,9 @@ export default function CartPage() {
       if (savedNews === 'true') {
         setNewsOffers(true);
       }
+      
+      // Pre-load Razorpay SDK script for instant payment modal response
+      loadRazorpayScript().catch(err => console.warn('Failed to pre-load Razorpay script:', err));
     } catch (err) {
       console.warn('Failed to load saved checkout info from localStorage:', err);
     }
