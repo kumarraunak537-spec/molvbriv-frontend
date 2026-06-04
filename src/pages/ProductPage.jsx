@@ -92,6 +92,7 @@ export default function ProductPage() {
       id: product.id,
       name: product.title,
       price: product.price,
+      compare_price: product.compare_price,
       description: product.description || '',
       image: productImages[0],
     })
@@ -105,6 +106,7 @@ export default function ProductPage() {
       id: product.id,
       name: product.title,
       price: product.price,
+      compare_price: product.compare_price,
       description: product.description || '',
       image: productImages[0],
     })

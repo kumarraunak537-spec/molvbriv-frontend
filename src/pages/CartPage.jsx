@@ -137,6 +137,7 @@ export default function CartPage() {
   const [couponError, setCouponError] = useState('')
   const [couponSuccess, setCouponSuccess] = useState('')
   const [appliedCode, setAppliedCode] = useState('')
+  const [isCouponExpanded, setIsCouponExpanded] = useState(false)
   const [isLocating, setIsLocating] = useState(false)
   const [locationSuccessMsg, setLocationSuccessMsg] = useState('')
 
@@ -248,9 +249,15 @@ export default function CartPage() {
     }
   };
 
-  const taxes = Math.round(subtotal * 0.03)
-  const onlineDiscount = paymentMethod === 'razorpay' ? Math.round(subtotal * 0.1) : 0
-  const grandTotal = Math.max(0, subtotal - discount - onlineDiscount + taxes)
+  const originalSubTotal = cartItems.reduce((sum, item) => sum + ((item.compare_price || item.price) * item.quantity), 0);
+  const productDiscount = cartItems.reduce((sum, item) => sum + (((item.compare_price || item.price) - item.price) * item.quantity), 0);
+  const saleSubtotal = subtotal;
+  const deliveryCharge = 0;
+  const couponDiscount = discount;
+  const onlinePaymentDiscount = paymentMethod === 'razorpay' ? Math.round(saleSubtotal * 0.1) : 0;
+  const gstAmount = Math.round((saleSubtotal - couponDiscount) * 0.03);
+  const grandTotal = Math.max(0, (originalSubTotal - productDiscount - couponDiscount - onlinePaymentDiscount) + deliveryCharge + gstAmount);
+  const youSave = productDiscount + couponDiscount + onlinePaymentDiscount;
 
   const applyCode = (e) => {
     if (e) e.preventDefault();
@@ -269,6 +276,14 @@ export default function CartPage() {
       setCouponError('Invalid privilege code.')
       setAppliedCode('')
     }
+  }
+
+  const removeCoupon = () => {
+    setPrivilegeCode('')
+    setAppliedCode('')
+    setDiscount(0)
+    setCouponSuccess('')
+    setCouponError('')
   }
 
   const handleUseCurrentLocation = () => {
@@ -1162,51 +1177,103 @@ export default function CartPage() {
 
           {/* Right Column: Summary & Utility */}
           <aside className="lg:col-span-4 space-y-8 sticky top-32">
+            {/* Collapsible Coupon Section */}
+            <div className="bg-[#f7f3ed] p-6 border border-outline-variant/30 rounded-sm">
+              <button 
+                type="button"
+                onClick={() => setIsCouponExpanded(!isCouponExpanded)} 
+                className="w-full flex justify-between items-center text-primary hover:text-primary/80 transition-colors focus:outline-none"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#765931]">local_offer</span>
+                  <span className="text-xs uppercase tracking-widest font-label font-bold text-[#765931]">Apply Coupon / Promo Code</span>
+                </div>
+                <span className={`material-symbols-outlined text-primary transition-transform duration-200 ${isCouponExpanded ? 'rotate-180' : ''}`}>
+                  expand_more
+                </span>
+              </button>
+              
+              {isCouponExpanded && (
+                <div className="mt-4 pt-4 border-t border-outline-variant/20 space-y-4">
+                  {appliedCode ? (
+                    <div className="flex items-center justify-between bg-white p-3 border border-green-200 rounded-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-green-600 text-sm">check_circle</span>
+                        <span className="text-xs font-semibold text-primary uppercase">{appliedCode} Applied</span>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={removeCoupon} 
+                        className="text-[10px] uppercase tracking-widest text-red-600 hover:text-red-800 font-bold"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={privilegeCode}
+                        onChange={(e) => setPrivilegeCode(e.target.value)}
+                        placeholder="Enter Promo Code"
+                        className="flex-1 bg-white p-3 border border-outline-variant/30 text-xs outline-none focus:border-[#765931]/50 rounded-sm text-primary placeholder:text-on-surface-variant/40"
+                      />
+                      <button 
+                        type="button" 
+                        onClick={applyCode}
+                        className="bg-[#765931] hover:bg-[#d4af37] text-white hover:text-[#082717] px-5 text-[10px] font-label uppercase tracking-widest font-bold transition-colors rounded-sm"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+                  {couponSuccess && <p className="text-[10px] text-green-700 font-semibold">{couponSuccess}</p>}
+                  {couponError && <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>}
+                </div>
+              )}
+            </div>
+
             {/* Order Summary Card */}
             <div className="bg-primary text-white p-8 md:p-10 shadow-2xl">
-              <h3 className="font-headline text-xl mb-8 border-b border-white/10 pb-4">Summary</h3>
+              <h3 className="font-headline text-xl mb-8 border-b border-white/10 pb-4">ORDER SUMMARY</h3>
               <div className="space-y-4 font-label text-sm text-white/70">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span className="text-white">₹{subtotal.toLocaleString()}.00</span>
+                  <span>Sub Total</span>
+                  <span className="text-white">₹{originalSubTotal.toLocaleString()}.00</span>
                 </div>
+                <div className="flex justify-between text-[#d4af37]">
+                  <span>Product Discount</span>
+                  <span>{productDiscount > 0 ? `-₹${productDiscount.toLocaleString()}.00` : '₹0'}</span>
+                </div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-[#d4af37]">
+                    <span>Coupon Discount</span>
+                    <span>-₹{couponDiscount.toLocaleString()}.00</span>
+                  </div>
+                )}
+                {onlinePaymentDiscount > 0 && (
+                  <div className="flex justify-between text-[#d4af37] font-semibold">
+                    <span>Online Payment Discount</span>
+                    <span>-₹{onlinePaymentDiscount.toLocaleString()}.00</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span>Shipping</span>
+                  <span>Delivery Charge</span>
                   <span className="text-white">Free</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Taxes & GST</span>
-                  <span className="text-white">₹{taxes.toLocaleString()}.00</span>
-                </div>
-                {onlineDiscount > 0 && (
-                  <div className="flex justify-between text-[#d4af37] font-semibold border-b border-white/10 pb-3 pt-2">
-                    <span className="flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-xs">percent</span>
-                      Online Payment 10% Off
-                    </span>
-                    <span>-₹{onlineDiscount.toLocaleString()}.00</span>
-                  </div>
-                )}
-                
-                {/* Discount Field */}
-                <div className="pt-6 pb-2">
-                  <div className="flex border-b border-white/20 pb-2">
-                    <input
-                      type="text"
-                      value={privilegeCode}
-                      onChange={(e) => setPrivilegeCode(e.target.value)}
-                      placeholder="Privilege Code"
-                      className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/30 text-xs flex-1 outline-none"
-                    />
-                    <button type="button" onClick={applyCode} className="text-[10px] uppercase tracking-widest text-secondary-fixed font-bold">Apply</button>
-                  </div>
-                  {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
-                  {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
+                  <span>Taxes & GST (3%)</span>
+                  <span className="text-white">₹{gstAmount.toLocaleString()}.00</span>
                 </div>
                 
                 <div className="pt-6 border-t border-white/10 flex justify-between items-end">
-                  <span className="text-white uppercase tracking-widest text-xs">Grand Total</span>
+                  <span className="text-white uppercase tracking-widest text-xs">TOTAL (Incl. of all Taxes.)</span>
                   <span className="text-3xl font-headline text-secondary-fixed-dim">₹{grandTotal.toLocaleString()}.00</span>
+                </div>
+
+                <div className="pt-4 border-t border-white/10 flex justify-between text-[#d4af37] font-semibold text-xs uppercase tracking-wider">
+                  <span>You Save</span>
+                  <span>{youSave > 0 ? `₹${youSave.toLocaleString()}.00` : '₹0'}</span>
                 </div>
               </div>
               
@@ -1670,50 +1737,105 @@ export default function CartPage() {
               </div>
 
 
-          {/* Summary */}
-          <div className="mt-12 bg-[#082717] text-white p-8 shadow-2xl rounded-sm">
-            <h3 className="font-headline text-2xl mb-8 border-b border-white/10 pb-4">Summary</h3>
+          {/* Collapsible Coupon Section (Mobile) */}
+          <div className="mt-12 bg-[#f7f3ed] p-5 border border-outline-variant/20 rounded-sm">
+            <button 
+              type="button"
+              onClick={() => setIsCouponExpanded(!isCouponExpanded)} 
+              className="w-full flex justify-between items-center text-primary focus:outline-none"
+            >
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#765931] text-lg">local_offer</span>
+                <span className="text-xs uppercase tracking-widest font-label font-bold text-[#765931]">Apply Coupon / Promo Code</span>
+              </div>
+              <span className={`material-symbols-outlined text-primary transition-transform duration-200 ${isCouponExpanded ? 'rotate-180' : ''}`}>
+                expand_more
+              </span>
+            </button>
             
-            <div className="space-y-4 text-sm mb-8">
-              <div className="flex justify-between">
-                <span className="text-white/70">Subtotal</span>
-                <span>₹{subtotal.toLocaleString()}.00</span>
+            {isCouponExpanded && (
+              <div className="mt-4 pt-4 border-t border-outline-variant/20 space-y-4">
+                {appliedCode ? (
+                  <div className="flex items-center justify-between bg-white p-3 border border-green-200 rounded-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-green-600 text-sm">check_circle</span>
+                      <span className="text-xs font-semibold text-primary uppercase">{appliedCode} Applied</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={removeCoupon} 
+                      className="text-[10px] uppercase tracking-widest text-red-600 hover:text-red-800 font-bold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={privilegeCode}
+                      onChange={(e) => setPrivilegeCode(e.target.value)}
+                      placeholder="Enter Promo Code"
+                      className="flex-1 bg-white p-3 border border-outline-variant/30 text-xs outline-none focus:border-[#765931]/50 rounded-sm text-primary placeholder:text-on-surface-variant/40"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={applyCode}
+                      className="bg-[#765931] hover:bg-[#d4af37] text-white hover:text-[#082717] px-5 text-[10px] font-label uppercase tracking-widest font-bold transition-colors rounded-sm"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                )}
+                {couponSuccess && <p className="text-[10px] text-green-700 font-semibold">{couponSuccess}</p>}
+                {couponError && <p className="text-[10px] text-red-500 font-semibold">{couponError}</p>}
               </div>
+            )}
+          </div>
+
+          {/* Summary */}
+          <div className="mt-8 bg-[#082717] text-white p-8 shadow-2xl rounded-sm">
+            <h3 className="font-headline text-2xl mb-8 border-b border-white/10 pb-4">ORDER SUMMARY</h3>
+            
+            <div className="space-y-4 text-sm mb-8 text-white/70 font-label">
               <div className="flex justify-between">
-                <span className="text-white/70">Shipping</span>
-                <span>Free</span>
+                <span>Sub Total</span>
+                <span className="text-white">₹{originalSubTotal.toLocaleString()}.00</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-white/70">Taxes & GST</span>
-                <span>₹{taxes.toLocaleString()}.00</span>
+              <div className="flex justify-between text-[#d4af37]">
+                <span>Product Discount</span>
+                <span>{productDiscount > 0 ? `-₹${productDiscount.toLocaleString()}.00` : '₹0'}</span>
               </div>
-              {onlineDiscount > 0 && (
-                <div className="flex justify-between text-[#d4af37] font-semibold text-sm border-b border-white/10 pb-3 pt-2">
-                  <span>Online Payment 10% Off</span>
-                  <span>-₹{onlineDiscount.toLocaleString()}.00</span>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-[#d4af37]">
+                  <span>Coupon Discount</span>
+                  <span>-₹{couponDiscount.toLocaleString()}.00</span>
                 </div>
               )}
-            </div>
-
-            {/* Privilege Code Field */}
-            <div className="pt-6 pb-2 border-t border-white/10">
-              <div className="flex border-b border-white/20 pb-2">
-                <input
-                  type="text"
-                  value={privilegeCode}
-                  onChange={(e) => setPrivilegeCode(e.target.value)}
-                  placeholder="Privilege Code"
-                  className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/30 text-xs flex-1 outline-none"
-                />
-                <button type="button" onClick={applyCode} className="text-[10px] uppercase tracking-widest text-[#d4af37] font-bold">Apply</button>
+              {onlinePaymentDiscount > 0 && (
+                <div className="flex justify-between text-[#d4af37] font-semibold">
+                  <span>Online Payment Discount</span>
+                  <span>-₹{onlinePaymentDiscount.toLocaleString()}.00</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Delivery Charge</span>
+                <span className="text-white">Free</span>
               </div>
-              {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
-              {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
+              <div className="flex justify-between">
+                <span>Taxes & GST (3%)</span>
+                <span className="text-white">₹{gstAmount.toLocaleString()}.00</span>
+              </div>
             </div>
 
-            <div className="flex justify-between items-end mb-8 pt-4">
-              <span className="text-[10px] font-label uppercase tracking-widest text-white/70">Grand Total</span>
+            <div className="flex justify-between items-end mb-4 pt-4 border-t border-white/10">
+              <span className="text-[10px] font-label uppercase tracking-widest text-white/70">TOTAL (Incl. of all Taxes.)</span>
               <span className="font-headline text-3xl text-[#d4af37]">₹{grandTotal.toLocaleString()}.00</span>
+            </div>
+
+            <div className="flex justify-between items-center mb-8 pt-4 border-t border-white/10 text-[#d4af37] font-semibold text-xs uppercase tracking-wider">
+              <span>You Save</span>
+              <span>{youSave > 0 ? `₹${youSave.toLocaleString()}.00` : '₹0'}</span>
             </div>
 
             <button 

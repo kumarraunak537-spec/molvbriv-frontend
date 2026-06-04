@@ -18,6 +18,7 @@ export default function NewArrivalsPage() {
       id: product.id,
       name: product.title,
       price: product.price,
+      compare_price: product.compare_price,
       description: product.description || '',
       image: (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop',
     })
