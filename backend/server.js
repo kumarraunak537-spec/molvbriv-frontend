@@ -288,15 +288,27 @@ async function createShiprocketOrder(order) {
   try {
     const pickupLocation = process.env.SHIPROCKET_PICKUP_LOCATION || 'Primary';
     
-    // Map billing name safely
+    // Map shipping name safely
     const nameParts = (order.customer_name || 'Client Boutique').trim().split(/\s+/);
     const firstName = nameParts[0] || 'Client';
-    const lastName = nameParts.slice(1).join(' ') || 'Boutique';
+    const lastName = nameParts.slice(1).join(' ') || '.';
 
-    // Map address safely
+    // Map shipping address safely
     const addr = order.shipping_address || {};
-    const streetAddress = addr.address || 'Boutique Sourcing';
-    const apartment = addr.apartment || '';
+    
+    let streetAddress = addr.address;
+    if (!streetAddress) {
+      streetAddress = [
+        addr.flatNumber,
+        addr.street,
+        addr.landmark,
+        addr.area
+      ].filter(Boolean).join(', ');
+    }
+    if (!streetAddress || streetAddress.trim().length < 6) {
+      streetAddress = 'Boutique Sourcing';
+    }
+
     const city = addr.city || 'Delhi';
     const pinCode = addr.pinCode || '110001';
     const state = addr.state || 'Delhi';
@@ -305,8 +317,23 @@ async function createShiprocketOrder(order) {
     const hasBilling = addr.billingAddress && Object.keys(addr.billingAddress).length > 0;
     const billAddr = hasBilling ? addr.billingAddress : addr;
     
-    const bFirstName = hasBilling ? (billAddr.firstName || firstName) : firstName;
-    const bLastName = hasBilling ? (billAddr.lastName || lastName) : lastName;
+    const bNameParts = (billAddr.fullName || order.customer_name || 'Client Boutique').trim().split(/\s+/);
+    const bFirstName = bNameParts[0] || 'Client';
+    const bLastName = bNameParts.slice(1).join(' ') || '.';
+
+    let bStreetAddress = billAddr.address;
+    if (!bStreetAddress) {
+      bStreetAddress = [
+        billAddr.flatNumber,
+        billAddr.street,
+        billAddr.landmark,
+        billAddr.area
+      ].filter(Boolean).join(', ');
+    }
+    if (!bStreetAddress || bStreetAddress.trim().length < 6) {
+      bStreetAddress = streetAddress;
+    }
+
     const bEmail = hasBilling ? (billAddr.email || order.customer_email) : (order.customer_email || 'concierge@molvbriv.in');
     const bPhone = hasBilling ? (billAddr.phone || order.customer_phone) : (order.customer_phone || '9999999999');
     
@@ -322,9 +349,11 @@ async function createShiprocketOrder(order) {
       order_id: order.razorpay_order_id || `MB-ORD-${order.id.substring(0, 8)}`,
       order_date: new Date(order.created_at || Date.now()).toISOString().slice(0, 19).replace('T', ' '),
       pickup_location: pickupLocation,
+      
+      // Billing Details
       billing_customer_name: bFirstName,
       billing_last_name: bLastName,
-      billing_address: billAddr.address || streetAddress,
+      billing_address: bStreetAddress,
       billing_address_2: billAddr.apartment || '',
       billing_city: billAddr.city || city,
       billing_pincode: billAddr.pinCode || pinCode,
@@ -332,7 +361,20 @@ async function createShiprocketOrder(order) {
       billing_country: 'India',
       billing_email: bEmail,
       billing_phone: bPhone,
+      
+      // Shipping Details
       shipping_is_billing: !hasBilling,
+      shipping_customer_name: firstName,
+      shipping_last_name: lastName,
+      shipping_address: streetAddress,
+      shipping_address_2: addr.apartment || '',
+      shipping_city: addr.city || city,
+      shipping_pincode: addr.pinCode || pinCode,
+      shipping_state: addr.state || state,
+      shipping_country: 'India',
+      shipping_email: order.customer_email || bEmail,
+      shipping_phone: order.customer_phone || bPhone,
+      
       order_items: items,
       payment_method: order.payment_method === 'COD' ? 'COD' : 'Prepaid',
       sub_total: parseFloat(order.total_amount || order.total_price),
