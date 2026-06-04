@@ -250,8 +250,19 @@ export default function CartPage() {
 
   // Internal tax calculation (3% inclusive) for accounting
   const taxes = Math.round(subtotal - (subtotal / 1.03))
+  
+  const productDiscount = cartItems.reduce((sum, item) => {
+    if (item.compare_price && Number(item.compare_price) > Number(item.price)) {
+      return sum + ((Number(item.compare_price) - Number(item.price)) * item.quantity);
+    }
+    return sum;
+  }, 0);
+  const originalSubTotal = subtotal + productDiscount;
+  
   const onlineDiscount = paymentMethod === 'razorpay' ? Math.round(subtotal * 0.1) : 0
   const grandTotal = Math.max(0, subtotal - discount - onlineDiscount)
+  
+  const youSave = productDiscount + discount + onlineDiscount;
 
   const applyCode = (e) => {
     if (e) e.preventDefault();
@@ -1168,12 +1179,24 @@ export default function CartPage() {
               <h3 className="font-headline text-xl mb-8 border-b border-white/10 pb-4">Summary</h3>
               <div className="space-y-4 font-label text-sm text-white/70">
                 <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span className="text-white">₹{subtotal.toLocaleString()}.00</span>
+                  <span className="text-white/70">Sub Total</span>
+                  <span className="text-white">₹{originalSubTotal.toLocaleString()}.00</span>
                 </div>
+                {productDiscount > 0 && (
+                  <div className="flex justify-between text-[#d4af37]">
+                    <span>Product Discount</span>
+                    <span>-₹{productDiscount.toLocaleString()}.00</span>
+                  </div>
+                )}
+                {discount > 0 && (
+                  <div className="flex justify-between text-[#d4af37]">
+                    <span>Coupon Discount</span>
+                    <span>-₹{discount.toLocaleString()}.00</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
-                  <span>Shipping</span>
-                  <span className="text-white">Complimentary</span>
+                  <span className="text-white/70">Delivery Charges</span>
+                  <span className="text-green-500 font-semibold">FREE</span>
                 </div>
                 {onlineDiscount > 0 && (
                   <div className="flex justify-between text-[#d4af37] font-semibold border-b border-white/10 pb-3 pt-2">
@@ -1201,8 +1224,13 @@ export default function CartPage() {
                   {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
                 </div>
                 
-                <div className="pt-6 border-t border-white/10 flex justify-between items-end">
-                  <span className="text-white uppercase tracking-widest text-xs">TOTAL (Incl. of all Taxes)</span>
+                <div className="flex justify-between items-center text-[#d4af37] font-semibold pt-4">
+                  <span>You Save</span>
+                  <span>{youSave > 0 ? `₹${youSave.toLocaleString()}.00` : '₹0'}</span>
+                </div>
+                
+                <div className="pt-4 border-t border-white/10 flex justify-between items-end">
+                  <span className="text-white uppercase tracking-widest text-xs">TOTAL (INCL. OF ALL TAXES)</span>
                   <span className="text-3xl font-headline text-secondary-fixed-dim">₹{grandTotal.toLocaleString()}.00</span>
                 </div>
               </div>
@@ -1673,12 +1701,24 @@ export default function CartPage() {
             
             <div className="space-y-4 text-sm mb-8">
               <div className="flex justify-between">
-                <span className="text-white/70">Subtotal</span>
-                <span>₹{subtotal.toLocaleString()}.00</span>
+                <span className="text-white/70">Sub Total</span>
+                <span>₹{originalSubTotal.toLocaleString()}.00</span>
               </div>
+              {productDiscount > 0 && (
+                <div className="flex justify-between text-[#d4af37]">
+                  <span>Product Discount</span>
+                  <span>-₹{productDiscount.toLocaleString()}.00</span>
+                </div>
+              )}
+              {discount > 0 && (
+                <div className="flex justify-between text-[#d4af37]">
+                  <span>Coupon Discount</span>
+                  <span>-₹{discount.toLocaleString()}.00</span>
+                </div>
+              )}
               <div className="flex justify-between">
-                <span className="text-white/70">Shipping</span>
-                <span>Complimentary</span>
+                <span className="text-white/70">Delivery Charges</span>
+                <span className="text-green-500 font-semibold">FREE</span>
               </div>
               {onlineDiscount > 0 && (
                 <div className="flex justify-between text-[#d4af37] font-semibold text-sm border-b border-white/10 pb-3 pt-2">
@@ -1704,8 +1744,12 @@ export default function CartPage() {
               {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
             </div>
 
-            <div className="flex justify-between items-end mb-8 pt-4">
-              <span className="text-[10px] font-label uppercase tracking-widest text-white/70">TOTAL (Incl. of all Taxes)</span>
+            <div className="flex justify-between items-center text-[#d4af37] font-semibold text-[10px] uppercase tracking-widest mb-2">
+              <span>You Save</span>
+              <span>{youSave > 0 ? `₹${youSave.toLocaleString()}.00` : '₹0'}</span>
+            </div>
+            <div className="flex justify-between items-end mb-8 pt-4 border-t border-white/10">
+              <span className="text-[10px] font-label uppercase tracking-widest text-white/70">TOTAL (INCL. OF ALL TAXES)</span>
               <span className="font-headline text-3xl text-[#d4af37]">₹{grandTotal.toLocaleString()}.00</span>
             </div>
 
