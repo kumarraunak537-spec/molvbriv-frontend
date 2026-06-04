@@ -52,7 +52,11 @@ const sensitiveLimiter = rateLimit({
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 
 // Input Sanitization Helper
 function sanitizeString(str) {
@@ -794,7 +798,7 @@ app.post('/api/payments/webhook', async (req, res) => {
   try {
     if (signature && webhookSecret) {
       const shasum = crypto.createHmac('sha256', webhookSecret);
-      shasum.update(JSON.stringify(req.body));
+      shasum.update(req.rawBody || JSON.stringify(req.body));
       const digest = shasum.digest('hex');
 
       if (digest !== signature) {
