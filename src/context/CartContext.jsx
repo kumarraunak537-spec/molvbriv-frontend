@@ -167,7 +167,7 @@ export function CartProvider({ children }) {
 
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const taxes = Math.round(subtotal * 0.08)
+  const taxes = Math.round(subtotal * 0.03)
   const grandTotal = subtotal + taxes
 
   const toggleWishlist = useCallback(async (productId) => {

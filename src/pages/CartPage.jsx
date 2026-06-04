@@ -248,7 +248,7 @@ export default function CartPage() {
     }
   };
 
-  const taxes = Math.round(subtotal * 0.08)
+  const taxes = Math.round(subtotal * 0.03)
   const onlineDiscount = paymentMethod === 'razorpay' ? Math.round(subtotal * 0.1) : 0
   const grandTotal = Math.max(0, subtotal - discount - onlineDiscount + taxes)
 
@@ -1172,10 +1172,10 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span className="text-white">Complimentary</span>
+                  <span className="text-white">Free</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Taxes</span>
+                  <span>Taxes & GST</span>
                   <span className="text-white">₹{taxes.toLocaleString()}.00</span>
                 </div>
                 {onlineDiscount > 0 && (
@@ -1681,10 +1681,10 @@ export default function CartPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-white/70">Shipping</span>
-                <span>Complimentary</span>
+                <span>Free</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-white/70">Taxes</span>
+                <span className="text-white/70">Taxes & GST</span>
                 <span>₹{taxes.toLocaleString()}.00</span>
               </div>
               {onlineDiscount > 0 && (
