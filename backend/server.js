@@ -807,68 +807,79 @@ app.post('/api/payments/webhook', async (req, res) => {
       }
     }
 
+    // Acknowledge webhook immediately to prevent Razorpay from timing out
+    res.status(200).json({ status: 'ok' });
+
+    // Process asynchronously
     const event = req.body.event;
     console.log('Razorpay Webhook event received:', event);
 
-    if (event === 'payment.captured' || event === 'payment.failed') {
-      const paymentEntity = req.body.payload.payment.entity;
-      const razorpayOrderId = paymentEntity.order_id;
-      const razorpayPaymentId = paymentEntity.id;
-      const isPaid = event === 'payment.captured';
+    (async () => {
+      try {
+        if (event === 'payment.captured' || event === 'payment.failed') {
+          const paymentEntity = req.body.payload.payment.entity;
+          const razorpayOrderId = paymentEntity.order_id;
+          const razorpayPaymentId = paymentEntity.id;
+          const isPaid = event === 'payment.captured';
 
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        const { data: existing } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('razorpay_order_id', razorpayOrderId)
-          .maybeSingle();
+          if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            const { data: existing } = await supabase
+              .from('orders')
+              .select('*')
+              .eq('razorpay_order_id', razorpayOrderId)
+              .maybeSingle();
 
-        if (existing && existing.payment_status?.toLowerCase() !== 'paid') {
-          const { data: updated } = await supabase
-            .from('orders')
-            .update({
-              payment_status: isPaid ? 'paid' : 'failed',
-              order_status: isPaid ? 'Paid' : 'Failed',
-              status: isPaid ? 'processing' : 'cancelled',
-              payment_id: razorpayPaymentId,
-              razorpay_payment_id: razorpayPaymentId
-            })
-            .eq('razorpay_order_id', razorpayOrderId)
-            .select()
-            .single();
+            if (existing && existing.payment_status?.toLowerCase() !== 'paid') {
+              const { data: updated } = await supabase
+                .from('orders')
+                .update({
+                  payment_status: isPaid ? 'paid' : 'failed',
+                  order_status: isPaid ? 'Paid' : 'Failed',
+                  status: isPaid ? 'processing' : 'cancelled',
+                  payment_id: razorpayPaymentId,
+                  razorpay_payment_id: razorpayPaymentId
+                })
+                .eq('razorpay_order_id', razorpayOrderId)
+                .select()
+                .single();
 
-          if (isPaid && updated) {
-            sendConfirmationEmail(updated).catch(err => console.error('Email error:', err));
-            autoFulfillShipment(updated.id).catch(err => console.error('Error in autoFulfillShipment Webhook:', err));
+              if (isPaid && updated) {
+                sendConfirmationEmail(updated).catch(err => console.error('Email error:', err));
+                autoFulfillShipment(updated.id).catch(err => console.error('Error in autoFulfillShipment Webhook:', err));
+              }
+            }
+          }
+        } else if (event === 'refund.processed') {
+          const refundEntity = req.body.payload.refund.entity;
+          const razorpayPaymentId = refundEntity.payment_id;
+
+          if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            const { data: updatedOrder, error } = await supabase
+              .from('orders')
+              .update({
+                order_status: 'Cancelled',
+                status: 'cancelled',
+                payment_status: 'failed'
+              })
+              .eq('payment_id', razorpayPaymentId)
+              .select()
+              .single();
+
+            if (!error && updatedOrder) {
+              emailService.sendOrderEmail(updatedOrder, 'refund_processed').catch(err => console.error('Error sending refund email:', err));
+            }
           }
         }
+      } catch (innerErr) {
+        console.error('Async webhook processing error:', innerErr);
       }
-    } else if (event === 'refund.processed') {
-      const refundEntity = req.body.payload.refund.entity;
-      const razorpayPaymentId = refundEntity.payment_id;
+    })();
 
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        const { data: updatedOrder, error } = await supabase
-          .from('orders')
-          .update({
-            order_status: 'Cancelled',
-            status: 'cancelled',
-            payment_status: 'failed'
-          })
-          .eq('payment_id', razorpayPaymentId)
-          .select()
-          .single();
-
-        if (!error && updatedOrder) {
-          emailService.sendOrderEmail(updatedOrder, 'refund_processed').catch(err => console.error('Error sending refund email:', err));
-        }
-      }
-    }
-
-    res.json({ status: 'ok' });
   } catch (error) {
-    console.error('Webhook processing error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    console.error('Webhook initialization error:', error);
+    if (!res.headersSent) {
+      res.status(200).json({ success: true, note: 'Error caught, ignoring for webhook' });
+    }
   }
 });
 
