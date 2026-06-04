@@ -1109,6 +1109,24 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                           Shiprocket Logistics Panel
                         </h3>
 
+                        {/* Creation Status Display */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', padding: '8px 12px', borderRadius: '4px', background: 'var(--s3)', border: '1px solid var(--b1)' }}>
+                          <span style={{ color: 'var(--mu)', fontSize: '11px' }}>Shiprocket Sync:</span>
+                          {selectedAdminOrder.shiprocket_sync_status === 'Created' ? (
+                            <span style={{ background: 'rgba(52,211,153,0.1)', color: '#34d399', padding: '3px 8px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>CREATED</span>
+                          ) : selectedAdminOrder.shiprocket_sync_status === 'Failed' ? (
+                            <span style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', padding: '3px 8px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>FAILED</span>
+                          ) : (
+                            <span style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', padding: '3px 8px', borderRadius: '3px', fontSize: '10px', fontWeight: 600 }}>PENDING</span>
+                          )}
+                        </div>
+
+                        {selectedAdminOrder.shiprocket_sync_status === 'Failed' && selectedAdminOrder.shiprocket_sync_error && (
+                          <div style={{ color: '#ef4444', fontSize: '11px', background: 'rgba(239,68,68,0.06)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(239,68,68,0.2)', marginBottom: '10px' }}>
+                            <strong>Automation Sync Error:</strong> {selectedAdminOrder.shiprocket_sync_error}
+                          </div>
+                        )}
+
                         {logisticsError && (
                           <div style={{ color: 'var(--rd)', fontSize: '11px', background: 'rgba(224,82,82,0.06)', padding: '8px 12px', borderRadius: '4px', border: '1px solid rgba(224,82,82,0.2)', marginBottom: '10px' }}>
                             {logisticsError}
@@ -1117,7 +1135,11 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
 
                         {!selectedAdminOrder.shipment_id ? (
                           <div style={{ background: 'var(--s2)', padding: '16px', borderRadius: '6px', border: '1px dashed var(--ac)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textAlign: 'center' }}>
-                            <p style={{ color: 'var(--mu)', fontSize: '11px', margin: 0 }}>This order has not been registered on Shiprocket logistics yet.</p>
+                            <p style={{ color: 'var(--mu)', fontSize: '11px', margin: 0 }}>
+                              {selectedAdminOrder.shiprocket_sync_status === 'Pending' 
+                                ? 'Shiprocket order is being created automatically in the background.' 
+                                : 'Shiprocket order creation failed. You can initialize it manually below as a fallback.'}
+                            </p>
                             <button
                               className="btn btn-p"
                               disabled={isLogisticsLoading}

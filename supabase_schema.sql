@@ -557,3 +557,7 @@ CREATE INDEX IF NOT EXISTS orders_awb_code_idx ON public.orders(awb_code);
 CREATE INDEX IF NOT EXISTS email_logs_order_id_idx ON public.email_logs(order_id);
 CREATE INDEX IF NOT EXISTS email_logs_order_id_type_idx ON public.email_logs(order_id, email_type);
 
+-- Track Shiprocket sync status & error log
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shiprocket_sync_status TEXT DEFAULT 'Pending' CHECK (shiprocket_sync_status IN ('Pending', 'Created', 'Failed'));
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shiprocket_sync_error TEXT;
+

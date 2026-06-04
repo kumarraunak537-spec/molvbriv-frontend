@@ -539,9 +539,12 @@ async function cancelShiprocketOrder(shiprocketOrderId) {
   }
 }
 
-async function autoFulfillShipment(orderId) {
+const MAX_FULFILLMENT_RETRIES = 5;
+const RETRY_BACKOFFS = [5000, 30000, 300000, 1800000]; // 5s, 30s, 5m, 30m
+
+async function autoFulfillShipment(orderId, attempt = 1) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
-  console.log(`Starting auto-fulfillment tracking for order: ${orderId}`);
+  console.log(`[Shiprocket Sync] Attempt ${attempt}/${MAX_FULFILLMENT_RETRIES} for order: ${orderId}`);
 
   try {
     const { data: order, error } = await supabase
@@ -551,18 +554,31 @@ async function autoFulfillShipment(orderId) {
       .single();
 
     if (error || !order) {
-      console.error('Failed to load order for auto-fulfillment:', error);
+      console.error(`[Shiprocket Sync] Failed to load order ${orderId} for auto-fulfillment:`, error);
       return;
     }
 
-    // Skip if shipment already created
-    if (order.shipment_id) {
-      console.log(`Shipment already created for order: ${orderId}. Skipping auto-fulfillment.`);
+    // Duplicate prevention: skip if already synced or has shipment ID
+    if (order.shiprocket_sync_status === 'Created' || order.shipment_id) {
+      console.log(`[Shiprocket Sync] Shipment already created/synced for order: ${orderId}. Skipping.`);
       return;
     }
 
+    // Update status to Pending on first attempt
+    if (attempt === 1) {
+      await supabase
+        .from('orders')
+        .update({
+          shiprocket_sync_status: 'Pending',
+          shiprocket_sync_error: null
+        })
+        .eq('id', orderId);
+    }
+
+    // Call Shiprocket order creation API
     const shiprocketDetails = await createShiprocketOrder(order);
 
+    // Save details in Supabase
     const { error: updErr } = await supabase
       .from('orders')
       .update({
@@ -575,17 +591,52 @@ async function autoFulfillShipment(orderId) {
         shipment_status: shiprocketDetails.shipment_status,
         shipment_history: shiprocketDetails.shipment_history,
         order_status: 'Processing',
-        status: 'processing'
+        status: 'processing',
+        shiprocket_sync_status: 'Created',
+        shiprocket_sync_error: null
       })
       .eq('id', orderId);
 
     if (updErr) {
-      console.error('Failed to update Supabase order with Shiprocket details:', updErr.message);
-    } else {
-      console.log(`Successfully completed auto-fulfillment for order: ${orderId}. Shipment ID: ${shiprocketDetails.shipment_id}`);
+      throw new Error(`DB update failed: ${updErr.message}`);
     }
+
+    console.log(`[Shiprocket Sync] Success for order ${orderId}. Shipment ID: ${shiprocketDetails.shipment_id}`);
+
+    // Update SQLite local order status compatibility
+    db.run("UPDATE orders SET status = ? WHERE id = ? OR order_number = ?", ['Processing', orderId, order.razorpay_order_id], (dbErr) => {
+      if (dbErr) console.error('[Shiprocket Sync] SQLite order status sync failed:', dbErr);
+    });
+
   } catch (err) {
-    console.error('Error in autoFulfillShipment execution:', err);
+    const errorMsg = err.message || JSON.stringify(err);
+    console.error(`[Shiprocket Sync] Attempt ${attempt} failed for order ${orderId}: ${errorMsg}`);
+
+    // Update DB with failed status and error details
+    await supabase
+      .from('orders')
+      .update({
+        shiprocket_sync_status: 'Failed',
+        shiprocket_sync_error: errorMsg
+      })
+      .eq('id', orderId);
+
+    // Terminal check: validation errors (422), auth issues, or max attempts reached
+    const isValidationError = errorMsg.toLowerCase().includes('validation') || errorMsg.includes('422');
+    const isAuthError = errorMsg.toLowerCase().includes('auth') || errorMsg.toLowerCase().includes('authentication') || errorMsg.includes('unauthorized');
+    const isTerminal = isValidationError || isAuthError || attempt >= MAX_FULFILLMENT_RETRIES;
+
+    if (!isTerminal) {
+      const delay = RETRY_BACKOFFS[attempt - 1] || 30000;
+      console.log(`[Shiprocket Sync] Queueing retry attempt ${attempt + 1} in ${delay / 1000}s for order ${orderId}`);
+      setTimeout(() => {
+        autoFulfillShipment(orderId, attempt + 1).catch(retryErr => {
+          console.error(`[Shiprocket Sync] Uncaught error in retry schedule:`, retryErr);
+        });
+      }, delay);
+    } else {
+      console.error(`[Shiprocket Sync] Terminal state reached for order ${orderId}. Retries stopped.`);
+    }
   }
 }
 
@@ -1345,7 +1396,9 @@ app.post('/api/shiprocket/create-shipment', authenticateAdmin, async (req, res, 
         shipment_status: shiprocketDetails.shipment_status,
         shipment_history: shiprocketDetails.shipment_history,
         order_status: 'Processing',
-        status: 'processing'
+        status: 'processing',
+        shiprocket_sync_status: 'Created',
+        shiprocket_sync_error: null
       })
       .eq('id', orderId)
       .select()
@@ -1355,6 +1408,18 @@ app.post('/api/shiprocket/create-shipment', authenticateAdmin, async (req, res, 
 
     res.json({ success: true, order: updatedOrder });
   } catch (err) {
+    const errorMsg = err.message || JSON.stringify(err);
+    try {
+      await supabase
+        .from('orders')
+        .update({
+          shiprocket_sync_status: 'Failed',
+          shiprocket_sync_error: errorMsg
+        })
+        .eq('id', orderId);
+    } catch (dbErr) {
+      console.error('Failed to update manual failure status in database:', dbErr);
+    }
     next(err);
   }
 });

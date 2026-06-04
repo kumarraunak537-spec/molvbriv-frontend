@@ -10,7 +10,7 @@ async function main() {
   const { data: order, error } = await supabase
     .from('orders')
     .select('*')
-    .eq('id', '20ec5904-c65d-4087-a22c-083a97f73095')
+    .eq('razorpay_order_id', 'MB-COD-1780601954')
     .single();
 
   if (error) {
