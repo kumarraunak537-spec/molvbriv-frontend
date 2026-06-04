@@ -1209,22 +1209,25 @@ export default function CartPage() {
                 )}
                 
                 {/* Discount Field */}
-                <div className="pt-6 pb-2">
-                  <div className="flex items-center border border-white/20 rounded-md p-1 bg-white/5">
-                    <span className="material-symbols-outlined text-white/40 ml-2 text-[18px]">local_offer</span>
+                <div className="pt-8 pb-4">
+                  <div className="flex border-b border-white/20 pb-3 items-center">
                     <input
                       type="text"
                       value={privilegeCode}
                       onChange={(e) => setPrivilegeCode(e.target.value)}
-                      placeholder="APPLY COUPON CODE"
-                      className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/50 text-[11px] ml-2 flex-1 outline-none tracking-widest"
+                      placeholder="Apply Coupon Code / Promo Code"
+                      className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/50 text-sm flex-1 outline-none font-medium"
                     />
-                    <button type="button" onClick={applyCode} className="text-[10px] uppercase tracking-widest text-white/80 bg-white/10 hover:bg-white/20 px-6 py-2.5 rounded-[4px] font-bold transition-colors">
+                    <button 
+                      type="button" 
+                      onClick={applyCode} 
+                      className="text-[11px] uppercase tracking-widest text-[#d4af37] font-bold pl-4 hover:opacity-80 transition-opacity"
+                    >
                       APPLY
                     </button>
                   </div>
-                  {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
-                  {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
+                  {couponSuccess && <p className="text-xs text-[#d4af37] mt-4 font-semibold tracking-wide">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
+                  {couponError && <p className="text-xs text-red-400 mt-4 font-semibold tracking-wide">{couponError}</p>}
                 </div>
                 
                 <div className="flex justify-between items-center text-[#d4af37] font-semibold pt-4">
@@ -1732,22 +1735,25 @@ export default function CartPage() {
             </div>
 
             {/* Privilege Code Field */}
-            <div className="pt-6 pb-2 border-t border-white/10">
-              <div className="flex items-center border border-white/20 rounded-md p-1 bg-white/5">
-                <span className="material-symbols-outlined text-white/40 ml-2 text-[18px]">local_offer</span>
+            <div className="pt-8 pb-4 border-t border-white/10">
+              <div className="flex border-b border-white/20 pb-3 items-center">
                 <input
                   type="text"
                   value={privilegeCode}
                   onChange={(e) => setPrivilegeCode(e.target.value)}
-                  placeholder="APPLY COUPON CODE"
-                  className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/50 text-[11px] ml-2 flex-1 outline-none tracking-widest"
+                  placeholder="Apply Coupon Code / Promo Code"
+                  className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/50 text-sm flex-1 outline-none font-medium"
                 />
-                <button type="button" onClick={applyCode} className="text-[10px] uppercase tracking-widest text-white/80 bg-white/10 hover:bg-white/20 px-6 py-2.5 rounded-[4px] font-bold transition-colors">
+                <button 
+                  type="button" 
+                  onClick={applyCode} 
+                  className="text-[11px] uppercase tracking-widest text-[#d4af37] font-bold pl-4 hover:opacity-80 transition-opacity"
+                >
                   APPLY
                 </button>
               </div>
-              {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
-              {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
+              {couponSuccess && <p className="text-xs text-[#d4af37] mt-4 font-semibold tracking-wide">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
+              {couponError && <p className="text-xs text-red-400 mt-4 font-semibold tracking-wide">{couponError}</p>}
             </div>
 
             <div className="flex justify-between items-center text-[#d4af37] font-semibold text-[10px] uppercase tracking-widest mb-2">
