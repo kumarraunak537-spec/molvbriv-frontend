@@ -1208,58 +1208,23 @@ export default function CartPage() {
                   </div>
                 )}
                 
-                {/* Promo Code Section */}
-                <div className="pt-6 pb-4 border-t border-white/10">
-                  {appliedCode ? (
-                    <div className="bg-[#1a3826] border border-[#d4af37]/30 p-4 rounded-md shadow-inner">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2 text-green-400">
-                          <span className="material-symbols-outlined text-base">verified</span>
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-[#d4af37]">Coupon Applied Successfully</span>
-                        </div>
-                        <button 
-                          type="button" 
-                          onClick={() => { setAppliedCode(''); setPrivilegeCode(''); setDiscount(0); setCouponSuccess(''); }} 
-                          className="text-white/40 hover:text-red-400 transition-colors"
-                          title="Remove Coupon"
-                        >
-                          <span className="material-symbols-outlined text-sm">close</span>
-                        </button>
-                      </div>
-                      <div className="bg-white/5 rounded px-3 py-2 mt-3 flex justify-between items-center border border-white/10">
-                        <div>
-                          <span className="text-white font-label font-bold text-sm tracking-widest uppercase block">{appliedCode}</span>
-                          <span className="text-[10px] text-white/70 mt-0.5 block">{couponSuccess}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-[9px] uppercase tracking-widest text-white/50 block mb-0.5">You Saved</span>
-                          <span className="text-[#d4af37] font-bold text-sm">₹{discount.toLocaleString()}.00</span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex bg-white/5 border border-white/10 rounded-full p-1 focus-within:border-[#d4af37]/50 focus-within:bg-white/10 transition-all items-center">
-                        <span className="material-symbols-outlined text-white/40 pl-3 py-2 text-[18px]">local_activity</span>
-                        <input
-                          type="text"
-                          value={privilegeCode}
-                          onChange={(e) => setPrivilegeCode(e.target.value)}
-                          placeholder="Apply Coupon Code / Promo Code"
-                          className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/40 text-xs flex-1 outline-none px-2 uppercase tracking-widest"
-                        />
-                        <button 
-                          type="button" 
-                          onClick={applyCode} 
-                          disabled={!privilegeCode.trim()}
-                          className="bg-[#d4af37] hover:bg-[#b5952f] active:bg-[#967b25] disabled:bg-white/10 disabled:text-white/30 text-[#082717] px-6 py-2.5 rounded-full text-[10px] font-label uppercase tracking-[0.2em] font-bold transition-all"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                      {couponError && <p className="text-[10px] text-red-400 px-3 font-semibold flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">error</span> {couponError}</p>}
-                    </div>
-                  )}
+                {/* Discount Field */}
+                <div className="pt-6 pb-2">
+                  <div className="flex items-center border border-white/20 rounded-md p-1 bg-white/5">
+                    <span className="material-symbols-outlined text-white/40 ml-2 text-[18px]">local_offer</span>
+                    <input
+                      type="text"
+                      value={privilegeCode}
+                      onChange={(e) => setPrivilegeCode(e.target.value)}
+                      placeholder="APPLY COUPON CODE"
+                      className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/50 text-[11px] ml-2 flex-1 outline-none tracking-widest"
+                    />
+                    <button type="button" onClick={applyCode} className="text-[10px] uppercase tracking-widest text-white/80 bg-white/10 hover:bg-white/20 px-6 py-2.5 rounded-[4px] font-bold transition-colors">
+                      APPLY
+                    </button>
+                  </div>
+                  {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
+                  {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
                 </div>
                 
                 <div className="flex justify-between items-center text-[#d4af37] font-semibold pt-4">
@@ -1766,58 +1731,23 @@ export default function CartPage() {
               )}
             </div>
 
-            {/* Promo Code Section */}
-            <div className="pt-6 pb-4 border-t border-white/10">
-              {appliedCode ? (
-                <div className="bg-[#1a3826] border border-[#d4af37]/30 p-4 rounded-md shadow-inner">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2 text-green-400">
-                      <span className="material-symbols-outlined text-base">verified</span>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#d4af37]">Coupon Applied Successfully</span>
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={() => { setAppliedCode(''); setPrivilegeCode(''); setDiscount(0); setCouponSuccess(''); }} 
-                      className="text-white/40 hover:text-red-400 transition-colors"
-                      title="Remove Coupon"
-                    >
-                      <span className="material-symbols-outlined text-sm">close</span>
-                    </button>
-                  </div>
-                  <div className="bg-white/5 rounded px-3 py-2 mt-3 flex justify-between items-center border border-white/10">
-                    <div>
-                      <span className="text-white font-label font-bold text-sm tracking-widest uppercase block">{appliedCode}</span>
-                      <span className="text-[10px] text-white/70 mt-0.5 block">{couponSuccess}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[9px] uppercase tracking-widest text-white/50 block mb-0.5">You Saved</span>
-                      <span className="text-[#d4af37] font-bold text-sm">₹{discount.toLocaleString()}.00</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex bg-white/5 border border-white/10 rounded-full p-1 focus-within:border-[#d4af37]/50 focus-within:bg-white/10 transition-all items-center">
-                    <span className="material-symbols-outlined text-white/40 pl-3 py-2 text-[18px]">local_activity</span>
-                    <input
-                      type="text"
-                      value={privilegeCode}
-                      onChange={(e) => setPrivilegeCode(e.target.value)}
-                      placeholder="Apply Coupon Code / Promo Code"
-                      className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/40 text-xs flex-1 outline-none px-2 uppercase tracking-widest"
-                    />
-                    <button 
-                      type="button" 
-                      onClick={applyCode} 
-                      disabled={!privilegeCode.trim()}
-                      className="bg-[#d4af37] hover:bg-[#b5952f] active:bg-[#967b25] disabled:bg-white/10 disabled:text-white/30 text-[#082717] px-6 py-2.5 rounded-full text-[10px] font-label uppercase tracking-[0.2em] font-bold transition-all"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                  {couponError && <p className="text-[10px] text-red-400 px-3 font-semibold flex items-center gap-1"><span className="material-symbols-outlined text-[12px]">error</span> {couponError}</p>}
-                </div>
-              )}
+            {/* Privilege Code Field */}
+            <div className="pt-6 pb-2 border-t border-white/10">
+              <div className="flex items-center border border-white/20 rounded-md p-1 bg-white/5">
+                <span className="material-symbols-outlined text-white/40 ml-2 text-[18px]">local_offer</span>
+                <input
+                  type="text"
+                  value={privilegeCode}
+                  onChange={(e) => setPrivilegeCode(e.target.value)}
+                  placeholder="APPLY COUPON CODE"
+                  className="bg-transparent border-none focus:ring-0 text-white placeholder:text-white/50 text-[11px] ml-2 flex-1 outline-none tracking-widest"
+                />
+                <button type="button" onClick={applyCode} className="text-[10px] uppercase tracking-widest text-white/80 bg-white/10 hover:bg-white/20 px-6 py-2.5 rounded-[4px] font-bold transition-colors">
+                  APPLY
+                </button>
+              </div>
+              {couponSuccess && <p className="text-[10px] text-[#d4af37] mt-2 font-semibold">{couponSuccess} -₹{discount.toLocaleString()}.00</p>}
+              {couponError && <p className="text-[10px] text-red-400 mt-2 font-semibold">{couponError}</p>}
             </div>
 
             <div className="flex justify-between items-center text-[#d4af37] font-semibold text-[10px] uppercase tracking-widest mb-2">
