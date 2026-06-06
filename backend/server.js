@@ -1691,11 +1691,618 @@ app.post('/api/shiprocket/webhook', async (req, res) => {
   }
 });
 
+// Helper to calculate rating summary for a product
+async function getProductRatingSummary(productId) {
+  const { data: reviews, error } = await supabase
+    .from('reviews')
+    .select('rating')
+    .eq('product_id', productId)
+    .eq('status', 'approved');
+
+  if (error) {
+    console.error('Error calculating rating summary:', error);
+    return { averageRating: 0, totalRatings: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
+  }
+
+  const totalRatings = reviews.length;
+  if (totalRatings === 0) {
+    return { averageRating: 0, totalRatings: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
+  }
+
+  const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+  const averageRating = parseFloat((sum / totalRatings).toFixed(1));
+
+  const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  reviews.forEach(r => {
+    if (counts[r.rating] !== undefined) {
+      counts[r.rating]++;
+    }
+  });
+
+  const breakdown = {};
+  for (let star = 1; star <= 5; star++) {
+    breakdown[star] = Math.round((counts[star] / totalRatings) * 100);
+  }
+
+  return { averageRating, totalRatings, breakdown };
+}
+
+// --- PRODUCT RATINGS & REVIEWS ENDPOINTS ---
+
+// Rate Limiters for review submissions (max 5 per 15 mins per IP to prevent spam)
+const reviewLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { success: false, error: 'Too many reviews submitted. Please wait 15 minutes.' }
+});
+
+// 1. Submit Rating & Review
+app.post('/api/reviews', authenticateUser, reviewLimiter, async (req, res) => {
+  const { productId, rating, title, comment, media } = req.body;
+
+  if (!productId || !rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ success: false, error: 'Product ID and a valid rating (1-5) are required.' });
+  }
+
+  try {
+    // Check if user has already reviewed this product
+    const { data: existingReview } = await supabase
+      .from('reviews')
+      .select('id')
+      .eq('user_id', req.user.id)
+      .eq('product_id', productId)
+      .single();
+
+    if (existingReview) {
+      return res.status(400).json({ success: false, error: 'You have already rated/reviewed this product.' });
+    }
+
+    // Verified purchase check
+    const { data: orders, error: oErr } = await supabase
+      .from('orders')
+      .select('products, status, order_status, payment_status')
+      .eq('user_id', req.user.id);
+
+    if (oErr) {
+      console.error('Error checking user orders:', oErr);
+    }
+
+    let isVerified = false;
+    if (orders && orders.length > 0) {
+      isVerified = orders.some(order => {
+        const isCompleted = 
+          (order.order_status?.toLowerCase() === 'delivered') ||
+          (order.status?.toLowerCase() === 'delivered') ||
+          (order.payment_status?.toLowerCase() === 'paid');
+
+        if (!isCompleted) return false;
+
+        const productsList = Array.isArray(order.products) ? order.products : [];
+        return productsList.some(p => p.id === productId);
+      });
+    }
+
+    if (!isVerified) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Only verified buyers who have received this product can leave a rating or review.' 
+      });
+    }
+
+    // Get user's profile name
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('name')
+      .eq('id', req.user.id)
+      .single();
+
+    const customerName = profile?.name || req.user.email.split('@')[0];
+
+    // Insert Review
+    const { data: newReview, error: insertErr } = await supabase
+      .from('reviews')
+      .insert([{
+        user_id: req.user.id,
+        product_id: productId,
+        rating: parseInt(rating),
+        title: title ? sanitizeString(title) : null,
+        comment: comment ? sanitizeString(comment) : null,
+        customer_name: customerName,
+        is_verified: true,
+        status: 'approved' // Automatically approved to go live
+      }])
+      .select()
+      .single();
+
+    if (insertErr) throw insertErr;
+
+    // Handle Media uploads if any
+    if (media && Array.isArray(media) && media.length > 0) {
+      const mediaRows = media.map(m => ({
+        review_id: newReview.id,
+        media_url: m.media_url,
+        media_type: m.media_type
+      }));
+
+      const { error: mediaErr } = await supabase
+        .from('review_media')
+        .insert(mediaRows);
+
+      if (mediaErr) {
+        console.error('Error inserting review media:', mediaErr);
+      }
+    }
+
+    // Compute updated ratings summary
+    const summary = await getProductRatingSummary(productId);
+
+    // Emit Socket.io event for real-time updates
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`product_${productId}`).emit('review_added', {
+        productId,
+        review: {
+          ...newReview,
+          media: media || [],
+          helpfulCount: 0,
+          unhelpfulCount: 0
+        },
+        summary
+      });
+    }
+
+    res.status(201).json({ success: true, review: newReview, summary });
+  } catch (err) {
+    console.error('Error submitting review:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Edit Review
+app.put('/api/reviews/:id', authenticateUser, async (req, res) => {
+  const { id } = req.params;
+  const { rating, title, comment, media } = req.body;
+
+  if (!rating || rating < 1 || rating > 5) {
+    return res.status(400).json({ success: false, error: 'Valid rating (1-5) is required.' });
+  }
+
+  try {
+    // Verify owner
+    const { data: review, error: getErr } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (getErr || !review) {
+      return res.status(404).json({ success: false, error: 'Review not found.' });
+    }
+
+    if (review.user_id !== req.user.id) {
+      return res.status(403).json({ success: false, error: 'You are not authorized to edit this review.' });
+    }
+
+    // Update review
+    const { data: updatedReview, error: updateErr } = await supabase
+      .from('reviews')
+      .update({
+        rating: parseInt(rating),
+        title: title ? sanitizeString(title) : null,
+        comment: comment ? sanitizeString(comment) : null,
+        updated_at: new Date()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    // Handle Media updates
+    if (media && Array.isArray(media)) {
+      // Clear old media
+      await supabase.from('review_media').delete().eq('review_id', id);
+
+      if (media.length > 0) {
+        const mediaRows = media.map(m => ({
+          review_id: id,
+          media_url: m.media_url,
+          media_type: m.media_type
+        }));
+        await supabase.from('review_media').insert(mediaRows);
+      }
+    }
+
+    const summary = await getProductRatingSummary(review.product_id);
+
+    // Emit socket update
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`product_${review.product_id}`).emit('review_updated', {
+        productId: review.product_id,
+        review: updatedReview,
+        summary
+      });
+    }
+
+    res.json({ success: true, review: updatedReview, summary });
+  } catch (err) {
+    console.error('Error editing review:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. Delete Review (Owner or Admin)
+app.delete('/api/reviews/:id', authenticateUser, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const { data: review, error: getErr } = await supabase
+      .from('reviews')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (getErr || !review) {
+      return res.status(404).json({ success: false, error: 'Review not found.' });
+    }
+
+    // Check permissions
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', req.user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+
+    if (review.user_id !== req.user.id && !isAdmin) {
+      return res.status(403).json({ success: false, error: 'You are not authorized to delete this review.' });
+    }
+
+    const { error: deleteErr } = await supabase
+      .from('reviews')
+      .delete()
+      .eq('id', id);
+
+    if (deleteErr) throw deleteErr;
+
+    const summary = await getProductRatingSummary(review.product_id);
+
+    // Emit socket update
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`product_${review.product_id}`).emit('review_deleted', {
+        productId: review.product_id,
+        reviewId: id,
+        summary
+      });
+    }
+
+    res.json({ success: true, message: 'Review deleted successfully.', summary });
+  } catch (err) {
+    console.error('Error deleting review:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Get Paginated Product Reviews
+app.get('/api/reviews/product/:productId', async (req, res) => {
+  const { productId } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const sort = req.query.sort || 'newest';
+  const offset = (page - 1) * limit;
+
+  try {
+    let query = supabase
+      .from('reviews')
+      .select(`
+        id, rating, title, comment, customer_name, is_verified, created_at,
+        profiles (name, avatar_url)
+      `, { count: 'exact' })
+      .eq('product_id', productId)
+      .eq('status', 'approved');
+
+    if (sort === 'highest') {
+      query = query.order('rating', { ascending: false });
+    } else if (sort === 'lowest') {
+      query = query.order('rating', { ascending: true });
+    } else {
+      query = query.order('created_at', { ascending: false });
+    }
+
+    const { data: reviews, count, error } = await query.range(offset, offset + limit - 1);
+    if (error) throw error;
+
+    if (!reviews || reviews.length === 0) {
+      return res.json({ success: true, reviews: [], totalReviews: 0, totalPages: 0 });
+    }
+
+    const reviewIds = reviews.map(r => r.id);
+
+    // Fetch media and helpful votes
+    const { data: media } = await supabase
+      .from('review_media')
+      .select('*')
+      .in('review_id', reviewIds);
+
+    const { data: likes } = await supabase
+      .from('review_likes')
+      .select('*')
+      .in('review_id', reviewIds);
+
+    const mappedReviews = reviews.map(r => {
+      const reviewMedia = media ? media.filter(m => m.review_id === r.id) : [];
+      const reviewLikes = likes ? likes.filter(l => l.review_id === r.id) : [];
+      
+      const helpfulCount = reviewLikes.filter(l => l.is_helpful).length;
+      const unhelpfulCount = reviewLikes.filter(l => !l.is_helpful).length;
+
+      return {
+        id: r.id,
+        rating: r.rating,
+        title: r.title,
+        comment: r.comment,
+        customerName: r.customer_name || (r.profiles ? r.profiles.name : 'Verified Buyer'),
+        avatarUrl: r.profiles ? r.profiles.avatar_url : null,
+        isVerified: r.is_verified,
+        createdAt: r.created_at,
+        media: reviewMedia.map(m => ({ url: m.media_url, type: m.media_type })),
+        helpfulCount,
+        unhelpfulCount
+      };
+    });
+
+    if (sort === 'helpful') {
+      mappedReviews.sort((a, b) => b.helpfulCount - a.helpfulCount);
+    }
+
+    res.json({
+      success: true,
+      reviews: mappedReviews,
+      totalReviews: count,
+      totalPages: Math.ceil(count / limit)
+    });
+  } catch (err) {
+    console.error('Error fetching product reviews:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. Get Product Rating Summary
+app.get('/api/reviews/summary/product/:productId', async (req, res) => {
+  const { productId } = req.params;
+  try {
+    const summary = await getProductRatingSummary(productId);
+    res.json({ success: true, summary });
+  } catch (err) {
+    console.error('Error getting rating summary:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. Toggle Helpful / Like Vote
+app.post('/api/reviews/:id/helpful', authenticateUser, async (req, res) => {
+  const { id } = req.params;
+  const { isHelpful = true } = req.body;
+
+  try {
+    // Check if user already liked it
+    const { data: existingLike } = await supabase
+      .from('review_likes')
+      .select('*')
+      .eq('review_id', id)
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (existingLike) {
+      if (existingLike.is_helpful === isHelpful) {
+        // Toggle off (remove vote)
+        await supabase.from('review_likes').delete().eq('id', existingLike.id);
+      } else {
+        // Update vote
+        await supabase.from('review_likes').update({ is_helpful: isHelpful }).eq('id', existingLike.id);
+      }
+    } else {
+      // Add new vote
+      await supabase.from('review_likes').insert([{
+        review_id: id,
+        user_id: req.user.id,
+        is_helpful: isHelpful
+      }]);
+    }
+
+    // Emit live helpful counts update
+    const { data: review } = await supabase.from('reviews').select('product_id').eq('id', id).single();
+    const { data: likes } = await supabase.from('review_likes').select('*').eq('review_id', id);
+    const helpfulCount = likes ? likes.filter(l => l.is_helpful).length : 0;
+
+    const io = req.app.get('io');
+    if (io && review) {
+      io.to(`product_${review.product_id}`).emit('review_likes_updated', {
+        reviewId: id,
+        helpfulCount
+      });
+    }
+
+    res.json({ success: true, helpfulCount });
+  } catch (err) {
+    console.error('Error toggling helpful vote:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 7. Report Review
+app.post('/api/reviews/:id/report', authenticateUser, async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  try {
+    const { error } = await supabase
+      .from('review_reports')
+      .insert([{
+        review_id: id,
+        user_id: req.user.id,
+        reason: reason ? sanitizeString(reason) : 'Inappropriate content'
+      }]);
+
+    if (error && error.code !== '23505') throw error; // Ignore duplicates error (23505)
+
+    res.json({ success: true, message: 'Review reported successfully.' });
+  } catch (err) {
+    console.error('Error reporting review:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// --- ADMIN REVIEW MANAGEMENT ENDPOINTS ---
+
+// 8. Admin: List All Reviews with Filters
+app.get('/api/admin/reviews', authenticateAdmin, async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 15;
+  const rating = req.query.rating;
+  const status = req.query.status;
+  const verified = req.query.verified;
+  const search = req.query.search;
+  const offset = (page - 1) * limit;
+
+  try {
+    let query = supabase
+      .from('reviews')
+      .select(`
+        id, rating, title, comment, customer_name, is_verified, status, created_at, product_id,
+        products (title)
+      `, { count: 'exact' });
+
+    if (rating) query = query.eq('rating', parseInt(rating));
+    if (status) query = query.eq('status', status);
+    if (verified) query = query.eq('is_verified', verified === 'true');
+    
+    if (search) {
+      query = query.or(`customer_name.ilike.%${search}%,comment.ilike.%${search}%,title.ilike.%${search}%`);
+    }
+
+    query = query.order('created_at', { ascending: false });
+
+    const { data: reviews, count, error } = await query.range(offset, offset + limit - 1);
+    if (error) throw error;
+
+    res.json({
+      success: true,
+      reviews: reviews.map(r => ({
+        id: r.id,
+        productId: r.product_id,
+        productName: r.products ? r.products.title : 'Deleted Product',
+        rating: r.rating,
+        title: r.title,
+        comment: r.comment,
+        customerName: r.customer_name,
+        isVerified: r.is_verified,
+        status: r.status,
+        createdAt: r.created_at
+      })),
+      totalReviews: count,
+      totalPages: Math.ceil(count / limit)
+    });
+  } catch (err) {
+    console.error('Admin reviews query error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 9. Admin: Moderate Review Status (Approve / Reject)
+app.put('/api/admin/reviews/:id/status', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status || !['pending', 'approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ success: false, error: 'Invalid moderation status.' });
+  }
+
+  try {
+    const { data: review, error: getErr } = await supabase
+      .from('reviews')
+      .select('product_id')
+      .eq('id', id)
+      .single();
+
+    if (getErr || !review) {
+      return res.status(404).json({ success: false, error: 'Review not found.' });
+    }
+
+    const { data: updatedReview, error: updateErr } = await supabase
+      .from('reviews')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    const summary = await getProductRatingSummary(review.product_id);
+
+    // Emit live update
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`product_${review.product_id}`).emit('review_moderated', {
+        productId: review.product_id,
+        reviewId: id,
+        status,
+        summary
+      });
+    }
+
+    res.json({ success: true, review: updatedReview, summary });
+  } catch (err) {
+    console.error('Admin review status update error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 10. Admin: Review Statistics Dashboard
+app.get('/api/admin/reviews/stats', authenticateAdmin, async (req, res) => {
+  try {
+    const { data: allReviews, error } = await supabase
+      .from('reviews')
+      .select('rating, status, is_verified');
+
+    if (error) throw error;
+
+    const { data: reports } = await supabase.from('review_reports').select('id');
+
+    const total = allReviews.length;
+    const approved = allReviews.filter(r => r.status === 'approved').length;
+    const pending = allReviews.filter(r => r.status === 'pending').length;
+    const rejected = allReviews.filter(r => r.status === 'rejected').length;
+    const verified = allReviews.filter(r => r.is_verified).length;
+
+    const sum = allReviews.reduce((acc, r) => acc + r.rating, 0);
+    const avg = total > 0 ? parseFloat((sum / total).toFixed(1)) : 0;
+
+    res.json({
+      success: true,
+      stats: {
+        totalReviews: total,
+        approvedReviews: approved,
+        pendingReviews: pending,
+        rejectedReviews: rejected,
+        verifiedReviews: verified,
+        averageRating: avg,
+        reportedReviews: reports ? reports.length : 0
+      }
+    });
+  } catch (err) {
+    console.error('Admin review stats fetch error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Secure Global Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled System Error:', err);
   
-  // Do not leak stack traces or internal raw messages in production
   const isProduction = process.env.NODE_ENV === 'production';
   const responseError = isProduction 
     ? 'Internal system error occurred. Please contact customer support.' 
@@ -1707,7 +2314,26 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
-app.listen(PORT, () => {
+// Start Server & Bind Socket.io
+const server = app.listen(PORT, () => {
   console.log(`Backend Server running on http://localhost:${PORT}`);
+});
+
+const io = require('socket.io')(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  socket.on('join_product_room', (productId) => {
+    socket.join(`product_${productId}`);
+  });
+
+  socket.on('leave_product_room', (productId) => {
+    socket.leave(`product_${productId}`);
+  });
 });

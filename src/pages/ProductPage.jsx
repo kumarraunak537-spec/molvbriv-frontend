@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
 import { analytics } from '../services/analytics'
 import { updateSEO } from '../utils/seo'
+import ProductReviews from '../components/ProductReviews'
 
 
 export default function ProductPage() {
@@ -22,6 +23,7 @@ export default function ProductPage() {
   const [showDelivery, setShowDelivery] = useState(false)
   const [relatedProducts, setRelatedProducts] = useState([])
   const [activeBottomTab, setActiveBottomTab] = useState('related')
+  const [summary, setSummary] = useState({ averageRating: 0, totalRatings: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } })
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -139,6 +141,18 @@ export default function ProductPage() {
           setRelatedProducts(related)
         }
       }
+
+      // Fetch rating summary
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
+        const res = await fetch(`${API_BASE_URL}/api/reviews/summary/product/${data.id}`);
+        const sData = await res.json();
+        if (res.ok && sData.success) {
+          setSummary(sData.summary);
+        }
+      } catch (err) {
+        console.error('Error fetching summary:', err);
+      }
     } catch (err) {
       console.error('Error fetching product:', err.message)
     } finally {
@@ -233,6 +247,20 @@ export default function ProductPage() {
                 <span className="text-secondary text-[10px] uppercase tracking-[0.2em] font-bold">{product.tags[0]}</span>
               )}
               <h1 className="text-3xl md:text-5xl font-manrope text-primary mt-3 md:mt-4 mb-2 leading-tight">{product.title}</h1>
+              {summary && summary.totalRatings > 0 && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <div className="flex gap-0.5 text-secondary">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <span key={star} className={`material-symbols-outlined text-xs ${star <= Math.round(summary.averageRating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
+                        star
+                      </span>
+                    ))}
+                  </div>
+                  <span className="text-xs text-on-surface-variant font-medium">
+                    {summary.averageRating} / 5 ({summary.totalRatings} verified reviews)
+                  </span>
+                </div>
+              )}
               <div className="flex items-center gap-4 mt-6">
                 <span className="text-2xl md:text-3xl font-body text-secondary">₹{(product.price || 0).toLocaleString()}</span>
                 {product.compare_price && Number(product.compare_price) > Number(product.price) && (
@@ -424,6 +452,8 @@ export default function ProductPage() {
             )
           )}
         </div>
+
+        <ProductReviews productId={id} />
       </main>
 
       <Footer />

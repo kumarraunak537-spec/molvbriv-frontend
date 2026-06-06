@@ -123,6 +123,27 @@ export default function AdminPage() {
   // Quantities state for Collections page
   const [quantities, setQuantities] = useState({});
 
+  // Reviews state variables
+  const [reviewsData, setReviewsData] = useState([]);
+  const [reviewsStats, setReviewsStats] = useState({
+    totalReviews: 0,
+    approvedReviews: 0,
+    pendingReviews: 0,
+    rejectedReviews: 0,
+    verifiedReviews: 0,
+    averageRating: 0,
+    reportedReviews: 0
+  });
+  const [reviewsFilterRating, setReviewsFilterRating] = useState('all');
+  const [reviewsFilterStatus, setReviewsFilterStatus] = useState('all');
+  const [reviewsFilterVerified, setReviewsFilterVerified] = useState('all');
+  const [reviewsSearchQuery, setReviewsSearchQuery] = useState('');
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [reviewsTotalPages, setReviewsTotalPages] = useState(1);
+  const [reviewsTotalCount, setReviewsTotalCount] = useState(0);
+  const [isReviewsLoading, setIsReviewsLoading] = useState(false);
+  const [reviewsError, setReviewsError] = useState('');
+
   const [newProduct, setNewProduct] = useState({
     title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: ''
   });
@@ -436,6 +457,130 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     setIsUploadingFavicon(false);
   };
 
+  const fetchReviewsStats = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const targetUrl = `${API_BASE_URL}/api/admin/reviews/stats`;
+      const res = await fetch(targetUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReviewsStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Failed to fetch reviews stats:', err);
+    }
+  };
+
+  const fetchReviews = async () => {
+    setIsReviewsLoading(true);
+    setReviewsError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      let queryParams = `page=${reviewsPage}&limit=10`;
+      if (reviewsFilterRating !== 'all') queryParams += `&rating=${reviewsFilterRating}`;
+      if (reviewsFilterStatus !== 'all') queryParams += `&status=${reviewsFilterStatus}`;
+      if (reviewsFilterVerified !== 'all') queryParams += `&verified=${reviewsFilterVerified}`;
+      if (reviewsSearchQuery.trim()) queryParams += `&search=${encodeURIComponent(reviewsSearchQuery)}`;
+
+      const targetUrl = `${API_BASE_URL}/api/admin/reviews?${queryParams}`;
+      const res = await fetch(targetUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setReviewsData(data.reviews);
+        setReviewsTotalPages(data.totalPages || 1);
+        setReviewsTotalCount(data.totalReviews || 0);
+      } else {
+        throw new Error(data.error || 'Failed to query reviews');
+      }
+    } catch (err) {
+      console.error('Error fetching admin reviews:', err);
+      setReviewsError(err.message || 'Failed to fetch reviews.');
+    } finally {
+      setIsReviewsLoading(false);
+    }
+  };
+
+  const handleModerateReviewStatus = async (reviewId, newStatus) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const targetUrl = `${API_BASE_URL}/api/admin/reviews/${reviewId}/status`;
+      const res = await fetch(targetUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update review status');
+      }
+      showToast(`Review ${newStatus === 'approved' ? 'approved' : 'rejected'} successfully`);
+      setReviewsData(prev => prev.map(r => r.id === reviewId ? { ...r, status: newStatus } : r));
+      fetchReviewsStats();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to moderate review');
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm('Are you sure you want to permanently delete this review?')) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const targetUrl = `${API_BASE_URL}/api/reviews/${reviewId}`;
+      const res = await fetch(targetUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to delete review');
+      }
+      showToast('Review deleted successfully');
+      setReviewsData(prev => prev.filter(r => r.id !== reviewId));
+      fetchReviewsStats();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete review');
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && activePage === 'reviews') {
+      fetchReviews();
+    }
+  }, [isAuthenticated, activePage, reviewsPage, reviewsFilterRating, reviewsFilterStatus, reviewsFilterVerified]);
+
+  useEffect(() => {
+    if (isAuthenticated && activePage === 'reviews') {
+      const delayDebounce = setTimeout(() => {
+        setReviewsPage(1);
+        fetchReviews();
+      }, 500);
+      return () => clearTimeout(delayDebounce);
+    }
+  }, [reviewsSearchQuery]);
+
+  useEffect(() => {
+    if (isAuthenticated && activePage === 'reviews') {
+      fetchReviewsStats();
+    }
+  }, [isAuthenticated, activePage]);
+
   const titles = {
     dashboard: 'Dashboard',
     products: 'All Products',
@@ -443,6 +588,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     add: 'Add Product',
     customize: 'Customize Product',
     orders: 'View Orders',
+    reviews: 'Review Management',
     settings: 'Website Settings'
   };
 
@@ -643,6 +789,10 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
             <div className={`ni ${activePage === 'orders' ? 'active' : ''}`} onClick={() => nav('orders')}>
               <svg className="nic" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1.5" y="3" width="13" height="11" rx="1" /><path d="M5 3V2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M4 8h8M4 11h5" /></svg>
               View Orders
+            </div>
+            <div className={`ni ${activePage === 'reviews' ? 'active' : ''}`} onClick={() => nav('reviews')}>
+              <svg className="nic" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M8 1.5l2.2 4.5 4.9.7-3.6 3.5.9 4.9-4.4-2.3-4.4 2.3.9-4.9-3.6-3.5 4.9-.7L8 1.5z" /></svg>
+              Reviews
             </div>
             
             <div className="nl">SYSTEM</div>
@@ -1275,6 +1425,188 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* REVIEW MANAGEMENT */}
+            <div className={`pg ${activePage === 'reviews' ? 'active' : ''}`}>
+              {/* Statistics Grid */}
+              <div className="kg">
+                <div className="kc">
+                  <div className="kl">TOTAL REVIEWS</div>
+                  <div className="kv">{reviewsStats.totalReviews}</div>
+                  <div className="ks" style={{ color: 'var(--mu)' }}>All time submissions</div>
+                </div>
+                <div className="kc">
+                  <div className="kl">AVERAGE RATING</div>
+                  <div className="kv" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {reviewsStats.averageRating} <span style={{ color: 'var(--am)', fontSize: '15px' }}>★</span>
+                  </div>
+                  <div className="ks ku">Approved ratings</div>
+                </div>
+                <div className="kc">
+                  <div className="kl">PENDING APPROVAL</div>
+                  <div className="kv" style={{ color: reviewsStats.pendingReviews > 0 ? 'var(--am)' : 'var(--tx)' }}>
+                    {reviewsStats.pendingReviews}
+                  </div>
+                  <div className="ks" style={{ color: 'var(--mu)' }}>{reviewsStats.pendingReviews > 0 ? 'Requires action' : 'All moderated'}</div>
+                </div>
+                <div className="kc">
+                  <div className="kl">REPORTED REVIEWS</div>
+                  <div className="kv" style={{ color: reviewsStats.reportedReviews > 0 ? 'var(--rd)' : 'var(--tx)' }}>
+                    {reviewsStats.reportedReviews}
+                  </div>
+                  <div className="ks" style={{ color: 'var(--mu)' }}>{reviewsStats.reportedReviews > 0 ? 'Flagged content' : 'No flags'}</div>
+                </div>
+              </div>
+
+              {/* Filters Toolbar */}
+              <div className="ctb" style={{ flexWrap: 'wrap', gap: '12px' }}>
+                <input 
+                  className="si si-search" 
+                  type="text" 
+                  placeholder="Search reviews by customer name or comments..." 
+                  value={reviewsSearchQuery}
+                  onChange={e => setReviewsSearchQuery(e.target.value)}
+                />
+                
+                {/* Rating Filter */}
+                <select 
+                  className="si si-sel" 
+                  style={{ width: '130px' }} 
+                  value={reviewsFilterRating} 
+                  onChange={e => { setReviewsFilterRating(e.target.value); setReviewsPage(1); }}
+                >
+                  <option value="all">All Ratings</option>
+                  <option value="5">5 Stars</option>
+                  <option value="4">4 Stars</option>
+                  <option value="3">3 Stars</option>
+                  <option value="2">2 Stars</option>
+                  <option value="1">1 Star</option>
+                </select>
+
+                {/* Status Filter */}
+                <select 
+                  className="si si-sel" 
+                  style={{ width: '130px' }} 
+                  value={reviewsFilterStatus} 
+                  onChange={e => { setReviewsFilterStatus(e.target.value); setReviewsPage(1); }}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="approved">Approved</option>
+                  <option value="pending">Pending</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+
+                {/* Verified Filter */}
+                <select 
+                  className="si si-sel" 
+                  style={{ width: '140px' }} 
+                  value={reviewsFilterVerified} 
+                  onChange={e => { setReviewsFilterVerified(e.target.value); setReviewsPage(1); }}
+                >
+                  <option value="all">Purchase Type</option>
+                  <option value="true">Verified Buyer</option>
+                  <option value="false">Non-Verified</option>
+                </select>
+              </div>
+
+              {/* Reviews Table */}
+              <div className="ot">
+                <div className="oh" style={{ gridTemplateColumns: '1fr 1.2fr 2fr 0.8fr 1fr 130px', padding: '9px 15px' }}>
+                  <span>CUSTOMER</span>
+                  <span>PRODUCT</span>
+                  <span>REVIEW CONTENT</span>
+                  <span>RATING</span>
+                  <span>STATUS</span>
+                  <span style={{ textAlign: 'right' }}>ACTIONS</span>
+                </div>
+                {isReviewsLoading ? (
+                  <div style={{ padding: '40px', textAlign: 'center', color: 'var(--mu)', display: 'flex', justifyContent: 'center', gap: '10px', alignItems: 'center' }}>
+                    <span className="admin-login-spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderTopColor: 'var(--tx)' }}></span>
+                    <span>Loading reviews...</span>
+                  </div>
+                ) : reviewsError ? (
+                  <div style={{ padding: '30px', textAlign: 'center', color: 'var(--rd)' }}>{reviewsError}</div>
+                ) : reviewsData.length > 0 ? reviewsData.map(r => {
+                  return (
+                    <div 
+                      key={r.id} 
+                      className="or" 
+                      style={{ gridTemplateColumns: '1fr 1.2fr 2fr 0.8fr 1fr 130px', padding: '12px 15px', alignItems: 'start' }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ color: 'var(--tx)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.customerName}</div>
+                        <span style={{ fontSize: '9px', padding: '2px 5px', borderRadius: '3px', marginTop: '4px', display: 'inline-block', ...(r.isVerified ? { background: 'rgba(52,211,153,0.1)', color: '#34d399' } : { background: 'var(--s2)', color: 'var(--mu)' }) }}>
+                          {r.isVerified ? 'Verified Buyer' : 'Public Submit'}
+                        </span>
+                      </div>
+                      
+                      <span style={{ color: 'var(--tx)', fontSize: '11px', fontWeight: 500 }}>{r.productName}</span>
+                      
+                      <div style={{ paddingRight: '10px' }}>
+                        {r.title && <div style={{ color: 'var(--tx)', fontWeight: 600, fontSize: '11.5px', marginBottom: '2px' }}>{r.title}</div>}
+                        <div style={{ color: 'var(--mu)', fontSize: '11px', lineHeight: '1.4', wordBreak: 'break-word' }}>{r.comment || <span style={{ fontStyle: 'italic', opacity: 0.7 }}>No text review</span>}</div>
+                        <div style={{ color: 'var(--su)', fontSize: '9px', marginTop: '4px' }}>Submitted: {new Date(r.createdAt).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })}</div>
+                      </div>
+
+                      <span style={{ color: 'var(--am)', fontWeight: 600, fontSize: '13px' }}>
+                        {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                      </span>
+
+                      <span style={{ alignSelf: 'start' }}>
+                        <span className={`bg ${r.status === 'approved' ? 'bgn' : (r.status === 'pending' ? 'bga' : 'kd')}`} style={{ textTransform: 'uppercase', fontSize: '9px' }}>
+                          {r.status}
+                        </span>
+                      </span>
+
+                      <div className="rab" style={{ justifyContent: 'flex-end', gap: '6px' }}>
+                        {r.status !== 'approved' && (
+                          <button className="ab" style={{ borderColor: 'var(--gn)', color: 'var(--gn)', background: 'rgba(61,170,106,0.05)' }} onClick={() => handleModerateReviewStatus(r.id, 'approved')}>
+                            Approve
+                          </button>
+                        )}
+                        {r.status !== 'rejected' && (
+                          <button className="ab" style={{ borderColor: 'var(--rd)', color: 'var(--rd)', background: 'rgba(224,82,82,0.05)' }} onClick={() => handleModerateReviewStatus(r.id, 'rejected')}>
+                            Reject
+                          </button>
+                        )}
+                        <button className="ab" onClick={() => handleDeleteReview(r.id)} title="Delete permanently">
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }) : (
+                  <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mu)', fontSize: '12px' }}>No reviews found matching the filters.</div>
+                )}
+              </div>
+
+              {/* Pagination Footer */}
+              {reviewsTotalPages > 1 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px', background: 'var(--s1)', border: '1px solid var(--b1)', padding: '10px 15px', borderRadius: '8px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--mu)' }}>
+                    Showing page {reviewsPage} of {reviewsTotalPages} (Total {reviewsTotalCount} reviews)
+                  </span>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      className="btn" 
+                      disabled={reviewsPage === 1 || isReviewsLoading} 
+                      onClick={() => setReviewsPage(prev => Math.max(1, prev - 1))}
+                      style={{ padding: '5px 10px', fontSize: '11px', opacity: reviewsPage === 1 ? 0.5 : 1 }}
+                    >
+                      Previous
+                    </button>
+                    <button 
+                      className="btn" 
+                      disabled={reviewsPage === reviewsTotalPages || isReviewsLoading} 
+                      onClick={() => setReviewsPage(prev => Math.min(reviewsTotalPages, prev + 1))}
+                      style={{ padding: '5px 10px', fontSize: '11px', opacity: reviewsPage === reviewsTotalPages ? 0.5 : 1 }}
+                    >
+                      Next
+                    </button>
                   </div>
                 </div>
               )}
