@@ -4,6 +4,9 @@ import Navbar from '../components/Navbar.jsx'
 import Footer from '../components/Footer.jsx'
 import { useCart } from '../context/CartContext.jsx'
 import { supabase } from '../supabaseClient'
+import { analytics } from '../services/analytics'
+import { updateSEO } from '../utils/seo'
+
 
 export default function CollectionsPage() {
   const { wishlist, toggleWishlist } = useCart()
@@ -17,7 +20,20 @@ export default function CollectionsPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
     fetchProducts()
+    updateSEO({
+      title: "Jewelry Collections — Molvbriv",
+      description: "Discover the Molvbriv Heritage Collections of fine jewelry. From royal jhumkas and traditional earrings to designer necklaces and modern bangles.",
+      canonicalUrl: window.location.origin + "/collections"
+    })
   }, [])
+
+  useEffect(() => {
+    if (products.length > 0) {
+      const activeCategory = categories.length > 0 ? categories.join(', ') : 'All Collections';
+      analytics.trackViewItemList(filteredProducts, activeCategory);
+    }
+  }, [categories, products]);
+
 
   const fetchProducts = async () => {
     setIsLoading(true)
@@ -129,7 +145,7 @@ export default function CollectionsPage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       />
                       <button
-                        onClick={(e) => { e.preventDefault(); toggleWishlist(product.id) }}
+                        onClick={(e) => { e.preventDefault(); toggleWishlist(product.id, product) }}
                         className="absolute top-4 right-4 hover:scale-110 transition-transform duration-300"
                         aria-label="Toggle Wishlist"
                       >

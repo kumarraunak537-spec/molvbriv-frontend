@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react'
 import { supabase } from '../supabaseClient'
+import { analytics } from '../services/analytics'
 
 const CartContext = createContext()
 
@@ -13,21 +14,42 @@ export function CartProvider({ children }) {
   const [isCartLoaded, setIsCartLoaded] = useState(false)
   const [isWishlistLoaded, setIsWishlistLoaded] = useState(false)
 
+  const lastUserRef = useRef(null)
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session)
       setUser(session?.user || null)
       setIsSessionLoaded(true)
+      if (session?.user) {
+        lastUserRef.current = session.user.id
+      }
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session)
       setUser(session?.user || null)
       setIsSessionLoaded(true)
+
+      const currentUserId = session?.user?.id || null
+      const prevUserId = lastUserRef.current
+
+      if (currentUserId !== prevUserId) {
+        if (currentUserId && !prevUserId) {
+          // User logged in
+          const method = session.user.app_metadata?.provider || 'email'
+          analytics.trackLogin(method)
+        } else if (!currentUserId && prevUserId) {
+          // User logged out
+          analytics.trackLogout()
+        }
+        lastUserRef.current = currentUserId
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
 
   // Load cart and wishlist when session resolves
   useEffect(() => {
@@ -143,6 +165,7 @@ export function CartProvider({ children }) {
   }, [wishlist, user, isWishlistLoaded])
 
   const addToCart = useCallback((item) => {
+    analytics.trackAddToCart(item, 1)
     setCartItems(prev => {
       const existing = prev.find(i => i.id === item.id)
       if (existing) {
@@ -153,7 +176,13 @@ export function CartProvider({ children }) {
   }, [])
 
   const removeFromCart = useCallback((id) => {
-    setCartItems(prev => prev.filter(i => i.id !== id))
+    setCartItems(prev => {
+      const item = prev.find(i => i.id === id)
+      if (item) {
+        analytics.trackRemoveFromCart(item, item.quantity)
+      }
+      return prev.filter(i => i.id !== id)
+    })
   }, [])
 
   const updateQuantity = useCallback((id, quantity) => {
@@ -171,7 +200,7 @@ export function CartProvider({ children }) {
   const taxes = Math.round(subtotal - (subtotal / 1.03))
   const grandTotal = subtotal
 
-  const toggleWishlist = useCallback(async (productId) => {
+  const toggleWishlist = useCallback(async (productId, productDetails = null) => {
     if (!user) {
       alert("Please login to manage your wishlist.")
       window.location.href = "/login"
@@ -180,9 +209,26 @@ export function CartProvider({ children }) {
     
     // Toggle state locally first for instant feedback (optimistic UI)
     const exists = wishlist.includes(productId);
+    
+    if (productDetails) {
+      if (exists) {
+        analytics.trackRemoveFromWishlist(productDetails)
+      } else {
+        analytics.trackAddToWishlist(productDetails)
+      }
+    } else {
+      const fallbackItem = { id: productId, title: `Product #${productId}`, price: 0 }
+      if (exists) {
+        analytics.trackRemoveFromWishlist(fallbackItem)
+      } else {
+        analytics.trackAddToWishlist(fallbackItem)
+      }
+    }
+
     setWishlist(prev =>
       exists ? prev.filter(id => id !== productId) : [...prev, productId]
     );
+
 
     try {
       // 1. Get or create wishlist ID

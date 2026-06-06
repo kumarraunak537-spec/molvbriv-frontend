@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import heroVideo from '../assets/video.mp4'
+import { updateSEO } from '../utils/seo'
+
 
 export default function HomePage() {
   const [email, setEmail] = useState('')
@@ -14,7 +16,12 @@ export default function HomePage() {
 
   useEffect(() => {
     window.scrollTo(0, 0)
+    updateSEO({
+      title: "Molvbriv — The Timeless Curator",
+      description: "Molvbriv — Luxury fine jewelry crafted with timeless elegance since 1904. Discover our Heritage Collection of handcrafted rings, necklaces, earrings and more."
+    })
   }, [])
+
 
   const handleSubscribe = async (e) => {
     e.preventDefault()

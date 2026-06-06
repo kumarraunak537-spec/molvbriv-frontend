@@ -4,6 +4,9 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
+import { analytics } from '../services/analytics'
+import { updateSEO } from '../utils/seo'
+
 
 export default function ProductPage() {
   const { id } = useParams()
@@ -27,6 +30,60 @@ export default function ProductPage() {
   }, [id])
 
   useEffect(() => {
+    if (product) {
+      const canonicalUrl = `${window.location.origin}/product/${product.id}`
+      const imageUrl = product.images && product.images.length > 0 
+        ? product.images[0] 
+        : 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=1200&h=630&fit=crop'
+      
+      updateSEO({
+        title: `${product.title} — Molvbriv`,
+        description: product.description || `Buy ${product.title} on Molvbriv. Luxury fine jewelry crafted with timeless elegance.`,
+        canonicalUrl,
+        ogType: "product",
+        ogImage: imageUrl
+      })
+
+      // Dynamic Product Schema (JSON-LD) injection
+      const schemaId = 'product-jsonld'
+      let script = document.getElementById(schemaId)
+      if (!script) {
+        script = document.createElement('script')
+        script.id = schemaId
+        script.type = 'application/ld+json'
+        document.head.appendChild(script)
+      }
+
+      const productSchema = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": product.title,
+        "image": product.images && product.images.length > 0 ? product.images : [imageUrl],
+        "description": product.description || `Luxury fine jewelry - ${product.title} on Molvbriv.`,
+        "sku": product.id,
+        "offers": {
+          "@type": "Offer",
+          "url": canonicalUrl,
+          "priceCurrency": "INR",
+          "price": product.price,
+          "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          "priceValidUntil": "2027-12-31"
+        }
+      }
+
+      script.textContent = JSON.stringify(productSchema)
+    }
+
+    return () => {
+      // Cleanup schema script tag when component unmounts or product changes
+      const script = document.getElementById('product-jsonld')
+      if (script) {
+        script.remove()
+      }
+    }
+  }, [product])
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem('recentProducts')
       if (stored) {
@@ -46,6 +103,13 @@ export default function ProductPage() {
       
       if (error) throw error
       setProduct(data)
+      analytics.trackViewItem({
+        id: data.id,
+        name: data.title,
+        price: data.price,
+        category: data.category,
+      })
+
 
       try {
         const stored = localStorage.getItem('recentProducts')
@@ -197,7 +261,7 @@ export default function ProductPage() {
                   {addedToCart ? 'Added to Cart ✓' : 'Add to Cart'}
                 </button>
                 <button 
-                  onClick={() => toggleWishlist(product.id)} 
+                  onClick={() => toggleWishlist(product.id, product)} 
                   className={`w-16 flex items-center justify-center border transition-all hover:scale-105 hover:shadow-sm ${wishlist?.includes(product?.id) ? 'border-black bg-red-50' : 'border-outline-variant/30 hover:bg-surface-container-highest'}`}
                   aria-label="Toggle Wishlist"
                 >

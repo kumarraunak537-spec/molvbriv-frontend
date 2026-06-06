@@ -20,6 +20,7 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import { CartProvider } from './context/CartContext.jsx'
+import { analytics } from './services/analytics'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -33,6 +34,10 @@ import { supabase } from './supabaseClient'
 
 function App() {
   const location = useLocation()
+
+  useEffect(() => {
+    analytics.trackPageView(location.pathname + location.search)
+  }, [location.pathname, location.search])
 
   useEffect(() => {
     async function loadFavicon() {

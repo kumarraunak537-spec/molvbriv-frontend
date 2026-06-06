@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
 import { supabase } from '../supabaseClient'
+import { analytics } from '../services/analytics'
+
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
 
@@ -206,17 +208,21 @@ export default function LoginPage() {
           if (data?.user?.identities?.length === 0) {
              setAuthError('This email is already registered. Please sign in.')
              setLoading(false)
-          } else if (!data.session) {
-             // Email confirmation is active in Supabase (sets green success message card)
-             setSuccessMessage('Account created successfully! Please check your email inbox to verify your account before logging in.')
-             setLoading(false)
           } else {
-             // Verification is disabled, user logs in automatically
-             const params = new URLSearchParams(window.location.search);
-             const redirect = params.get('redirect');
-             navigate(redirect ? `/${redirect}` : '/');
+             analytics.trackSignup('email')
+             if (!data.session) {
+                // Email confirmation is active in Supabase (sets green success message card)
+                setSuccessMessage('Account created successfully! Please check your email inbox to verify your account before logging in.')
+                setLoading(false)
+             } else {
+                // Verification is disabled, user logs in automatically
+                const params = new URLSearchParams(window.location.search);
+                const redirect = params.get('redirect');
+                navigate(redirect ? `/${redirect}` : '/');
+             }
           }
         }
+
       } catch (err) {
         setAuthError(err.message || 'An unexpected registration error occurred.')
         setLoading(false)

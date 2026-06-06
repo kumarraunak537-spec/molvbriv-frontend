@@ -4,6 +4,9 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { supabase } from '../supabaseClient'
 import { useCart } from '../context/CartContext'
+import { analytics } from '../services/analytics'
+import { updateSEO } from '../utils/seo'
+
 
 export default function NewArrivalsPage() {
   const navigate = useNavigate()
@@ -27,6 +30,11 @@ export default function NewArrivalsPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
     fetchNewArrivals()
+    updateSEO({
+      title: "New Arrivals — Molvbriv",
+      description: "Explore the latest additions to Molvbriv. Handcrafted luxury jewelry freshly curated for our signature collection.",
+      canonicalUrl: window.location.origin + "/new-arrivals"
+    })
   }, [])
 
   const fetchNewArrivals = async () => {
@@ -40,6 +48,8 @@ export default function NewArrivalsPage() {
       
       if (error) throw error
       setProducts(data || [])
+      analytics.trackViewItemList(data || [], 'New Arrivals')
+
     } catch (err) {
       console.error('Error fetching new arrivals:', err.message)
     } finally {

@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
+import { analytics } from '../services/analytics'
+
 
 const INDIAN_STATES = [
   "Andhra Pradesh",
@@ -93,7 +95,17 @@ export default function CartPage() {
     }
   }, [user]);
 
+  const hasFiredCheckoutRef = useRef(false);
+
+  useEffect(() => {
+    if (cartItems.length > 0 && !hasFiredCheckoutRef.current) {
+      analytics.trackBeginCheckout(cartItems, subtotal);
+      hasFiredCheckoutRef.current = true;
+    }
+  }, [cartItems, subtotal]);
+
   const [activeStep, setActiveStep] = useState(1)
+
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
@@ -443,6 +455,10 @@ export default function CartPage() {
       setActiveStep(activeStep > 1 ? activeStep : 1);
       return;
     }
+
+    analytics.trackAddShippingInfo(cartItems, grandTotal)
+    analytics.trackAddPaymentInfo(cartItems, grandTotal, paymentMethod)
+
 
     const billingAddressDetails = billingSame ? {
       email: email,

@@ -4,6 +4,9 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { supabase } from '../supabaseClient'
 import { useCart } from '../context/CartContext'
+import { analytics } from '../services/analytics'
+import { updateSEO } from '../utils/seo'
+
 
 export default function AllProductsPage() {
   const location = useLocation()
@@ -35,6 +38,31 @@ export default function AllProductsPage() {
     window.scrollTo(0, 0)
     fetchProducts()
   }, [])
+
+  useEffect(() => {
+    const title = searchQuery ? `Search: "${searchQuery}" — Molvbriv` : "Shop Fine Jewelry — Molvbriv"
+    const description = searchQuery 
+      ? `Search results for "${searchQuery}" on Molvbriv. Discover handcrafted, luxury fine jewelry including jhumkas, rings, and earrings.`
+      : "Browse the complete collection of luxury fine jewelry at Molvbriv. Handcrafted rings, necklaces, earrings, and bangles designed with heritage elegance."
+    const canonicalUrl = window.location.origin + "/all-products" + (searchQuery ? `?search=${encodeURIComponent(searchQuery)}` : '')
+    
+    updateSEO({
+      title,
+      description,
+      canonicalUrl
+    })
+  }, [searchQuery])
+
+  useEffect(() => {
+    if (products.length > 0) {
+      if (searchQuery) {
+        analytics.trackSearch(searchQuery, filteredProducts)
+      } else {
+        analytics.trackViewItemList(filteredProducts, 'All Products')
+      }
+    }
+  }, [searchQuery, products])
+
 
   const fetchProducts = async () => {
     setIsLoading(true)

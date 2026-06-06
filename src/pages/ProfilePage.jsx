@@ -4,6 +4,8 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
+import { analytics } from '../services/analytics'
+
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
 
@@ -319,13 +321,16 @@ export default function ProfilePage() {
           .update(payload)
           .eq('id', editingAddress.id)
         if (error) throw error
+        analytics.trackAddressUpdated()
       } else {
         // INSERT
         const { error } = await supabase
           .from('addresses')
           .insert([payload])
         if (error) throw error
+        analytics.trackAddressAdded()
       }
+
       
       setIsAddressModalOpen(false)
       await fetchAddresses()
@@ -451,14 +456,16 @@ export default function ProfilePage() {
       image: (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop',
       description: product.description || ''
     })
-    toggleWishlist(product.id) // Remove from database wishlist
+    toggleWishlist(product.id, product) // Remove from database wishlist
     setWishlistProducts(prev => prev.filter(p => p.id !== product.id))
   }
 
   const handleRemoveFromWishlist = (productId) => {
-    toggleWishlist(productId)
+    const prod = wishlistProducts.find(p => p.id === productId);
+    toggleWishlist(productId, prod)
     setWishlistProducts(prev => prev.filter(p => p.id !== productId))
   }
+
 
   const getInitials = (name) => {
     if (!name) return 'U'
@@ -554,7 +561,9 @@ export default function ProfilePage() {
       }
 
       setIsEditingProfile(false)
+      analytics.trackProfileUpdated()
       alert('Profile details updated successfully!')
+
     } catch (err) {
       setEditError(err.message || 'An error occurred while updating your profile.')
     } finally {

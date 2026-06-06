@@ -1,12 +1,20 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { analytics } from '../services/analytics'
 
 export default function PaymentSuccessPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const order = location.state?.order;
+
+  useEffect(() => {
+    if (order) {
+      analytics.trackPurchase(order)
+    }
+  }, [order]);
+
 
   // Render dummy / placeholder receipt in case of direct access
   const displayOrder = order || {

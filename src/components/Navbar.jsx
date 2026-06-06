@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
+import { analytics } from '../services/analytics'
+
 
 export default function Navbar() {
   const { cartCount, isLoggedIn, user, setIsLoggedIn, globalProfile } = useCart()
@@ -21,10 +23,12 @@ export default function Navbar() {
   const handleSearchSubmit = (e) => {
     if (e) e.preventDefault()
     if (searchVal.trim()) {
+      analytics.trackSearch(searchVal.trim(), [])
       navigate(`/all-products?search=${encodeURIComponent(searchVal.trim())}`)
       setIsSearchOpen(false)
     }
   }
+
 
   useEffect(() => {
     // Subtle fade in and slide down animation on page load
