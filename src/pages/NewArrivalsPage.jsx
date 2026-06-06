@@ -13,6 +13,7 @@ export default function NewArrivalsPage() {
   const { addToCart } = useCart()
   const [products, setProducts] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [ratingsMap, setRatingsMap] = useState({})
 
   const handleQuickShop = (e, product) => {
     e.preventDefault()
@@ -30,6 +31,7 @@ export default function NewArrivalsPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
     fetchNewArrivals()
+    fetchRatings()
     updateSEO({
       title: "New Arrivals — Molvbriv",
       description: "Explore the latest additions to Molvbriv. Handcrafted luxury jewelry freshly curated for our signature collection.",
@@ -54,6 +56,30 @@ export default function NewArrivalsPage() {
       console.error('Error fetching new arrivals:', err.message)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchRatings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('product_id, rating')
+        .eq('status', 'approved')
+      if (error) throw error
+      
+      const lookup = {}
+      if (data) {
+        data.forEach(r => {
+          if (!lookup[r.product_id]) {
+            lookup[r.product_id] = { sum: 0, count: 0 }
+          }
+          lookup[r.product_id].sum += r.rating
+          lookup[r.product_id].count += 1
+        })
+      }
+      setRatingsMap(lookup)
+    } catch (err) {
+      console.error('Error fetching ratings:', err.message)
     }
   }
 
@@ -105,6 +131,21 @@ export default function NewArrivalsPage() {
                     <Link to={`/product/${product.id}`} className="text-center block">
                       <h3 className="text-primary font-body font-semibold text-sm mb-1">{product.title}</h3>
                       <p className="text-secondary font-manrope text-lg">₹{(product.price || 0).toLocaleString()}</p>
+                      {ratingsMap[product.id] && ratingsMap[product.id].count > 0 && (
+                        <div className="flex items-center justify-center gap-1 mt-1.5 text-secondary">
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map((star) => {
+                              const avg = ratingsMap[product.id].sum / ratingsMap[product.id].count;
+                              return (
+                                <span key={star} className={`material-symbols-outlined text-[10px] ${star <= Math.round(avg) ? 'fill-secondary text-secondary' : 'text-outline-variant/30'}`}>
+                                  star
+                                </span>
+                              );
+                            })}
+                          </div>
+                          <span className="text-[10px] text-on-surface-variant font-medium">({ratingsMap[product.id].count})</span>
+                        </div>
+                      )}
                     </Link>
                   </div>
                 ))}

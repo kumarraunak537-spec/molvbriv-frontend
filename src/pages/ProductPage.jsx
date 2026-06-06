@@ -247,20 +247,20 @@ export default function ProductPage() {
                 <span className="text-secondary text-[10px] uppercase tracking-[0.2em] font-bold">{product.tags[0]}</span>
               )}
               <h1 className="text-3xl md:text-5xl font-manrope text-primary mt-3 md:mt-4 mb-2 leading-tight">{product.title}</h1>
-              {summary && summary.totalRatings > 0 && (
-                <div className="flex items-center gap-1.5 mt-2">
-                  <div className="flex gap-0.5 text-secondary">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <span key={star} className={`material-symbols-outlined text-xs ${star <= Math.round(summary.averageRating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
-                        star
-                      </span>
-                    ))}
-                  </div>
-                  <span className="text-xs text-on-surface-variant font-medium">
-                    {summary.averageRating} / 5 ({summary.totalRatings} verified reviews)
-                  </span>
+              <div className="flex items-center gap-1.5 mt-2">
+                <div className="flex gap-0.5 text-secondary">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span key={star} className={`material-symbols-outlined text-xs ${summary && star <= Math.round(summary.averageRating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
+                      star
+                    </span>
+                  ))}
                 </div>
-              )}
+                <span className="text-xs text-on-surface-variant font-medium">
+                  {summary && summary.totalRatings > 0 
+                    ? `${summary.averageRating} / 5 (${summary.totalRatings} verified reviews)`
+                    : 'No reviews yet'}
+                </span>
+              </div>
               <div className="flex items-center gap-4 mt-6">
                 <span className="text-2xl md:text-3xl font-body text-secondary">₹{(product.price || 0).toLocaleString()}</span>
                 {product.compare_price && Number(product.compare_price) > Number(product.price) && (

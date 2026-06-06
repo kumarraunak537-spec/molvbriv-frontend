@@ -15,6 +15,7 @@ export default function ProductReviews({ productId }) {
   const [sort, setSort] = useState('newest');
 
   // Form State
+  const [showForm, setShowForm] = useState(false);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [title, setTitle] = useState('');
@@ -231,6 +232,12 @@ export default function ProductReviews({ productId }) {
       // Instantly refresh reviews list locally
       fetchReviews(1, true);
       fetchSummary();
+      
+      // Collapse form after a brief delay
+      setTimeout(() => {
+        setShowForm(false);
+        setSuccessMsg('');
+      }, 2500);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to submit review.');
     } finally {
@@ -291,43 +298,43 @@ export default function ProductReviews({ productId }) {
   };
 
   return (
-    <div className="mt-16 border-t border-surface-variant/20 pt-16 max-w-4xl mx-auto">
-      <h2 className="text-xl md:text-2xl font-manrope text-primary mb-8 font-semibold tracking-wide">
+    <div className="mt-10 border-t border-surface-variant/10 pt-10 max-w-3xl mx-auto">
+      <h2 className="text-base md:text-lg font-manrope text-primary mb-4 font-semibold tracking-wide text-center">
         Ratings & Customer Reviews
       </h2>
 
-      {/* Ratings Breakdown Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start mb-12">
-        <div className="md:col-span-4 flex flex-col items-center justify-center p-6 bg-surface-container-low rounded-xl text-center">
-          <div className="text-4xl md:text-5xl font-manrope text-secondary font-bold mb-2">
-            {summary.averageRating} <span className="text-sm font-light text-on-surface-variant">/ 5</span>
+      {/* Ratings Breakdown row */}
+      <div className="flex flex-col sm:flex-row gap-6 items-center justify-between p-4 bg-surface-container-low rounded-lg mb-6">
+        <div className="flex flex-col items-center text-center px-4">
+          <div className="text-3xl font-manrope text-secondary font-bold">
+            {summary.averageRating} <span className="text-xs font-light text-on-surface-variant">/ 5</span>
           </div>
-          <div className="flex gap-1 mb-2">
+          <div className="flex gap-0.5 my-1">
             {[1, 2, 3, 4, 5].map((star) => (
-              <span key={star} className={`material-symbols-outlined text-xl ${star <= Math.round(summary.averageRating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
+              <span key={star} className={`material-symbols-outlined text-sm ${star <= Math.round(summary.averageRating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
                 star
               </span>
             ))}
           </div>
-          <div className="text-xs text-on-surface-variant font-light">
+          <div className="text-[10px] text-on-surface-variant/70">
             ({summary.totalRatings.toLocaleString()} verified ratings)
           </div>
         </div>
 
         {/* Breakdown bars */}
-        <div className="md:col-span-8 space-y-2.5">
+        <div className="flex-1 w-full max-w-md space-y-1.5 border-t sm:border-t-0 sm:border-l border-surface-variant/10 pt-4 sm:pt-0 sm:pl-6">
           {[5, 4, 3, 2, 1].map((star) => {
             const percentage = summary.breakdown[star] || 0;
             return (
-              <div key={star} className="flex items-center gap-4 text-xs">
-                <span className="w-12 text-on-surface-variant text-right font-medium">{star} Star</span>
-                <div className="flex-grow h-2.5 bg-surface-container-highest rounded-full overflow-hidden">
+              <div key={star} className="flex items-center gap-3 text-[11px]">
+                <span className="w-10 text-on-surface-variant text-right font-medium">{star} Star</span>
+                <div className="flex-grow h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-secondary transition-all duration-1000 rounded-full"
+                    className="h-full bg-secondary rounded-full"
                     style={{ width: `${percentage}%` }}
                   ></div>
                 </div>
-                <span className="w-8 text-on-surface-variant font-light">{percentage}%</span>
+                <span className="w-8 text-on-surface-variant/85 text-left">{percentage}%</span>
               </div>
             );
           })}
@@ -336,119 +343,140 @@ export default function ProductReviews({ productId }) {
 
       {/* Submission Form Section */}
       {user ? (
-        <form onSubmit={handleSubmit} className="p-6 md:p-8 bg-surface-container-low rounded-xl mb-12 border border-surface-variant/20 space-y-6">
-          <h3 className="font-manrope text-base text-primary font-semibold tracking-wide">Write a Review</h3>
-          
-          {errorMsg && <p className="text-xs text-red-500 font-medium">{errorMsg}</p>}
-          {successMsg && <p className="text-xs text-[#1a4a35] font-semibold">{successMsg}</p>}
-
-          <div className="space-y-2">
-            <label className="block text-xs uppercase tracking-wider text-outline font-bold">Select Rating</label>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  className="focus:outline-none transition-transform active:scale-95"
-                >
-                  <span className={`material-symbols-outlined text-3xl cursor-pointer ${star <= (hoverRating || rating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
-                    star
-                  </span>
-                </button>
-              ))}
-            </div>
+        !showForm ? (
+          <div className="flex justify-center mb-6">
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="border border-secondary text-secondary px-6 py-2.5 text-[10px] uppercase tracking-widest font-bold hover:bg-secondary/5 transition-all rounded-sm"
+            >
+              Write a Review
+            </button>
           </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs uppercase tracking-wider text-outline font-bold">Review Title</label>
-            <input
-              type="text"
-              className="w-full bg-surface border-none focus:ring-1 focus:ring-secondary py-3 px-4 text-sm"
-              placeholder="Example: Exquisite craftsmanship, beautiful stones!"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs uppercase tracking-wider text-outline font-bold">Review Details</label>
-            <textarea
-              rows="4"
-              className="w-full bg-surface border-none focus:ring-1 focus:ring-secondary py-3 px-4 text-sm"
-              placeholder="Share your experience with the jewelry piece..."
-              value={comment}
-              onChange={e => setComment(e.target.value)}
-            ></textarea>
-          </div>
-
-          {/* Media attachment uploads */}
-          <div className="space-y-3">
-            <label className="block text-xs uppercase tracking-wider text-outline font-bold">Add Photo or Video (Max 10MB)</label>
-            <div className="flex flex-wrap gap-4 items-center">
-              <input
-                type="file"
-                ref={fileInputRef}
-                multiple
-                accept="image/*,video/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+        ) : (
+          <form onSubmit={handleSubmit} className="p-5 bg-surface-container-low rounded-lg mb-6 border border-surface-variant/10 space-y-4">
+            <div className="flex justify-between items-center pb-2 border-b border-surface-variant/10">
+              <h3 className="font-manrope text-xs text-primary font-semibold tracking-wider uppercase">Write a Review</h3>
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="border border-secondary/30 text-secondary px-5 py-3 text-[10px] uppercase tracking-widest font-bold hover:bg-secondary/5 transition-all"
+                onClick={() => { setShowForm(false); setErrorMsg(''); setSuccessMsg(''); }}
+                className="text-[10px] text-on-surface-variant hover:text-primary uppercase tracking-wider font-semibold"
               >
-                Attach Files
+                Cancel
               </button>
-
-              {mediaFiles.map((file, i) => (
-                <div key={i} className="relative w-16 h-16 border rounded overflow-hidden bg-black/5 flex items-center justify-center">
-                  {file.type.startsWith('video/') ? (
-                    <span className="material-symbols-outlined text-on-surface-variant">movie</span>
-                  ) : (
-                    <img
-                      src={URL.createObjectURL(file)}
-                      alt="upload preview"
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveFile(i)}
-                    className="absolute top-0 right-0 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[10px]"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
             </div>
-          </div>
+            
+            {errorMsg && <p className="text-xs text-red-500 font-medium">{errorMsg}</p>}
+            {successMsg && <p className="text-xs text-[#1a4a35] font-semibold">{successMsg}</p>}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="bg-primary text-white w-full py-4 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors duration-300 disabled:opacity-50"
-          >
-            {isSubmitting ? 'Uploading & Submitting...' : 'Submit Review'}
-          </button>
-        </form>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Select Rating</label>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="focus:outline-none transition-transform active:scale-95"
+                  >
+                    <span className={`material-symbols-outlined text-2xl cursor-pointer ${star <= (hoverRating || rating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
+                      star
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Review Title</label>
+              <input
+                type="text"
+                className="w-full bg-surface border-none focus:ring-1 focus:ring-secondary py-2 px-3 text-xs"
+                placeholder="Example: Exquisite craftsmanship, beautiful stones!"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Review Details</label>
+              <textarea
+                rows="3"
+                className="w-full bg-surface border-none focus:ring-1 focus:ring-secondary py-2 px-3 text-xs"
+                placeholder="Share your experience with the jewelry piece..."
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+              ></textarea>
+            </div>
+
+            {/* Media attachment uploads */}
+            <div className="space-y-2">
+              <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Add Photo or Video (Max 10MB)</label>
+              <div className="flex flex-wrap gap-3 items-center">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  multiple
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border border-secondary/30 text-secondary px-4 py-2 text-[9px] uppercase tracking-widest font-bold hover:bg-secondary/5 transition-all"
+                >
+                  Attach Files
+                </button>
+
+                {mediaFiles.map((file, i) => (
+                  <div key={i} className="relative w-12 h-12 border rounded overflow-hidden bg-black/5 flex items-center justify-center">
+                    {file.type.startsWith('video/') ? (
+                      <span className="material-symbols-outlined text-on-surface-variant text-sm">movie</span>
+                    ) : (
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt="upload preview"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(i)}
+                      className="absolute top-0 right-0 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px]"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-primary text-white w-full py-3 text-[9px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors duration-300 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Uploading & Submitting...' : 'Submit Review'}
+            </button>
+          </form>
+        )
       ) : (
-        <div className="p-6 bg-surface-container-low rounded-xl text-center mb-12 border border-surface-variant/20">
-          <p className="text-sm text-on-surface-variant mb-3 font-light">Only verified buyers who are logged in can write reviews.</p>
+        <div className="p-4 bg-surface-container-low rounded-lg text-center mb-6 border border-surface-variant/10">
+          <p className="text-xs text-on-surface-variant mb-2 font-light">Only verified buyers who are logged in can write reviews.</p>
           <a href="/login" className="text-secondary text-xs uppercase tracking-widest font-bold underline">Login / Register</a>
         </div>
       )}
 
       {/* Sorting Navigation */}
-      <div className="flex justify-between items-center border-b border-surface-variant/20 pb-4 mb-6">
-        <span className="text-xs font-semibold uppercase tracking-wider text-primary">Customer Feedback</span>
+      <div className="flex justify-between items-center border-b border-surface-variant/10 pb-2.5 mb-4">
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">Customer Feedback</span>
         <select
           value={sort}
           onChange={e => setSort(e.target.value)}
-          className="bg-transparent border-none text-xs text-on-surface-variant focus:ring-0 cursor-pointer"
+          className="bg-transparent border-none text-[10px] text-on-surface-variant focus:ring-0 cursor-pointer py-0 font-medium"
         >
           <option value="newest">Newest Reviews</option>
           <option value="helpful">Most Helpful</option>
@@ -458,43 +486,43 @@ export default function ProductReviews({ productId }) {
       </div>
 
       {/* Review Feed */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {reviews.map((rev) => (
-          <div key={rev.id} className="p-6 bg-surface-container-low rounded-xl border border-surface-variant/10 flex flex-col gap-4">
+          <div key={rev.id} className="p-4 bg-surface-container-low rounded-lg border border-surface-variant/10 flex flex-col gap-2.5">
             <div className="flex justify-between items-start">
               <div>
-                <div className="flex items-center gap-2 mb-1.5">
+                <div className="flex items-center gap-2 mb-1">
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((s) => (
-                      <span key={s} className={`material-symbols-outlined text-sm ${s <= rev.rating ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
+                      <span key={s} className={`material-symbols-outlined text-xs ${s <= rev.rating ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
                         star
                       </span>
                     ))}
                   </div>
                   {rev.isVerified && (
-                    <span className="text-[10px] bg-secondary-container/20 text-[#1a4a35] px-2 py-0.5 font-bold tracking-wider rounded-sm uppercase">
+                    <span className="text-[8px] bg-secondary-container/20 text-[#1a4a35] px-1.5 py-0.5 font-bold tracking-wider rounded-sm uppercase">
                       Verified Purchase
                     </span>
                   )}
                 </div>
-                <h4 className="font-manrope text-sm font-semibold text-primary">{rev.title || 'Rating Only'}</h4>
+                <h4 className="font-manrope text-xs font-semibold text-primary">{rev.title || 'Rating Only'}</h4>
               </div>
-              <span className="text-[10px] text-on-surface-variant/60 font-light">
+              <span className="text-[9px] text-on-surface-variant/60 font-light">
                 {new Date(rev.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
               </span>
             </div>
 
             {rev.comment && (
-              <p className="text-xs text-on-surface-variant font-inter leading-relaxed font-light">
+              <p className="text-[11px] text-on-surface-variant font-inter leading-relaxed font-light">
                 {rev.comment}
               </p>
             )}
 
             {/* Media Carousel */}
             {rev.media && rev.media.length > 0 && (
-              <div className="flex gap-3 overflow-x-auto pb-2">
+              <div className="flex gap-2 overflow-x-auto pb-1.5">
                 {rev.media.map((med, i) => (
-                  <div key={i} className="flex-shrink-0 w-24 h-24 border rounded overflow-hidden bg-black/5">
+                  <div key={i} className="flex-shrink-0 w-16 h-16 border rounded overflow-hidden bg-black/5">
                     {med.type === 'video' ? (
                       <video src={med.url} controls className="w-full h-full object-cover" />
                     ) : (
@@ -506,16 +534,16 @@ export default function ProductReviews({ productId }) {
             )}
 
             {/* Like and Report interactions */}
-            <div className="flex items-center justify-between border-t border-surface-variant/10 pt-4 text-[10px]">
+            <div className="flex items-center justify-between border-t border-surface-variant/10 pt-3 text-[9px]">
               <span className="text-on-surface-variant/70 font-light">
                 By <span className="font-medium text-primary">{rev.customerName}</span>
               </span>
-              <div className="flex gap-4 items-center">
+              <div className="flex gap-3 items-center">
                 <button
                   onClick={() => handleHelpful(rev.id)}
-                  className="flex items-center gap-1.5 text-on-surface-variant hover:text-secondary font-medium tracking-wide active:scale-95 transition-transform"
+                  className="flex items-center gap-1 text-on-surface-variant hover:text-secondary font-medium tracking-wide active:scale-95 transition-transform"
                 >
-                  <span className="material-symbols-outlined text-[14px]">thumb_up</span>
+                  <span className="material-symbols-outlined text-[12px]">thumb_up</span>
                   Helpful ({rev.helpfulCount || 0})
                 </button>
                 <button
@@ -530,20 +558,20 @@ export default function ProductReviews({ productId }) {
         ))}
 
         {isLoadingReviews && (
-          <div className="flex justify-center py-6">
-            <div className="w-8 h-8 border-4 border-secondary border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex justify-center py-4">
+            <div className="w-6 h-6 border-2 border-secondary border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
 
         {!isLoadingReviews && reviews.length === 0 && (
-          <p className="text-center text-xs text-on-surface-variant/60 italic py-10">No reviews have been written for this piece yet.</p>
+          <p className="text-center text-[10px] text-on-surface-variant/60 italic py-6">No reviews have been written for this piece yet.</p>
         )}
 
         {/* Load More Button */}
         {!isLoadingReviews && page < totalPages && (
           <button
             onClick={handleLoadMore}
-            className="w-full border border-secondary/20 text-secondary py-3 text-[10px] uppercase tracking-widest font-bold hover:bg-secondary/5 transition-colors"
+            className="w-full border border-secondary/20 text-secondary py-2.5 text-[9px] uppercase tracking-widest font-bold hover:bg-secondary/5 transition-colors rounded-sm"
           >
             Load More Reviews
           </button>
