@@ -487,11 +487,46 @@ export default function ProductReviews({ productId }) {
 
       {/* Review Feed */}
       <div className="space-y-4">
-        {reviews.map((rev) => (
-          <div key={rev.id} className="p-4 bg-surface-container-low rounded-lg border border-surface-variant/10 flex flex-col gap-2.5">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
+        {reviews.map((rev) => {
+          const firstLetter = (rev.customerName ? rev.customerName[0] : 'V').toUpperCase();
+          const maskedEmail = rev.customerEmail ? (() => {
+            const parts = rev.customerEmail.split('@');
+            if (parts.length !== 2) return rev.customerEmail;
+            const [local, domain] = parts;
+            return local.length <= 3
+              ? `${local[0]}***@${domain}`
+              : `${local.substring(0, 3)}***@${domain}`;
+          })() : null;
+
+          return (
+            <div key={rev.id} className="p-4 md:p-5 bg-surface-container-low rounded-lg border border-surface-variant/10 flex flex-col gap-3.5 shadow-sm">
+              {/* Premium Review Header */}
+              <div className="flex items-start justify-between gap-4 pb-3 border-b border-surface-variant/5">
+                <div className="flex items-center gap-3">
+                  {/* Initials Avatar */}
+                  <div className="w-9 h-9 rounded-full bg-secondary/15 text-secondary flex items-center justify-center font-manrope font-semibold text-xs border border-secondary/20 shadow-inner shrink-0">
+                    {firstLetter}
+                  </div>
+                  {/* Name and Masked Email */}
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="font-manrope text-xs font-semibold text-primary">{rev.customerName || 'Verified Buyer'}</span>
+                      {rev.isVerified && (
+                        <span className="text-[7.5px] bg-secondary-container/20 text-[#1a4a35] px-1.5 py-0.5 font-bold tracking-wider rounded-sm uppercase">
+                          Verified Purchase
+                        </span>
+                      )}
+                    </div>
+                    {maskedEmail && (
+                      <span className="text-[9.5px] text-on-surface-variant/60 font-mono leading-none mt-0.5">
+                        {maskedEmail}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Rating stars and date */}
+                <div className="flex flex-col items-end gap-1.5">
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map((s) => (
                       <span key={s} className={`material-symbols-outlined text-xs ${s <= rev.rating ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
@@ -499,63 +534,58 @@ export default function ProductReviews({ productId }) {
                       </span>
                     ))}
                   </div>
-                  {rev.isVerified && (
-                    <span className="text-[8px] bg-secondary-container/20 text-[#1a4a35] px-1.5 py-0.5 font-bold tracking-wider rounded-sm uppercase">
-                      Verified Purchase
-                    </span>
-                  )}
+                  <span className="text-[9px] text-on-surface-variant/50 font-light">
+                    {new Date(rev.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
                 </div>
-                <h4 className="font-manrope text-xs font-semibold text-primary">{rev.title || 'Rating Only'}</h4>
               </div>
-              <span className="text-[9px] text-on-surface-variant/60 font-light">
-                {new Date(rev.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
-              </span>
-            </div>
 
-            {rev.comment && (
-              <p className="text-[11px] text-on-surface-variant font-inter leading-relaxed font-light">
-                {rev.comment}
-              </p>
-            )}
-
-            {/* Media Carousel */}
-            {rev.media && rev.media.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-1.5">
-                {rev.media.map((med, i) => (
-                  <div key={i} className="flex-shrink-0 w-16 h-16 border rounded overflow-hidden bg-black/5">
-                    {med.type === 'video' ? (
-                      <video src={med.url} controls className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={med.url} alt="review media" className="w-full h-full object-cover cursor-zoom-in" onClick={() => window.open(med.url)} />
-                    )}
-                  </div>
-                ))}
+              {/* Review Content */}
+              <div className="space-y-1">
+                {rev.title && <h4 className="font-manrope text-xs font-semibold text-primary">{rev.title}</h4>}
+                {rev.comment && (
+                  <p className="text-[11px] text-on-surface-variant font-inter leading-relaxed font-light whitespace-pre-line">
+                    {rev.comment}
+                  </p>
+                )}
               </div>
-            )}
 
-            {/* Like and Report interactions */}
-            <div className="flex items-center justify-between border-t border-surface-variant/10 pt-3 text-[9px]">
-              <span className="text-on-surface-variant/70 font-light">
-                By <span className="font-medium text-primary">{rev.customerName}</span>
-              </span>
-              <div className="flex gap-3 items-center">
-                <button
-                  onClick={() => handleHelpful(rev.id)}
-                  className="flex items-center gap-1 text-on-surface-variant hover:text-secondary font-medium tracking-wide active:scale-95 transition-transform"
-                >
-                  <span className="material-symbols-outlined text-[12px]">thumb_up</span>
-                  Helpful ({rev.helpfulCount || 0})
-                </button>
-                <button
-                  onClick={() => handleReport(rev.id)}
-                  className="text-on-surface-variant/50 hover:text-red-600 transition-colors"
-                >
-                  Report
-                </button>
+              {/* Media Carousel */}
+              {rev.media && rev.media.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1.5">
+                  {rev.media.map((med, i) => (
+                    <div key={i} className="flex-shrink-0 w-16 h-16 border rounded overflow-hidden bg-black/5">
+                      {med.type === 'video' ? (
+                        <video src={med.url} controls className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={med.url} alt="review media" className="w-full h-full object-cover cursor-zoom-in" onClick={() => window.open(med.url)} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Like and Report interactions */}
+              <div className="flex items-center justify-end border-t border-surface-variant/10 pt-2.5 text-[9px]">
+                <div className="flex gap-4 items-center">
+                  <button
+                    onClick={() => handleHelpful(rev.id)}
+                    className="flex items-center gap-1 text-on-surface-variant hover:text-secondary font-medium tracking-wide active:scale-95 transition-transform"
+                  >
+                    <span className="material-symbols-outlined text-[12px]">thumb_up</span>
+                    Helpful ({rev.helpfulCount || 0})
+                  </button>
+                  <button
+                    onClick={() => handleReport(rev.id)}
+                    className="text-on-surface-variant/50 hover:text-red-600 transition-colors"
+                  >
+                    Report
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isLoadingReviews && (
           <div className="flex justify-center py-4">

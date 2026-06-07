@@ -1789,10 +1789,10 @@ app.post('/api/reviews', authenticateUser, reviewLimiter, async (req, res) => {
       });
     }
 
-    // Get user's profile name
+    // Get user's profile details
     const { data: profile } = await supabase
       .from('profiles')
-      .select('name')
+      .select('name, avatar_url')
       .eq('id', req.user.id)
       .single();
 
@@ -1836,22 +1836,33 @@ app.post('/api/reviews', authenticateUser, reviewLimiter, async (req, res) => {
     // Compute updated ratings summary
     const summary = await getProductRatingSummary(productId);
 
+    // Map review response format
+    const responseReview = {
+      id: newReview.id,
+      rating: newReview.rating,
+      title: newReview.title,
+      comment: newReview.comment,
+      customerName: newReview.customer_name || customerName,
+      customerEmail: req.user.email,
+      avatarUrl: profile?.avatar_url || null,
+      isVerified: newReview.is_verified,
+      createdAt: newReview.created_at,
+      media: media || [],
+      helpfulCount: 0,
+      unhelpfulCount: 0
+    };
+
     // Emit Socket.io event for real-time updates
     const io = req.app.get('io');
     if (io) {
       io.to(`product_${productId}`).emit('review_added', {
         productId,
-        review: {
-          ...newReview,
-          media: media || [],
-          helpfulCount: 0,
-          unhelpfulCount: 0
-        },
+        review: responseReview,
         summary
       });
     }
 
-    res.status(201).json({ success: true, review: newReview, summary });
+    res.status(201).json({ success: true, review: responseReview, summary });
   } catch (err) {
     console.error('Error submitting review:', err);
     res.status(500).json({ success: false, error: err.message });
@@ -1999,7 +2010,7 @@ app.get('/api/reviews/product/:productId', async (req, res) => {
       .from('reviews')
       .select(`
         id, rating, title, comment, customer_name, is_verified, created_at,
-        profiles (name, avatar_url)
+        profiles (name, avatar_url, email)
       `, { count: 'exact' })
       .eq('product_id', productId)
       .eq('status', 'approved');
@@ -2045,6 +2056,7 @@ app.get('/api/reviews/product/:productId', async (req, res) => {
         title: r.title,
         comment: r.comment,
         customerName: r.customer_name || (r.profiles ? r.profiles.name : 'Verified Buyer'),
+        customerEmail: r.profiles ? r.profiles.email : null,
         avatarUrl: r.profiles ? r.profiles.avatar_url : null,
         isVerified: r.is_verified,
         createdAt: r.created_at,
@@ -2173,7 +2185,8 @@ app.get('/api/admin/reviews', authenticateAdmin, async (req, res) => {
       .from('reviews')
       .select(`
         id, rating, title, comment, customer_name, is_verified, status, created_at, product_id,
-        products (title)
+        products (title),
+        profiles (email)
       `, { count: 'exact' });
 
     if (rating) query = query.eq('rating', parseInt(rating));
@@ -2199,6 +2212,7 @@ app.get('/api/admin/reviews', authenticateAdmin, async (req, res) => {
         title: r.title,
         comment: r.comment,
         customerName: r.customer_name,
+        customerEmail: r.profiles ? r.profiles.email : null,
         isVerified: r.is_verified,
         status: r.status,
         createdAt: r.created_at
