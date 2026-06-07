@@ -1539,6 +1539,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                     >
                       <div style={{ minWidth: 0 }}>
                         <div style={{ color: 'var(--tx)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.customerName}</div>
+                        {r.customerEmail && <div style={{ color: 'var(--mu)', fontSize: '10px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{r.customerEmail}</div>}
                         <span style={{ fontSize: '9px', padding: '2px 5px', borderRadius: '3px', marginTop: '4px', display: 'inline-block', ...(r.isVerified ? { background: 'rgba(52,211,153,0.1)', color: '#34d399' } : { background: 'var(--s2)', color: 'var(--mu)' }) }}>
                           {r.isVerified ? 'Verified Buyer' : 'Public Submit'}
                         </span>
