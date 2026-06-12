@@ -132,11 +132,11 @@ export default function ProductPage() {
       } catch (err) {}
 
       // Fetch related products in background
-      if (data.category_id) {
+      if (data.category) {
         supabase
           .from('products')
           .select('*')
-          .eq('category_id', data.category_id)
+          .eq('category', data.category)
           .neq('id', data.id)
           .limit(4)
           .then(({ data: related, error: relError }) => {
