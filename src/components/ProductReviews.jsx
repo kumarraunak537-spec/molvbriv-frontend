@@ -589,19 +589,21 @@ export default function ProductReviews({ productId }) {
       {showForm && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0b0d11]/80 backdrop-blur-md transition-opacity duration-300 ${modalAnimate ? 'opacity-100' : 'opacity-0'}`}>
           <div 
-            className={`bg-surface max-w-xl w-full rounded-2xl border border-outline-variant/15 shadow-2xl p-6 md:p-8 relative flex flex-col max-h-[90vh] overflow-y-auto transform transition-all duration-300 ${modalAnimate ? 'scale-100' : 'scale-95'}`}
+            className={`bg-surface max-w-xl w-full rounded-[28px] border border-outline-variant/15 shadow-[0_24px_60px_-15px_rgba(8,39,23,0.35),_0_0_1px_rgba(8,39,23,0.2)] overflow-hidden transform transition-all duration-300 relative flex flex-col max-h-[90vh] ${modalAnimate ? 'scale-100' : 'scale-95'}`}
             onClick={e => e.stopPropagation()}
           >
-            
-            {/* Close button */}
-            <button 
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="absolute top-5 right-5 text-on-surface-variant/60 hover:text-primary transition-colors focus:outline-none"
-              aria-label="Close modal"
-            >
-              <span className="material-symbols-outlined text-2xl">close</span>
-            </button>
+            {/* Inner scrollable area to prevent scrollbar from breaking corners */}
+            <div className="overflow-y-auto p-6 md:p-8 flex-grow flex flex-col min-h-0 relative">
+              
+              {/* Close button */}
+              <button 
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="absolute top-5 right-5 text-on-surface-variant/60 hover:text-primary transition-colors focus:outline-none"
+                aria-label="Close modal"
+              >
+                <span className="material-symbols-outlined text-2xl">close</span>
+              </button>
 
             {/* Modal Header */}
             <div className="text-center mb-6 border-b border-surface-variant/10 pb-4">
@@ -750,6 +752,7 @@ export default function ProductReviews({ productId }) {
                 </span>
               </button>
             </form>
+            </div>
           </div>
         </div>
       )}
