@@ -179,7 +179,12 @@ export default function AllProductsPage() {
                       <div className="flex items-center justify-center gap-2">
                         <p className="text-secondary font-manrope text-lg">₹{(product.price || 0).toLocaleString()}</p>
                         {product.compare_price && Number(product.compare_price) > Number(product.price) && (
-                          <p className="text-on-surface-variant font-manrope text-sm line-through opacity-60">₹{Number(product.compare_price).toLocaleString()}</p>
+                          <>
+                            <p className="text-on-surface-variant font-manrope text-sm line-through opacity-60">₹{Number(product.compare_price).toLocaleString()}</p>
+                            <span className="text-[10px] font-bold font-manrope text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-sm">
+                              {Math.round(((Number(product.compare_price) - Number(product.price)) / Number(product.compare_price)) * 100)}% OFF
+                            </span>
+                          </>
                         )}
                       </div>
                       {ratingsMap[product.id] && ratingsMap[product.id].count > 0 && (

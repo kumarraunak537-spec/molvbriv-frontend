@@ -274,7 +274,12 @@ export default function ProductPage() {
               <div className="flex items-center gap-4 mt-6">
                 <span className="text-2xl md:text-3xl font-body text-secondary">₹{(product.price || 0).toLocaleString()}</span>
                 {product.compare_price && Number(product.compare_price) > Number(product.price) && (
-                  <span className="text-lg md:text-xl font-body text-on-surface-variant line-through opacity-60">₹{Number(product.compare_price).toLocaleString()}</span>
+                  <>
+                    <span className="text-lg md:text-xl font-body text-on-surface-variant line-through opacity-60">₹{Number(product.compare_price).toLocaleString()}</span>
+                    <span className="text-xs font-bold font-manrope text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-sm tracking-wider uppercase">
+                      {Math.round(((Number(product.compare_price) - Number(product.price)) / Number(product.compare_price)) * 100)}% Off
+                    </span>
+                  </>
                 )}
                 <span className="px-3 py-1 bg-secondary-container/30 text-on-secondary-container text-[10px] uppercase tracking-widest font-bold">Limited Release</span>
               </div>
@@ -442,7 +447,12 @@ export default function ProductPage() {
                     <div className="flex items-center gap-2 mt-1">
                       <span className="font-body text-secondary text-sm">₹{(rp.price || 0).toLocaleString()}</span>
                       {rp.compare_price && Number(rp.compare_price) > Number(rp.price) && (
-                        <span className="text-xs text-on-surface-variant line-through opacity-60">₹{Number(rp.compare_price).toLocaleString()}</span>
+                        <>
+                          <span className="text-xs text-on-surface-variant line-through opacity-60">₹{Number(rp.compare_price).toLocaleString()}</span>
+                          <span className="text-[9px] font-bold font-manrope text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-sm">
+                            {Math.round(((Number(rp.compare_price) - Number(rp.price)) / Number(rp.compare_price)) * 100)}% OFF
+                          </span>
+                        </>
                       )}
                     </div>
                   </Link>
@@ -469,7 +479,12 @@ export default function ProductPage() {
                     <div className="flex items-center gap-2 mt-1">
                       <span className="font-body text-secondary text-sm">₹{(rp.price || 0).toLocaleString()}</span>
                       {rp.compare_price && Number(rp.compare_price) > Number(rp.price) && (
-                        <span className="text-xs text-on-surface-variant line-through opacity-60">₹{Number(rp.compare_price).toLocaleString()}</span>
+                        <>
+                          <span className="text-xs text-on-surface-variant line-through opacity-60">₹{Number(rp.compare_price).toLocaleString()}</span>
+                          <span className="text-[9px] font-bold font-manrope text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-sm">
+                            {Math.round(((Number(rp.compare_price) - Number(rp.price)) / Number(rp.compare_price)) * 100)}% OFF
+                          </span>
+                        </>
                       )}
                     </div>
                   </Link>
