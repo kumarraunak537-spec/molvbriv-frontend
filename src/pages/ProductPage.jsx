@@ -281,7 +281,9 @@ export default function ProductPage() {
                     </span>
                   </>
                 )}
-                <span className="px-3 py-1 bg-secondary-container/30 text-on-secondary-container text-[10px] uppercase tracking-widest font-bold">Limited Release</span>
+                {product.tags && product.tags.length > 0 && (
+                  <span className="px-3 py-1 bg-secondary-container/30 text-on-secondary-container text-[10px] uppercase tracking-widest font-bold">{product.tags[0]}</span>
+                )}
               </div>
             </div>
 

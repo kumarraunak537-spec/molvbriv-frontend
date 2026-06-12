@@ -146,7 +146,7 @@ export default function AdminPage() {
   const [reviewsError, setReviewsError] = useState('');
 
   const [newProduct, setNewProduct] = useState({
-    title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: ''
+    title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: '', tag: ''
   });
   const [productImages, setProductImages] = useState([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -195,7 +195,8 @@ export default function AdminPage() {
         description: newProduct.description,
         sku: newProduct.sku || null,
         status: status,
-        images: productImages.length > 0 ? productImages : []
+        images: productImages.length > 0 ? productImages : [],
+        tags: newProduct.tag ? [newProduct.tag] : []
       };
       
       const { data, error } = await supabase.from('products').insert([productData]).select();
@@ -203,7 +204,7 @@ export default function AdminPage() {
       if (error) throw error;
       setProductsData([...productsData, data[0]]);
       showToast(status === 'live' ? 'Product published successfully' : 'Saved as draft');
-      setNewProduct({ title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: '' });
+      setNewProduct({ title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: '', tag: '' });
       setProductImages([]);
       nav('products');
     } catch (err) {
@@ -236,6 +237,7 @@ export default function AdminPage() {
         description: editingProduct.description || '',
         status: editingProduct.status || 'live',
         stock: parseInt(editingProduct.stock) || 0,
+        tags: editingProduct.tag ? [editingProduct.tag] : []
       }).eq('id', editingProduct.id);
       
       if (error) throw error;
@@ -966,6 +968,15 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                   <div className="fg"><label>COMPARE PRICE (Rs)</label><input className="fi" type="number" placeholder="Optional" value={newProduct.comparePrice} onChange={e => setNewProduct({...newProduct, comparePrice: e.target.value})} /></div>
                   <div className="fg"><label>MATERIAL / FINISH</label><select className="fi" value={newProduct.material} onChange={e => setNewProduct({...newProduct, material: e.target.value})}><option value="">Select</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option><option>Meenakari</option><option>Oxidised</option><option>Alloy</option></select></div>
                   <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" placeholder="0" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} /></div>
+                  <div className="fg"><label>PRODUCT BADGE</label>
+                    <select className="fi" value={newProduct.tag || ''} onChange={e => setNewProduct({...newProduct, tag: e.target.value})}>
+                      <option value="">None</option>
+                      <option value="Best Seller">Best Seller</option>
+                      <option value="Most Viewed">Most Viewed</option>
+                      <option value="Most Popular">Most Popular</option>
+                      <option value="Limited Release">Limited Release</option>
+                    </select>
+                  </div>
                   <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Design, occasion, weight, size..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}></textarea></div>
                 </div>
               </div>
@@ -1009,7 +1020,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
               </div>
               <div className="peg">
                 {productsData.length > 0 ? productsData.filter(p => customizeFilter === 'all' || p.category === customizeFilter).map(p => (
-                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price, compare_price: p.compare_price, description: p.description || '', status: p.status || 'live', stock: p.stock ?? 0 })}>
+                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price, compare_price: p.compare_price, description: p.description || '', status: p.status || 'live', stock: p.stock ?? 0, tag: (p.tags && p.tags.length > 0) ? p.tags[0] : '' })}>
                     <div className="pen">{p.title}</div>
                     <div className="pec2">{(p.category || 'General').charAt(0).toUpperCase() + (p.category || 'General').slice(1)} · {p.material}</div>
                     <div className="pep">Rs {p.price}</div>
@@ -1053,6 +1064,15 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                       </select>
                     </div>
                     <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" value={editingProduct.stock ?? 0} onChange={(e) => setEditingProduct({ ...editingProduct, stock: parseInt(e.target.value) || 0 })} /></div>
+                    <div className="fg"><label>PRODUCT BADGE</label>
+                      <select className="fi" value={editingProduct.tag || ''} onChange={(e) => setEditingProduct({ ...editingProduct, tag: e.target.value })}>
+                        <option value="">None</option>
+                        <option value="Best Seller">Best Seller</option>
+                        <option value="Most Viewed">Most Viewed</option>
+                        <option value="Most Popular">Most Popular</option>
+                        <option value="Limited Release">Limited Release</option>
+                      </select>
+                    </div>
                   </div>
                   <div className="fa" style={{ marginTop: '13px' }}>
                     <button className="btn btn-p" onClick={handleUpdateProduct}>Save Changes</button>
