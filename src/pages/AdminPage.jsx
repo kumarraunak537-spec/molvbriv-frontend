@@ -233,6 +233,9 @@ export default function AdminPage() {
         compare_price: parseFloat(editingProduct.compare_price) || null,
         category: editingProduct.category || editingProduct.cat,
         material: editingProduct.material || editingProduct.mat,
+        description: editingProduct.description || '',
+        status: editingProduct.status || 'live',
+        stock: parseInt(editingProduct.stock) || 0,
       }).eq('id', editingProduct.id);
       
       if (error) throw error;
@@ -1006,7 +1009,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
               </div>
               <div className="peg">
                 {productsData.length > 0 ? productsData.filter(p => customizeFilter === 'all' || p.category === customizeFilter).map(p => (
-                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price, compare_price: p.compare_price })}>
+                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price, compare_price: p.compare_price, description: p.description || '', status: p.status || 'live', stock: p.stock ?? 0 })}>
                     <div className="pen">{p.title}</div>
                     <div className="pec2">{(p.category || 'General').charAt(0).toUpperCase() + (p.category || 'General').slice(1)} · {p.material}</div>
                     <div className="pep">Rs {p.price}</div>
@@ -1033,7 +1036,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                         <option value="">Select Material</option><option>Gold Plated</option><option>Silver</option><option>Kundan</option><option>Antique</option><option>Pearl</option><option>Alloy</option>
                       </select>
                     </div>
-                    <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Update product description..."></textarea></div>
+                    <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Update product description..." value={editingProduct.description || ''} onChange={(e) => setEditingProduct({ ...editingProduct, description: e.target.value })}></textarea></div>
                     <div className="fg full"><label>COLOR VARIANTS</label>
                       <div className="clo">
                         {['#C9A84C', '#C0C0C0', '#B76E79', '#1C1C1C', '#8B6914'].map((color, idx) => (
@@ -1042,8 +1045,14 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                       </div>
                     </div>
                     <div className="fg full"><label>PRODUCT IMAGES</label><div className="ig"><div className="isl">+</div><div className="isl">+</div><div className="isl">+</div><div className="isl">+</div></div></div>
-                    <div className="fg"><label>STATUS</label><select className="fi"><option>Live</option><option>Draft</option><option>Out of Stock</option></select></div>
-                    <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" defaultValue="0" /></div>
+                    <div className="fg"><label>STATUS</label>
+                      <select className="fi" value={editingProduct.status || 'live'} onChange={(e) => setEditingProduct({ ...editingProduct, status: e.target.value })}>
+                        <option value="live">Live</option>
+                        <option value="draft">Draft</option>
+                        <option value="out_of_stock">Out of Stock</option>
+                      </select>
+                    </div>
+                    <div className="fg"><label>STOCK QUANTITY</label><input className="fi" type="number" value={editingProduct.stock ?? 0} onChange={(e) => setEditingProduct({ ...editingProduct, stock: parseInt(e.target.value) || 0 })} /></div>
                   </div>
                   <div className="fa" style={{ marginTop: '13px' }}>
                     <button className="btn btn-p" onClick={handleUpdateProduct}>Save Changes</button>
