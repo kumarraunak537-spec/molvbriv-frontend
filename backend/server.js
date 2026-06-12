@@ -1782,13 +1782,6 @@ app.post('/api/reviews', authenticateUser, reviewLimiter, async (req, res) => {
       });
     }
 
-    if (!isVerified) {
-      return res.status(403).json({ 
-        success: false, 
-        error: 'Only verified buyers who have received this product can leave a rating or review.' 
-      });
-    }
-
     // Get user's profile details
     const { data: profile } = await supabase
       .from('profiles')
@@ -1808,7 +1801,7 @@ app.post('/api/reviews', authenticateUser, reviewLimiter, async (req, res) => {
         title: title ? sanitizeString(title) : null,
         comment: comment ? sanitizeString(comment) : null,
         customer_name: customerName,
-        is_verified: true,
+        is_verified: isVerified,
         status: 'approved' // Automatically approved to go live
       }])
       .select()
