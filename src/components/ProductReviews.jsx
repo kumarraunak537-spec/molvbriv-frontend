@@ -363,7 +363,7 @@ export default function ProductReviews({ productId }) {
       
       {/* Luxury Customer Reviews Header */}
       <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl font-cormorant font-bold text-primary tracking-wide">
+        <h2 className="text-3xl md:text-4xl font-manrope font-bold text-primary tracking-wide">
           Client Reviews
         </h2>
         <p className="text-xs md:text-sm font-manrope font-light text-on-surface-variant/60 uppercase tracking-[0.25em] mt-2.5">
@@ -376,7 +376,7 @@ export default function ProductReviews({ productId }) {
         
         {/* Left Column: Average Ratings & Stars */}
         <div className="md:col-span-4 flex flex-col items-center text-center md:border-r border-surface-variant/20 md:pr-8 py-2">
-          <div className="text-5xl font-cormorant text-secondary font-bold leading-none">
+          <div className="text-5xl font-manrope text-secondary font-bold leading-none">
             {summary.averageRating}
           </div>
           <span className="text-[10px] text-on-surface-variant/50 uppercase tracking-widest font-semibold mt-1">out of 5 stars</span>
@@ -607,7 +607,7 @@ export default function ProductReviews({ productId }) {
 
             {/* Modal Header */}
             <div className="text-center mb-6 border-b border-surface-variant/10 pb-4">
-              <h3 className="font-cormorant text-2xl font-bold text-primary">Share Your Thoughts</h3>
+              <h3 className="font-manrope text-2xl font-bold text-primary">Share Your Thoughts</h3>
               <p className="text-[10px] text-on-surface-variant/50 uppercase tracking-[0.2em] font-light mt-1">Review your jewelry purchase</p>
             </div>
 
