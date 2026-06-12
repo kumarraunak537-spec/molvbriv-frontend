@@ -341,19 +341,39 @@ export default function ProductPage() {
                     chevron_right
                   </span>
                 </button>
-                <div className={`overflow-hidden transition-all duration-300 ${showDetails ? 'max-h-96 mt-3 opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className={`overflow-hidden transition-all duration-300 ${showDetails ? 'max-h-[500px] mt-4 opacity-100' : 'max-h-0 opacity-0'}`}>
                   <p className="text-xs md:text-sm text-on-surface-variant leading-relaxed font-inter font-light">
-                    Each MOLVBRIV masterpiece is individually certified for authenticity, meticulously handcrafted by our master artisans from premium {product.material || 'precious metal'} selection, and audited to guarantee a lifetime of timeless luxury.
+                    The <span className="font-semibold text-primary">{product.title}</span> is an authentic MOLVBRIV creation, meticulously designed and handcrafted by our master artisans. Utilizing a premium selection of <span className="font-semibold text-primary">{product.material || 'fine materials'}</span>, this piece is individually certified for quality and authenticity to ensure a lifetime of timeless elegance.
                   </p>
-                  <div className="mt-4 grid grid-cols-2 gap-4 border-t border-surface-variant/20 pt-4 text-xs">
+                  <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-y-4 gap-x-6 border-t border-surface-variant/20 pt-5 text-xs font-manrope">
                     <div>
-                      <span className="text-outline uppercase tracking-wider text-[10px]">Curation</span>
-                      <p className="text-primary font-medium mt-0.5">Bespoke Jewelry</p>
+                      <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Product Title</span>
+                      <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">{product.title}</p>
                     </div>
                     <div>
-                      <span className="text-outline uppercase tracking-wider text-[10px]">Material Spec</span>
-                      <p className="text-primary font-medium mt-0.5">{product.material || 'Gold Plated'}</p>
+                      <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Material Spec</span>
+                      <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">{product.material || 'Premium Alloy'}</p>
                     </div>
+                    <div>
+                      <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">SKU Code</span>
+                      <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs font-mono">{product.sku || product.id?.substring(0, 8).toUpperCase()}</p>
+                    </div>
+                    <div>
+                      <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Availability</span>
+                      <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">{product.stock > 0 ? `${product.stock} Units In Stock` : 'Out of Stock'}</p>
+                    </div>
+                    {product.colors && product.colors.length > 0 && (
+                      <div>
+                        <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Color Selection</span>
+                        <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">{product.colors.join(', ')}</p>
+                      </div>
+                    )}
+                    {product.tags && product.tags.length > 0 && (
+                      <div>
+                        <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Style/Tags</span>
+                        <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">{product.tags.join(', ')}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
