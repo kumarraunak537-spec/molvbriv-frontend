@@ -16,11 +16,14 @@ export default function ProductReviews({ productId }) {
 
   // Form State
   const [showForm, setShowForm] = useState(false);
+  const [modalAnimate, setModalAnimate] = useState(false);
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [title, setTitle] = useState('');
   const [comment, setComment] = useState('');
   const [mediaFiles, setMediaFiles] = useState([]);
+  const [customName, setCustomName] = useState('');
+  const [customEmail, setCustomEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -35,15 +38,53 @@ export default function ProductReviews({ productId }) {
   // Check auth state
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
+      const sessionUser = session?.user || null;
+      setUser(sessionUser);
+      if (sessionUser) {
+        setCustomEmail(sessionUser.email || '');
+        // Fetch profile name
+        supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', sessionUser.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.name) setCustomName(data.name);
+          });
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
+      const sessionUser = session?.user || null;
+      setUser(sessionUser);
+      if (sessionUser) {
+        setCustomEmail(sessionUser.email || '');
+        supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', sessionUser.id)
+          .single()
+          .then(({ data }) => {
+            if (data?.name) setCustomName(data.name);
+          });
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Handle modal body scroll locking & animation triggers
+  useEffect(() => {
+    if (showForm) {
+      document.body.style.overflow = 'hidden';
+      // Trigger scaling animation after a microtick
+      const t = setTimeout(() => setModalAnimate(true), 50);
+      return () => clearTimeout(t);
+    } else {
+      document.body.style.overflow = '';
+      setModalAnimate(false);
+    }
+  }, [showForm]);
 
   // Fetch initial summary & reviews
   useEffect(() => {
@@ -53,7 +94,6 @@ export default function ProductReviews({ productId }) {
 
   // Socket.io Real-time connection
   useEffect(() => {
-    // Connect to Socket.io backend
     const socket = io(API_BASE_URL);
     socketRef.current = socket;
 
@@ -61,7 +101,11 @@ export default function ProductReviews({ productId }) {
 
     socket.on('review_added', (data) => {
       if (data.productId === productId) {
-        setReviews(prev => [data.review, ...prev]);
+        setReviews(prev => {
+          // Prevent duplicates in real-time stream
+          if (prev.some(r => r.id === data.review.id)) return prev;
+          return [data.review, ...prev];
+        });
         setSummary(data.summary);
       }
     });
@@ -69,7 +113,7 @@ export default function ProductReviews({ productId }) {
     socket.on('review_updated', (data) => {
       if (data.productId === productId) {
         setReviews(prev => prev.map(r => r.id === data.review.id ? { ...r, ...data.review } : r));
-        setSummary(data.summary);
+        if (data.summary) setSummary(data.summary);
       }
     });
 
@@ -83,10 +127,8 @@ export default function ProductReviews({ productId }) {
     socket.on('review_moderated', (data) => {
       if (data.productId === productId) {
         if (data.status === 'approved') {
-          // If approved, fetch list again to insert
           fetchReviews(1, true);
         } else {
-          // If hidden or rejected, filter out
           setReviews(prev => prev.filter(r => r.id !== data.reviewId));
         }
         setSummary(data.summary);
@@ -108,8 +150,11 @@ export default function ProductReviews({ productId }) {
   const fetchSummary = async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/reviews/summary/product/${productId}`);
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
+      }
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (data.success) {
         setSummary(data.summary);
       }
     } catch (err) {
@@ -121,12 +166,20 @@ export default function ProductReviews({ productId }) {
     setIsLoadingReviews(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/reviews/product/${productId}?page=${pageNumber}&limit=5&sort=${sort}`);
+      if (!res.ok) {
+        throw new Error(`Server returned status ${res.status}`);
+      }
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (data.success) {
         if (replace) {
           setReviews(data.reviews);
         } else {
-          setReviews(prev => [...prev, ...data.reviews]);
+          setReviews(prev => {
+            // Prevent duplicates
+            const existingIds = new Set(prev.map(r => r.id));
+            const newReviews = data.reviews.filter(r => !existingIds.has(r.id));
+            return [...prev, ...newReviews];
+          });
         }
         setTotalPages(data.totalPages);
         setPage(pageNumber);
@@ -151,7 +204,7 @@ export default function ProductReviews({ productId }) {
 
     for (let file of files) {
       if (file.size > 10 * 1024 * 1024) {
-        setErrorMsg('Files must be under 10MB.');
+        setErrorMsg('Each file must be under 10MB.');
         continue;
       }
       if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
@@ -178,6 +231,12 @@ export default function ProductReviews({ productId }) {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         setErrorMsg('Please login to submit a review.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!customName.trim()) {
+        setErrorMsg('Please enter your name.');
         setIsSubmitting(false);
         return;
       }
@@ -211,9 +270,11 @@ export default function ProductReviews({ productId }) {
         body: JSON.stringify({
           productId,
           rating,
-          title,
-          comment,
-          media: uploadedMedia
+          title: title.trim(),
+          comment: comment.trim(),
+          media: uploadedMedia,
+          customerName: customName.trim(),
+          customerEmail: customEmail.trim()
         })
       });
 
@@ -222,7 +283,7 @@ export default function ProductReviews({ productId }) {
         throw new Error(data.error || 'Failed to submit review.');
       }
 
-      setSuccessMsg('Thank you! Your rating and review was submitted.');
+      setSuccessMsg('Thank you! Your rating and review was submitted successfully.');
       setTitle('');
       setComment('');
       setMediaFiles([]);
@@ -233,11 +294,11 @@ export default function ProductReviews({ productId }) {
       fetchReviews(1, true);
       fetchSummary();
       
-      // Collapse form after a brief delay
+      // Close modal after a brief delay
       setTimeout(() => {
         setShowForm(false);
         setSuccessMsg('');
-      }, 2500);
+      }, 2000);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to submit review.');
     } finally {
@@ -271,7 +332,7 @@ export default function ProductReviews({ productId }) {
 
   const handleReport = async (reviewId) => {
     const reason = prompt('Please specify the reason for reporting this review (spam, abuse, inappropriate, etc.):');
-    if (reason === null) return; // cancelled
+    if (reason === null) return;
     
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -298,185 +359,91 @@ export default function ProductReviews({ productId }) {
   };
 
   return (
-    <div className="mt-10 border-t border-surface-variant/10 pt-10 max-w-3xl mx-auto">
-      <h2 className="text-base md:text-lg font-manrope text-primary mb-4 font-semibold tracking-wide text-center">
-        Ratings & Customer Reviews
-      </h2>
+    <section className="mt-20 border-t border-surface-variant/20 pt-16 max-w-4xl mx-auto px-4">
+      
+      {/* Luxury Customer Reviews Header */}
+      <div className="text-center mb-12">
+        <h2 className="text-3xl md:text-4xl font-cormorant font-bold text-primary tracking-wide">
+          Client Reviews
+        </h2>
+        <p className="text-xs md:text-sm font-manrope font-light text-on-surface-variant/60 uppercase tracking-[0.25em] mt-2.5">
+          See what our clients have to say
+        </p>
+      </div>
 
-      {/* Ratings Breakdown row */}
-      <div className="flex flex-col sm:flex-row gap-6 items-center justify-between p-4 bg-surface-container-low rounded-lg mb-6">
-        <div className="flex flex-col items-center text-center px-4">
-          <div className="text-3xl font-manrope text-secondary font-bold">
-            {summary.averageRating} <span className="text-xs font-light text-on-surface-variant">/ 5</span>
+      {/* Ratings Breakdown Grid Card */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center p-8 bg-surface-container-low/50 border border-surface-variant/10 rounded-2xl mb-12 shadow-sm">
+        
+        {/* Left Column: Average Ratings & Stars */}
+        <div className="md:col-span-4 flex flex-col items-center text-center md:border-r border-surface-variant/20 md:pr-8 py-2">
+          <div className="text-5xl font-cormorant text-secondary font-bold leading-none">
+            {summary.averageRating}
           </div>
-          <div className="flex gap-0.5 my-1">
+          <span className="text-[10px] text-on-surface-variant/50 uppercase tracking-widest font-semibold mt-1">out of 5 stars</span>
+          <div className="flex gap-1 my-3 text-secondary">
             {[1, 2, 3, 4, 5].map((star) => (
-              <span key={star} className={`material-symbols-outlined text-sm ${star <= Math.round(summary.averageRating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
+              <span key={star} className={`material-symbols-outlined text-lg ${star <= Math.round(summary.averageRating) ? 'fill-secondary text-secondary' : 'text-outline-variant/30'}`}>
                 star
               </span>
             ))}
           </div>
-          <div className="text-[10px] text-on-surface-variant/70">
-            ({summary.totalRatings.toLocaleString()} verified ratings)
+          <div className="text-xs text-on-surface-variant/70 font-manrope font-medium">
+            Based on {summary.totalRatings.toLocaleString()} verified ratings
           </div>
         </div>
 
-        {/* Breakdown bars */}
-        <div className="flex-1 w-full max-w-md space-y-1.5 border-t sm:border-t-0 sm:border-l border-surface-variant/10 pt-4 sm:pt-0 sm:pl-6">
+        {/* Middle Column: Breakdown Bars */}
+        <div className="md:col-span-5 w-full space-y-2 py-2">
           {[5, 4, 3, 2, 1].map((star) => {
             const percentage = summary.breakdown[star] || 0;
             return (
-              <div key={star} className="flex items-center gap-3 text-[11px]">
-                <span className="w-10 text-on-surface-variant text-right font-medium">{star} Star</span>
-                <div className="flex-grow h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+              <div key={star} className="flex items-center gap-3.5 text-xs font-manrope">
+                <span className="w-12 text-on-surface-variant text-right font-medium">{star} Star</span>
+                <div className="flex-grow h-1 bg-surface-container-highest/60 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-secondary rounded-full"
+                    className="h-full bg-secondary rounded-full transition-all duration-500"
                     style={{ width: `${percentage}%` }}
                   ></div>
                 </div>
-                <span className="w-8 text-on-surface-variant/85 text-left">{percentage}%</span>
+                <span className="w-10 text-on-surface-variant/80 text-left font-light">{percentage}%</span>
               </div>
             );
           })}
         </div>
-      </div>
 
-      {/* Submission Form Section */}
-      {user ? (
-        !showForm ? (
-          <div className="flex justify-center mb-6">
+        {/* Right Column: Write a Review Button */}
+        <div className="md:col-span-3 flex justify-center py-2 md:pl-4">
+          {user ? (
             <button
               type="button"
               onClick={() => setShowForm(true)}
-              className="border border-secondary text-secondary px-6 py-2.5 text-[10px] uppercase tracking-widest font-bold hover:bg-secondary/5 transition-all rounded-sm"
+              className="group flex items-center justify-between gap-4 bg-primary text-on-primary pl-6 pr-4 py-4 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary hover:shadow-lg transition-all duration-300"
             >
-              Write a Review
+              <span>Write a Review</span>
+              <span className="w-6 h-6 rounded-full bg-on-primary/10 flex items-center justify-center group-hover:bg-on-primary/20 transition-colors">
+                <span className="material-symbols-outlined text-[10px] text-on-primary fill-none">chevron_right</span>
+              </span>
             </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-5 bg-surface-container-low rounded-lg mb-6 border border-surface-variant/10 space-y-4">
-            <div className="flex justify-between items-center pb-2 border-b border-surface-variant/10">
-              <h3 className="font-manrope text-xs text-primary font-semibold tracking-wider uppercase">Write a Review</h3>
-              <button
-                type="button"
-                onClick={() => { setShowForm(false); setErrorMsg(''); setSuccessMsg(''); }}
-                className="text-[10px] text-on-surface-variant hover:text-primary uppercase tracking-wider font-semibold"
-              >
-                Cancel
-              </button>
+          ) : (
+            <div className="text-center p-4 border border-dashed border-outline-variant/30 rounded-xl bg-surface-container-lowest">
+              <p className="text-xs text-on-surface-variant/70 font-light mb-3">Login to share your thoughts.</p>
+              <a href="/login" className="inline-block bg-secondary text-on-secondary px-5 py-2 text-[9px] uppercase tracking-widest font-bold hover:bg-primary transition-colors">
+                Login / Register
+              </a>
             </div>
-            
-            {errorMsg && <p className="text-xs text-red-500 font-medium">{errorMsg}</p>}
-            {successMsg && <p className="text-xs text-[#1a4a35] font-semibold">{successMsg}</p>}
-
-            <div className="space-y-1.5">
-              <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Select Rating</label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    className="focus:outline-none transition-transform active:scale-95"
-                  >
-                    <span className={`material-symbols-outlined text-2xl cursor-pointer ${star <= (hoverRating || rating) ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
-                      star
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Review Title</label>
-              <input
-                type="text"
-                className="w-full bg-surface border-none focus:ring-1 focus:ring-secondary py-2 px-3 text-xs"
-                placeholder="Example: Exquisite craftsmanship, beautiful stones!"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Review Details</label>
-              <textarea
-                rows="3"
-                className="w-full bg-surface border-none focus:ring-1 focus:ring-secondary py-2 px-3 text-xs"
-                placeholder="Share your experience with the jewelry piece..."
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-              ></textarea>
-            </div>
-
-            {/* Media attachment uploads */}
-            <div className="space-y-2">
-              <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Add Photo or Video (Max 10MB)</label>
-              <div className="flex flex-wrap gap-3 items-center">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  multiple
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border border-secondary/30 text-secondary px-4 py-2 text-[9px] uppercase tracking-widest font-bold hover:bg-secondary/5 transition-all"
-                >
-                  Attach Files
-                </button>
-
-                {mediaFiles.map((file, i) => (
-                  <div key={i} className="relative w-12 h-12 border rounded overflow-hidden bg-black/5 flex items-center justify-center">
-                    {file.type.startsWith('video/') ? (
-                      <span className="material-symbols-outlined text-on-surface-variant text-sm">movie</span>
-                    ) : (
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt="upload preview"
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveFile(i)}
-                      className="absolute top-0 right-0 bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px]"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-primary text-white w-full py-3 text-[9px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors duration-300 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Uploading & Submitting...' : 'Submit Review'}
-            </button>
-          </form>
-        )
-      ) : (
-        <div className="p-4 bg-surface-container-low rounded-lg text-center mb-6 border border-surface-variant/10">
-          <p className="text-xs text-on-surface-variant mb-2 font-light">Only verified buyers who are logged in can write reviews.</p>
-          <a href="/login" className="text-secondary text-xs uppercase tracking-widest font-bold underline">Login / Register</a>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* Sorting Navigation */}
-      <div className="flex justify-between items-center border-b border-surface-variant/10 pb-2.5 mb-4">
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">Customer Feedback</span>
+      {/* Sorting / Header Navigation */}
+      <div className="flex justify-between items-center border-b border-surface-variant/15 pb-4 mb-8">
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-primary">
+          Customer Feedback ({reviews.length})
+        </span>
         <select
           value={sort}
           onChange={e => setSort(e.target.value)}
-          className="bg-transparent border-none text-[10px] text-on-surface-variant focus:ring-0 cursor-pointer py-0 font-medium"
+          className="bg-transparent border-none text-[10px] text-on-surface-variant/80 font-bold uppercase tracking-[0.1em] focus:ring-0 cursor-pointer py-0"
         >
           <option value="newest">Newest Reviews</option>
           <option value="helpful">Most Helpful</option>
@@ -485,8 +452,8 @@ export default function ProductReviews({ productId }) {
         </select>
       </div>
 
-      {/* Review Feed */}
-      <div className="space-y-4">
+      {/* Review Feed Cards */}
+      <div className="space-y-6">
         {reviews.map((rev) => {
           const firstLetter = (rev.customerName ? rev.customerName[0] : 'V').toUpperCase();
           const maskedEmail = rev.customerEmail ? (() => {
@@ -499,52 +466,60 @@ export default function ProductReviews({ productId }) {
           })() : null;
 
           return (
-            <div key={rev.id} className="p-4 md:p-5 bg-surface-container-low rounded-lg border border-surface-variant/10 flex flex-col gap-3.5 shadow-sm">
-              {/* Premium Review Header */}
-              <div className="flex items-start justify-between gap-4 pb-3 border-b border-surface-variant/5">
+            <div key={rev.id} className={`p-6 md:p-8 bg-surface-container-lowest border rounded-2xl flex flex-col gap-4 shadow-sm relative transition-all duration-300 hover:shadow-md ${rev.isFeatured ? 'border-secondary/35 bg-secondary-container/5' : 'border-surface-variant/10'}`}>
+              
+              {/* Featured Badge */}
+              {rev.isFeatured && (
+                <span className="absolute -top-2.5 left-6 bg-secondary text-on-secondary text-[8px] uppercase tracking-[0.2em] font-bold px-3 py-1 rounded-full shadow-sm">
+                  Featured Review
+                </span>
+              )}
+
+              {/* Card Header */}
+              <div className="flex items-start justify-between gap-4 pb-4 border-b border-surface-variant/10">
                 <div className="flex items-center gap-3">
                   {/* Initials Avatar */}
-                  <div className="w-9 h-9 rounded-full bg-secondary/15 text-secondary flex items-center justify-center font-manrope font-semibold text-xs border border-secondary/20 shadow-inner shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center font-manrope font-semibold text-xs border border-secondary/15 shadow-inner shrink-0">
                     {firstLetter}
                   </div>
-                  {/* Name and Masked Email */}
+                  {/* Name and badge */}
                   <div className="flex flex-col">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-manrope text-xs font-semibold text-primary">{rev.customerName || 'Verified Buyer'}</span>
                       {rev.isVerified && (
-                        <span className="text-[7.5px] bg-secondary-container/20 text-[#1a4a35] px-1.5 py-0.5 font-bold tracking-wider rounded-sm uppercase">
+                        <span className="text-[7.5px] bg-[#1a4a35]/10 text-[#1a4a35] px-2 py-0.5 font-bold tracking-wider rounded-sm uppercase">
                           Verified Purchase
                         </span>
                       )}
                     </div>
                     {maskedEmail && (
-                      <span className="text-[9.5px] text-on-surface-variant/60 font-mono leading-none mt-0.5">
+                      <span className="text-[9.5px] text-on-surface-variant/50 font-mono mt-0.5">
                         {maskedEmail}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Rating stars and date */}
+                {/* Rating stars & Date */}
                 <div className="flex flex-col items-end gap-1.5">
-                  <div className="flex gap-0.5">
+                  <div className="flex gap-0.5 text-secondary">
                     {[1, 2, 3, 4, 5].map((s) => (
-                      <span key={s} className={`material-symbols-outlined text-xs ${s <= rev.rating ? 'fill-secondary text-secondary' : 'text-outline-variant/40'}`}>
+                      <span key={s} className={`material-symbols-outlined text-xs ${s <= rev.rating ? 'fill-secondary text-secondary' : 'text-outline-variant/30'}`}>
                         star
                       </span>
                     ))}
                   </div>
-                  <span className="text-[9px] text-on-surface-variant/50 font-light">
+                  <span className="text-[9px] text-on-surface-variant/40 font-manrope font-light uppercase tracking-wider">
                     {new Date(rev.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
                   </span>
                 </div>
               </div>
 
               {/* Review Content */}
-              <div className="space-y-1">
-                {rev.title && <h4 className="font-manrope text-xs font-semibold text-primary">{rev.title}</h4>}
+              <div className="space-y-2">
+                {rev.title && <h4 className="font-manrope text-sm font-semibold text-primary">{rev.title}</h4>}
                 {rev.comment && (
-                  <p className="text-[11px] text-on-surface-variant font-inter leading-relaxed font-light whitespace-pre-line">
+                  <p className="text-xs md:text-sm text-on-surface-variant/80 font-manrope leading-relaxed font-light whitespace-pre-line">
                     {rev.comment}
                   </p>
                 )}
@@ -552,32 +527,32 @@ export default function ProductReviews({ productId }) {
 
               {/* Media Carousel */}
               {rev.media && rev.media.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1.5">
+                <div className="flex gap-2.5 overflow-x-auto pb-1.5">
                   {rev.media.map((med, i) => (
-                    <div key={i} className="flex-shrink-0 w-16 h-16 border rounded overflow-hidden bg-black/5">
+                    <div key={i} className="flex-shrink-0 w-20 h-20 border border-surface-variant/20 rounded-lg overflow-hidden bg-black/5 group cursor-zoom-in relative">
                       {med.type === 'video' ? (
                         <video src={med.url} controls className="w-full h-full object-cover" />
                       ) : (
-                        <img src={med.url} alt="review media" className="w-full h-full object-cover cursor-zoom-in" onClick={() => window.open(med.url)} />
+                        <img src={med.url} alt="review media" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" onClick={() => window.open(med.url)} />
                       )}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Like and Report interactions */}
-              <div className="flex items-center justify-end border-t border-surface-variant/10 pt-2.5 text-[9px]">
-                <div className="flex gap-4 items-center">
+              {/* Likes & Report panel */}
+              <div className="flex items-center justify-end border-t border-surface-variant/10 pt-3.5 text-[9px]">
+                <div className="flex gap-5 items-center font-manrope">
                   <button
                     onClick={() => handleHelpful(rev.id)}
-                    className="flex items-center gap-1 text-on-surface-variant hover:text-secondary font-medium tracking-wide active:scale-95 transition-transform"
+                    className="flex items-center gap-1.5 text-on-surface-variant/70 hover:text-secondary font-semibold tracking-wider uppercase active:scale-95 transition-transform"
                   >
-                    <span className="material-symbols-outlined text-[12px]">thumb_up</span>
+                    <span className="material-symbols-outlined text-xs">thumb_up</span>
                     Helpful ({rev.helpfulCount || 0})
                   </button>
                   <button
                     onClick={() => handleReport(rev.id)}
-                    className="text-on-surface-variant/50 hover:text-red-600 transition-colors"
+                    className="text-on-surface-variant/40 hover:text-red-600 transition-colors uppercase tracking-wider font-light"
                   >
                     Report
                   </button>
@@ -588,25 +563,196 @@ export default function ProductReviews({ productId }) {
         })}
 
         {isLoadingReviews && (
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center py-6">
             <div className="w-6 h-6 border-2 border-secondary border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
 
         {!isLoadingReviews && reviews.length === 0 && (
-          <p className="text-center text-[10px] text-on-surface-variant/60 italic py-6">No reviews have been written for this piece yet.</p>
+          <p className="text-center text-xs text-on-surface-variant/50 italic py-10 font-manrope font-light">
+            No reviews have been written for this piece yet.
+          </p>
         )}
 
         {/* Load More Button */}
         {!isLoadingReviews && page < totalPages && (
           <button
             onClick={handleLoadMore}
-            className="w-full border border-secondary/20 text-secondary py-2.5 text-[9px] uppercase tracking-widest font-bold hover:bg-secondary/5 transition-colors rounded-sm"
+            className="w-full border border-secondary/20 text-secondary py-3 text-[9px] uppercase tracking-widest font-bold hover:bg-secondary/5 hover:border-secondary transition-all rounded-sm font-manrope"
           >
             Load More Reviews
           </button>
         )}
       </div>
-    </div>
+
+      {/* Write Review Modal Popup Overlay */}
+      {showForm && (
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0b0d11]/80 backdrop-blur-md transition-opacity duration-300 ${modalAnimate ? 'opacity-100' : 'opacity-0'}`}>
+          <div 
+            className={`bg-surface max-w-xl w-full rounded-2xl border border-outline-variant/15 shadow-2xl p-6 md:p-8 relative flex flex-col max-h-[90vh] overflow-y-auto transform transition-all duration-300 ${modalAnimate ? 'scale-100' : 'scale-95'}`}
+            onClick={e => e.stopPropagation()}
+          >
+            
+            {/* Close button */}
+            <button 
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="absolute top-5 right-5 text-on-surface-variant/60 hover:text-primary transition-colors focus:outline-none"
+              aria-label="Close modal"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+
+            {/* Modal Header */}
+            <div className="text-center mb-6 border-b border-surface-variant/10 pb-4">
+              <h3 className="font-cormorant text-2xl font-bold text-primary">Share Your Thoughts</h3>
+              <p className="text-[10px] text-on-surface-variant/50 uppercase tracking-[0.2em] font-light mt-1">Review your jewelry purchase</p>
+            </div>
+
+            {errorMsg && <p className="text-xs text-red-500 font-semibold mb-4 bg-red-50/50 p-3 rounded-lg border border-red-100">{errorMsg}</p>}
+            {successMsg && <p className="text-xs text-[#1a4a35] font-semibold mb-4 bg-[#1a4a35]/5 p-3 rounded-lg border border-[#1a4a35]/10">{successMsg}</p>}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              
+              {/* Star Rating select box */}
+              <div className="bg-surface-container-low/60 p-4 rounded-xl border border-surface-variant/5 text-center space-y-2">
+                <label className="block text-[10px] uppercase tracking-wider text-outline font-bold">Rate your experience</label>
+                <div className="flex gap-2.5 justify-center">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      className="focus:outline-none transition-transform active:scale-90"
+                    >
+                      <span className={`material-symbols-outlined text-3xl cursor-pointer transition-all ${star <= (hoverRating || rating) ? 'fill-secondary text-secondary scale-110' : 'text-outline-variant/30 hover:scale-105'}`}>
+                        star
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Review Headline input */}
+              <div className="space-y-1">
+                <label className="block text-[9px] uppercase tracking-widest text-outline font-bold">Add a Headline</label>
+                <input
+                  type="text"
+                  required
+                  className="w-full bg-surface-container-lowest border border-outline-variant/30 focus:border-secondary focus:ring-1 focus:ring-secondary py-3 px-4 text-xs font-manrope rounded-lg transition-all"
+                  placeholder="e.g. Exquisite craftsmanship, beautiful stones!"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                />
+              </div>
+
+              {/* Review Comment textarea */}
+              <div className="space-y-1">
+                <label className="block text-[9px] uppercase tracking-widest text-outline font-bold">Write a Review</label>
+                <textarea
+                  rows="4"
+                  required
+                  className="w-full bg-surface-container-lowest border border-outline-variant/30 focus:border-secondary focus:ring-1 focus:ring-secondary py-3 px-4 text-xs font-manrope rounded-lg transition-all"
+                  placeholder="Share details of your experience with the jewelry piece..."
+                  value={comment}
+                  onChange={e => setComment(e.target.value)}
+                ></textarea>
+              </div>
+
+              {/* User Name & Email inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-[9px] uppercase tracking-widest text-outline font-bold">Your Name</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full bg-surface-container-lowest border border-outline-variant/30 focus:border-secondary focus:ring-1 focus:ring-secondary py-3 px-4 text-xs font-manrope rounded-lg transition-all"
+                    placeholder="e.g. Eleanor Vance"
+                    value={customName}
+                    onChange={e => setCustomName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block text-[9px] uppercase tracking-widest text-outline font-bold">Your Email Address</label>
+                  <input
+                    type="email"
+                    required
+                    className="w-full bg-surface-container-lowest border border-outline-variant/30 focus:border-secondary focus:ring-1 focus:ring-secondary py-3 px-4 text-xs font-manrope rounded-lg transition-all opacity-80"
+                    placeholder="e.g. eleanor@vance.com"
+                    value={customEmail}
+                    disabled={user !== null} // Disable for authenticated users to ensure security
+                    onChange={e => setCustomEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Media upload area */}
+              <div className="space-y-2">
+                <label className="block text-[9px] uppercase tracking-widest text-outline font-bold">Add Media (Photos & Videos)</label>
+                <div className="flex flex-wrap gap-3 items-center">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    multiple
+                    accept="image/*,video/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center border-2 border-dashed border-outline-variant/20 rounded-xl w-full py-6 bg-surface-container-low hover:bg-surface-container-high hover:border-secondary/30 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-secondary text-2xl mb-1.5">upload_file</span>
+                    <span className="text-[10px] text-primary uppercase tracking-widest font-bold">Attach Files</span>
+                    <span className="text-[8px] text-on-surface-variant/40 lowercase tracking-wider mt-0.5">Upload images and videos (max 10MB each)</span>
+                  </button>
+
+                  {/* Attachment previews */}
+                  {mediaFiles.length > 0 && (
+                    <div className="flex gap-2 flex-wrap mt-2">
+                      {mediaFiles.map((file, i) => (
+                        <div key={i} className="relative w-14 h-14 border border-surface-variant/20 rounded-lg overflow-hidden bg-black/5 flex items-center justify-center shadow-sm">
+                          {file.type.startsWith('video/') ? (
+                            <span className="material-symbols-outlined text-on-surface-variant text-base">movie</span>
+                          ) : (
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt="upload preview"
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFile(i)}
+                            className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-700 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] shadow"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Submit / Send button */}
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="group w-full flex items-center justify-between gap-4 bg-primary text-on-primary pl-6 pr-4 py-4 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary disabled:opacity-55 transition-all duration-300 mt-2 shadow-lg"
+              >
+                <span>{isSubmitting ? 'Uploading & Sending...' : 'Send'}</span>
+                <span className="w-6 h-6 rounded-full bg-on-primary/10 flex items-center justify-center group-hover:bg-on-primary/20 transition-colors">
+                  <span className="material-symbols-outlined text-[10px] text-on-primary fill-none">chevron_right</span>
+                </span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

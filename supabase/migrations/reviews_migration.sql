@@ -5,6 +5,7 @@ ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS title TEXT;
 ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS customer_name TEXT;
 ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false;
 ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected'));
+ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS is_featured BOOLEAN DEFAULT false;
 ALTER TABLE public.reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 2. Create review media table for images/videos

@@ -105,6 +105,9 @@ export default function ProductPage() {
       
       if (error) throw error
       setProduct(data)
+      setIsLoading(false) // Set loading to false as soon as the main product data is set
+
+      // Track view item in background
       analytics.trackViewItem({
         id: data.id,
         name: data.title,
@@ -112,7 +115,7 @@ export default function ProductPage() {
         category: data.category,
       })
 
-
+      // Add to recent products in background
       try {
         const stored = localStorage.getItem('recentProducts')
         let recents = stored ? JSON.parse(stored) : []
@@ -128,34 +131,41 @@ export default function ProductPage() {
         localStorage.setItem('recentProducts', JSON.stringify(recents))
       } catch (err) {}
 
-      // Fetch related products
+      // Fetch related products in background
       if (data.category_id) {
-        const { data: related, error: relError } = await supabase
+        supabase
           .from('products')
           .select('*')
           .eq('category_id', data.category_id)
           .neq('id', data.id)
           .limit(4)
-        
-        if (!relError && related) {
-          setRelatedProducts(related)
-        }
+          .then(({ data: related, error: relError }) => {
+            if (!relError && related) {
+              setRelatedProducts(related)
+            }
+          })
+          .catch(err => {
+            console.error('Error fetching related products:', err);
+          })
       }
 
-      // Fetch rating summary
-      try {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
-        const res = await fetch(`${API_BASE_URL}/api/reviews/summary/product/${data.id}`);
-        const sData = await res.json();
-        if (res.ok && sData.success) {
-          setSummary(sData.summary);
-        }
-      } catch (err) {
-        console.error('Error fetching summary:', err);
-      }
+      // Fetch rating summary in background
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
+      fetch(`${API_BASE_URL}/api/reviews/summary/product/${data.id}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`Status ${res.status}`);
+          return res.json();
+        })
+        .then(sData => {
+          if (sData.success) {
+            setSummary(sData.summary);
+          }
+        })
+        .catch(err => {
+          console.error('Error fetching summary:', err);
+        })
     } catch (err) {
       console.error('Error fetching product:', err.message)
-    } finally {
       setIsLoading(false)
     }
   }

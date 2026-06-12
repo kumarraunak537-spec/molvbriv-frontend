@@ -2009,7 +2009,7 @@ app.get('/api/reviews/product/:productId', async (req, res) => {
     let query = supabase
       .from('reviews')
       .select(`
-        id, rating, title, comment, customer_name, is_verified, created_at,
+        id, rating, title, comment, customer_name, is_verified, is_featured, created_at,
         profiles (name, avatar_url, email)
       `, { count: 'exact' })
       .eq('product_id', productId)
@@ -2059,6 +2059,7 @@ app.get('/api/reviews/product/:productId', async (req, res) => {
         customerEmail: r.profiles ? r.profiles.email : null,
         avatarUrl: r.profiles ? r.profiles.avatar_url : null,
         isVerified: r.is_verified,
+        isFeatured: r.is_featured,
         createdAt: r.created_at,
         media: reviewMedia.map(m => ({ url: m.media_url, type: m.media_type })),
         helpfulCount,
@@ -2178,13 +2179,14 @@ app.get('/api/admin/reviews', authenticateAdmin, async (req, res) => {
   const status = req.query.status;
   const verified = req.query.verified;
   const search = req.query.search;
+  const productId = req.query.productId;
   const offset = (page - 1) * limit;
 
   try {
     let query = supabase
       .from('reviews')
       .select(`
-        id, rating, title, comment, customer_name, is_verified, status, created_at, product_id,
+        id, rating, title, comment, customer_name, is_verified, status, is_featured, created_at, product_id,
         products (title),
         profiles (email)
       `, { count: 'exact' });
@@ -2192,6 +2194,7 @@ app.get('/api/admin/reviews', authenticateAdmin, async (req, res) => {
     if (rating) query = query.eq('rating', parseInt(rating));
     if (status) query = query.eq('status', status);
     if (verified) query = query.eq('is_verified', verified === 'true');
+    if (productId && productId !== 'all') query = query.eq('product_id', productId);
     
     if (search) {
       query = query.or(`customer_name.ilike.%${search}%,comment.ilike.%${search}%,title.ilike.%${search}%`);
@@ -2214,6 +2217,7 @@ app.get('/api/admin/reviews', authenticateAdmin, async (req, res) => {
         customerName: r.customer_name,
         customerEmail: r.profiles ? r.profiles.email : null,
         isVerified: r.is_verified,
+        isFeatured: r.is_featured,
         status: r.status,
         createdAt: r.created_at
       })),
@@ -2271,6 +2275,56 @@ app.put('/api/admin/reviews/:id/status', authenticateAdmin, async (req, res) => 
     res.json({ success: true, review: updatedReview, summary });
   } catch (err) {
     console.error('Admin review status update error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 9b. Admin: Toggle Review Featured Status
+app.put('/api/admin/reviews/:id/featured', authenticateAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { isFeatured } = req.body;
+
+  try {
+    const { data: review, error: getErr } = await supabase
+      .from('reviews')
+      .select('product_id')
+      .eq('id', id)
+      .single();
+
+    if (getErr || !review) {
+      return res.status(404).json({ success: false, error: 'Review not found.' });
+    }
+
+    const { data: updatedReview, error: updateErr } = await supabase
+      .from('reviews')
+      .update({ is_featured: !!isFeatured })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateErr) throw updateErr;
+
+    // Emit live update
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`product_${review.product_id}`).emit('review_updated', {
+        productId: review.product_id,
+        review: {
+          id: updatedReview.id,
+          rating: updatedReview.rating,
+          title: updatedReview.title,
+          comment: updatedReview.comment,
+          customer_name: updatedReview.customer_name,
+          is_verified: updatedReview.is_verified,
+          is_featured: updatedReview.is_featured,
+          created_at: updatedReview.created_at
+        }
+      });
+    }
+
+    res.json({ success: true, review: updatedReview });
+  } catch (err) {
+    console.error('Admin review featured toggle error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

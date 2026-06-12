@@ -137,6 +137,7 @@ export default function AdminPage() {
   const [reviewsFilterRating, setReviewsFilterRating] = useState('all');
   const [reviewsFilterStatus, setReviewsFilterStatus] = useState('all');
   const [reviewsFilterVerified, setReviewsFilterVerified] = useState('all');
+  const [reviewsFilterProduct, setReviewsFilterProduct] = useState('all');
   const [reviewsSearchQuery, setReviewsSearchQuery] = useState('');
   const [reviewsPage, setReviewsPage] = useState(1);
   const [reviewsTotalPages, setReviewsTotalPages] = useState(1);
@@ -485,6 +486,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
       if (reviewsFilterRating !== 'all') queryParams += `&rating=${reviewsFilterRating}`;
       if (reviewsFilterStatus !== 'all') queryParams += `&status=${reviewsFilterStatus}`;
       if (reviewsFilterVerified !== 'all') queryParams += `&verified=${reviewsFilterVerified}`;
+      if (reviewsFilterProduct !== 'all') queryParams += `&productId=${reviewsFilterProduct}`;
       if (reviewsSearchQuery.trim()) queryParams += `&search=${encodeURIComponent(reviewsSearchQuery)}`;
 
       const targetUrl = `${API_BASE_URL}/api/admin/reviews?${queryParams}`;
@@ -535,6 +537,30 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     }
   };
 
+  const handleToggleFeatured = async (reviewId, currentFeatured) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const targetUrl = `${API_BASE_URL}/api/admin/reviews/${reviewId}/featured`;
+      const res = await fetch(targetUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ isFeatured: !currentFeatured })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to update review featured status');
+      }
+      showToast(`Review ${!currentFeatured ? 'marked as featured' : 'removed from featured'}`);
+      setReviewsData(prev => prev.map(r => r.id === reviewId ? { ...r, isFeatured: !currentFeatured } : r));
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to toggle featured status');
+    }
+  };
+
   const handleDeleteReview = async (reviewId) => {
     if (!window.confirm('Are you sure you want to permanently delete this review?')) return;
     try {
@@ -563,7 +589,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     if (isAuthenticated && activePage === 'reviews') {
       fetchReviews();
     }
-  }, [isAuthenticated, activePage, reviewsPage, reviewsFilterRating, reviewsFilterStatus, reviewsFilterVerified]);
+  }, [isAuthenticated, activePage, reviewsPage, reviewsFilterRating, reviewsFilterStatus, reviewsFilterVerified, reviewsFilterProduct]);
 
   useEffect(() => {
     if (isAuthenticated && activePage === 'reviews') {
@@ -1511,16 +1537,30 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                   <option value="true">Verified Buyer</option>
                   <option value="false">Non-Verified</option>
                 </select>
+
+                {/* Product Filter */}
+                <select 
+                  className="si si-sel" 
+                  style={{ width: '160px' }} 
+                  value={reviewsFilterProduct} 
+                  onChange={e => { setReviewsFilterProduct(e.target.value); setReviewsPage(1); }}
+                >
+                  <option value="all">All Products</option>
+                  {productsData.map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Reviews Table */}
               <div className="ot">
-                <div className="oh" style={{ gridTemplateColumns: '1fr 1.2fr 2fr 0.8fr 1fr 130px', padding: '9px 15px' }}>
+                <div className="oh" style={{ gridTemplateColumns: '1fr 1.2fr 2fr 0.8fr 1fr 0.8fr 130px', padding: '9px 15px' }}>
                   <span>CUSTOMER</span>
                   <span>PRODUCT</span>
                   <span>REVIEW CONTENT</span>
                   <span>RATING</span>
                   <span>STATUS</span>
+                  <span>FEATURED</span>
                   <span style={{ textAlign: 'right' }}>ACTIONS</span>
                 </div>
                 {isReviewsLoading ? (
@@ -1535,7 +1575,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                     <div 
                       key={r.id} 
                       className="or" 
-                      style={{ gridTemplateColumns: '1fr 1.2fr 2fr 0.8fr 1fr 130px', padding: '12px 15px', alignItems: 'start' }}
+                      style={{ gridTemplateColumns: '1fr 1.2fr 2fr 0.8fr 1fr 0.8fr 130px', padding: '12px 15px', alignItems: 'start' }}
                     >
                       <div style={{ minWidth: 0 }}>
                         <div style={{ color: 'var(--tx)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.customerName}</div>
@@ -1562,6 +1602,18 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                           {r.status}
                         </span>
                       </span>
+
+                      <div style={{ display: 'flex', alignItems: 'center', alignSelf: 'start', paddingLeft: '8px' }}>
+                        <button 
+                          onClick={() => handleToggleFeatured(r.id, r.isFeatured)} 
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', outline: 'none', padding: 0 }}
+                          title={r.isFeatured ? "Remove from Featured" : "Mark as Featured"}
+                        >
+                          <span className="material-symbols-outlined" style={{ color: r.isFeatured ? 'var(--am)' : 'var(--mu)', fontVariationSettings: r.isFeatured ? "'FILL' 1" : "'FILL' 0", fontSize: '20px' }}>
+                            star
+                          </span>
+                        </button>
+                      </div>
 
                       <div className="rab" style={{ justifyContent: 'flex-end', gap: '6px' }}>
                         {r.status !== 'approved' && (
