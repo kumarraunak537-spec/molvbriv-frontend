@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import heroVideo from '../assets/hero-bg.mp4'
+import heroPoster from '../assets/hero-poster.jpg'
 import { updateSEO } from '../utils/seo'
 
 
@@ -67,7 +68,7 @@ export default function HomePage() {
             muted 
             playsInline
             preload="auto"
-            poster="https://lh3.googleusercontent.com/aida-public/AB6AXuDXQ6zcurXAOej9mhjvSGFNmlDBD3HK514mpbrAPnRvfVrglITD7GDf202_jsgER-RiXjLEDKnDTIMFToHmaamANJz_1ZqWUcTlbElyLenm43O7kCTUJTdvIM_3YhxcSzBo1KFtFMxdUYoZ9TaiPShPUqvUc9CtfjOSqMIZwZ5dGQlQmRgOsJKESFRptFzmsBoi00kFqBKLrTKL_iQxns2BiBv0189R7PMRDSn5X-DbiVz_Zxb_KG-Dcciv9C0SD5lXWcvRhZB7itc"
+            poster={heroPoster}
             className="w-full h-full object-cover scale-105"
           >
             <source src={heroVideo} type="video/mp4" />
