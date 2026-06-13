@@ -1,0 +1,7 @@
+dist
+node_modules
+.git
+.vercel
+Recording 2026-05-05 161111.mp4
+scratch
+*.log

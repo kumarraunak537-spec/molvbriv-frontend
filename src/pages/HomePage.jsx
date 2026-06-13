@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import heroVideo from '../assets/video.mp4'
+import heroVideo from '../assets/hero-bg.mp4'
 import { updateSEO } from '../utils/seo'
 
 

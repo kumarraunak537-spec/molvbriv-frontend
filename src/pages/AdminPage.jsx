@@ -322,7 +322,36 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     } catch (err) {
       console.error(err);
       setLogisticsError(getFailingFetchError(err, targetUrl));
-      showToast('Fulfillment failed');
+    } finally {
+      setIsLogisticsLoading(false);
+    }
+  };
+
+  const handleSyncShipment = async (orderId) => {
+    setIsLogisticsLoading(true);
+    setLogisticsError('');
+    const targetUrl = `${API_BASE_URL}/api/shiprocket/sync-shipment`;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({ orderId })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to sync shipment with Shiprocket');
+      }
+      showToast('Shipment synchronized successfully!');
+      setSelectedAdminOrder(data.order);
+      setOrdersData(prev => prev.map(o => o.id === orderId ? data.order : o));
+    } catch (err) {
+      console.error(err);
+      setLogisticsError(getFailingFetchError(err, targetUrl));
+      showToast('Sync failed');
     } finally {
       setIsLogisticsLoading(false);
     }
@@ -1379,22 +1408,34 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                                 </a>
                               ) : (
                                 <button
-                                  disabled
                                   className="btn"
-                                  style={{ flex: 1, fontSize: '11px', padding: '6px 12px', opacity: 0.5, cursor: 'not-allowed' }}
+                                  disabled={isLogisticsLoading}
+                                  onClick={() => handleSyncShipment(selectedAdminOrder.id)}
+                                  style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', padding: '6px 12px', color: 'var(--tx)', border: '1px solid var(--b2)', background: 'var(--s3)' }}
                                 >
-                                  Label Pending
+                                  {isLogisticsLoading ? 'Syncing...' : 'Sync / Generate Label'}
                                 </button>
                               )}
 
-                              <button
-                                className="btn btn-p"
-                                disabled={isLogisticsLoading}
-                                onClick={() => handleTrackShipment(selectedAdminOrder.awb_code)}
-                                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', padding: '6px 12px', background: 'var(--ac)', color: '#000', fontWeight: 600, border: 'none' }}
-                              >
-                                {isLogisticsLoading ? 'Syncing...' : 'Track Delivery'}
-                              </button>
+                              {(!selectedAdminOrder.awb_code || selectedAdminOrder.awb_code === 'N/A' || selectedAdminOrder.awb_code === 'undefined' || selectedAdminOrder.awb_code.trim() === '') ? (
+                                <button
+                                  className="btn btn-p"
+                                  disabled={isLogisticsLoading}
+                                  onClick={() => handleSyncShipment(selectedAdminOrder.id)}
+                                  style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', padding: '6px 12px', background: 'var(--ac)', color: '#000', fontWeight: 600, border: 'none' }}
+                                >
+                                  {isLogisticsLoading ? 'Syncing...' : 'Sync / Assign AWB'}
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn btn-p"
+                                  disabled={isLogisticsLoading}
+                                  onClick={() => handleTrackShipment(selectedAdminOrder.awb_code)}
+                                  style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '11px', padding: '6px 12px', background: 'var(--ac)', color: '#000', fontWeight: 600, border: 'none' }}
+                                >
+                                  {isLogisticsLoading ? 'Syncing...' : 'Track Delivery'}
+                                </button>
+                              )}
 
                               <button
                                 className="btn"

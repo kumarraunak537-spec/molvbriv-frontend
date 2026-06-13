@@ -1523,6 +1523,147 @@ app.post('/api/shiprocket/cancel', authenticateAdmin, async (req, res, next) => 
   }
 });
 
+// D. Sync/Re-assign AWB for Shipment (Admin protected)
+app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, next) => {
+  const { orderId } = req.body;
+  if (!orderId) {
+    return res.status(400).json({ success: false, error: 'orderId is required' });
+  }
+
+  try {
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+
+    if (error || !order) {
+      return res.status(404).json({ success: false, error: 'Order not found in database' });
+    }
+
+    const shipmentId = order.shipment_id;
+    if (!shipmentId) {
+      return res.status(400).json({ success: false, error: 'No shipment has been initialized for this order yet.' });
+    }
+
+    const token = await getShiprocketToken();
+    if (token === 'SIMULATED_TOKEN') {
+      const awb = order.awb_code || `MB-AWB-${Math.floor(Math.random() * 9000000000 + 1000000000)}`;
+      const { data: updatedOrder, error: updErr } = await supabase
+        .from('orders')
+        .update({
+          awb_code: awb,
+          tracking_id: awb,
+          courier_name: order.courier_name || 'Delhivery Air',
+          shipment_status: 'Packed',
+          shiprocket_sync_status: 'Created',
+          shiprocket_sync_error: null
+        })
+        .eq('id', orderId)
+        .select()
+        .single();
+      if (updErr) throw updErr;
+      return res.json({ success: true, order: updatedOrder });
+    }
+
+    // A. Fetch shipment details from Shiprocket
+    const shipRes = await fetch(`https://apiv2.shiprocket.in/v1/external/shipments/${shipmentId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!shipRes.ok) {
+      const errText = await shipRes.text();
+      throw new Error(`Failed to fetch shipment from Shiprocket: ${shipRes.statusText} - ${errText}`);
+    }
+
+    const shipData = await shipRes.json();
+    let awbCode = shipData?.data?.awb || '';
+    let courierName = shipData?.data?.courier || '';
+    let labelUrl = shipData?.data?.label_url || '';
+
+    // B. If AWB is still not assigned, attempt to assign AWB
+    if (!awbCode) {
+      console.log(`AWB not assigned on Shiprocket yet. Requesting AWB assignment for shipment ${shipmentId}...`);
+      const awbRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/assign/awb', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ shipment_id: parseInt(shipmentId) })
+      });
+
+      if (awbRes.ok) {
+        const awbData = await awbRes.json();
+        if (awbData.status === 200 && awbData.response && awbData.response.data) {
+          const awbDetails = awbData.response.data;
+          awbCode = awbDetails.awb_code || '';
+          courierName = awbDetails.courier_name || courierName;
+        } else {
+          console.warn('AWB generation failed on assign attempt:', JSON.stringify(awbData));
+        }
+      } else {
+        const awbErrText = await awbRes.text();
+        console.error(`AWB assignment failed on sync: ${awbRes.statusText} - ${awbErrText}`);
+      }
+    }
+
+    // C. If label URL is missing and we have AWB, attempt to generate label
+    if (!labelUrl && awbCode) {
+      try {
+        const labelRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/generate/label', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ shipment_id: [parseInt(shipmentId)] })
+        });
+        if (labelRes.ok) {
+          const labelData = await labelRes.json();
+          labelUrl = labelData.label_url || '';
+        }
+      } catch (labelErr) {
+        console.error('Error generating label on sync:', labelErr);
+      }
+    }
+
+    // D. Update Supabase Database
+    const updatePayload = {
+      shiprocket_sync_status: 'Created',
+      shiprocket_sync_error: null
+    };
+
+    if (awbCode) {
+      updatePayload.awb_code = awbCode;
+      updatePayload.tracking_id = awbCode;
+    }
+    if (courierName) {
+      updatePayload.courier_name = courierName;
+    }
+    if (labelUrl) {
+      updatePayload.shipping_label_url = labelUrl;
+    }
+
+    const { data: updatedOrder, error: updErr } = await supabase
+      .from('orders')
+      .update(updatePayload)
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (updErr) throw updErr;
+
+    res.json({ success: true, order: updatedOrder });
+
+  } catch (err) {
+    next(err);
+  }
+});
+
 // E. Courier Serviceability Check (Publicly accessible)
 app.get('/api/shiprocket/serviceability', async (req, res, next) => {
   const { delivery_postcode, pickup_postcode } = req.query;
