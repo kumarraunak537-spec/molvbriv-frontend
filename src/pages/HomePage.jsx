@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, memo } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -8,12 +8,46 @@ import heroVideoMobile from '../assets/hero-mobile.mp4'
 import heroPoster from '../assets/hero-poster.jpg'
 import { updateSEO } from '../utils/seo'
 
+// Memoized Hero Video component to prevent DOM re-renders and playbacks restarts.
+// Applies GPU hardware acceleration via translate3d and will-change: transform.
+const HeroVideo = memo(({ src, poster }) => {
+  return (
+    <video 
+      autoPlay 
+      loop 
+      muted 
+      playsInline
+      preload="auto"
+      poster={poster}
+      src={src}
+      className="w-full h-full object-cover scale-105"
+      style={{
+        transform: 'scale(1.05) translate3d(0, 0, 0)',
+        backfaceVisibility: 'hidden',
+        willChange: 'transform',
+      }}
+    />
+  )
+})
+
+HeroVideo.displayName = 'HeroVideo'
+
+
 
 export default function HomePage() {
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [videoSrc, setVideoSrc] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const width = window.innerWidth
+      if (width >= 1440) return heroVideo2K
+      if (width >= 768) return heroVideo1080p
+      return heroVideoMobile
+    }
+    return heroVideoMobile
+  })
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com'
 
@@ -64,19 +98,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 bg-surface-container-highest">
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            preload="auto"
-            poster={heroPoster}
-            className="w-full h-full object-cover scale-105"
-          >
-            <source src={heroVideo2K} media="(min-width: 1440px)" type="video/mp4" />
-            <source src={heroVideo1080p} media="(min-width: 768px)" type="video/mp4" />
-            <source src={heroVideoMobile} type="video/mp4" />
-          </video>
+          <HeroVideo src={videoSrc} poster={heroPoster} />
           <div className="absolute inset-0 bg-primary/20"></div>
         </div>
 
