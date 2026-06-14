@@ -622,7 +622,7 @@ export default function CartPage() {
           currency: razorpayOrder ? razorpayOrder.currency : 'INR',
           name: 'MOLVBRIV',
           description: 'Timeless Luxury Jewelry Sourcing & Purchase',
-          image: 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=200&h=200&fit=crop',
+          image: `${window.location.origin}/logo.png`,
           ...(useBackendFlow && razorpayOrder ? { order_id: razorpayOrder.id } : {}), // only include order_id if backend is online
           handler: async function (response) {
             setIsPaymentLoading(true);
