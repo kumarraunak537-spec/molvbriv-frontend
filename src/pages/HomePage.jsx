@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import heroVideo from '../assets/hero-bg.mp4'
+import heroVideo2K from '../assets/hero-2k.mp4'
+import heroVideo1080p from '../assets/hero-1080p.mp4'
+import heroVideoMobile from '../assets/hero-mobile.mp4'
 import heroPoster from '../assets/hero-poster.jpg'
 import { updateSEO } from '../utils/seo'
 
@@ -71,7 +73,9 @@ export default function HomePage() {
             poster={heroPoster}
             className="w-full h-full object-cover scale-105"
           >
-            <source src={heroVideo} type="video/mp4" />
+            <source src={heroVideo2K} media="(min-width: 1440px)" type="video/mp4" />
+            <source src={heroVideo1080p} media="(min-width: 768px)" type="video/mp4" />
+            <source src={heroVideoMobile} type="video/mp4" />
           </video>
           <div className="absolute inset-0 bg-primary/20"></div>
         </div>
