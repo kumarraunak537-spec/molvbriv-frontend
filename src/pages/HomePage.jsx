@@ -3,9 +3,7 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 
-import heroVideoMobileMp4 from '../assets/hero-mobile.mp4'
-// We will conditionally load webm, or use it natively
-import heroVideoMobileWebm from '../assets/hero-mobile.webm'
+import heroVideoBg from '../assets/hero-bg.mp4'
 import heroPoster from '../assets/hero-poster.jpg'
 
 import jhumkaPink from '../assets/jhumka-pink.png'
@@ -78,7 +76,7 @@ const HeroVideo = memo(({ poster, shouldLoadVideo }) => {
       loop 
       muted 
       playsInline
-      preload="none"
+      preload="auto"
       poster={poster}
       className="w-full h-full object-cover scale-105"
       style={{
@@ -87,8 +85,7 @@ const HeroVideo = memo(({ poster, shouldLoadVideo }) => {
         willChange: 'transform',
       }}
     >
-      <source src={heroVideoMobileWebm} type="video/webm" />
-      <source src={heroVideoMobileMp4} type="video/mp4" />
+      <source src={heroVideoBg} type="video/mp4" />
     </video>
   )
 })
