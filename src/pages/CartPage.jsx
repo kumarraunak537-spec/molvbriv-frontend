@@ -542,41 +542,8 @@ export default function CartPage() {
           throw new Error(result.error || 'Failed to place COD order');
         }
       } catch (err) {
-        console.warn('Backend API offline or failed. Falling back to direct Supabase insertion for COD:', err);
-        // Resilient Fallback: Insert directly into Supabase so COD order is NEVER lost!
-        try {
-          const orderNumber = `MB-COD-${Math.floor(Date.now() / 1000)}`;
-          const { data, error } = await supabase
-            .from('orders')
-            .insert([{
-              user_id: user?.id || null,
-              customer_name: checkoutDetails.customerName,
-              customer_email: checkoutDetails.customerEmail,
-              customer_phone: checkoutDetails.customerPhone,
-              shipping_address: checkoutDetails.shippingAddress,
-              products: checkoutDetails.products,
-              quantity: checkoutDetails.quantity,
-              total_price: parseFloat(checkoutDetails.amount),
-              total_amount: parseFloat(checkoutDetails.amount),
-              razorpay_order_id: orderNumber,
-              payment_id: 'COD',
-              razorpay_payment_id: 'COD',
-              payment_method: 'COD',
-              payment_status: 'pending',
-              order_status: 'Pending',
-              status: 'pending'
-            }])
-            .select()
-            .single();
-
-          if (error) throw error;
-          saveOrClearCheckoutInfo();
-          clearCart();
-          navigate('/payment-success', { state: { order: data } });
-        } catch (dbErr) {
-          console.error('Direct Supabase insert failed:', dbErr);
-          alert(`Placing COD order failed. Error: ${dbErr.message || 'Unknown database error'}. Please make sure you have executed the Supabase SQL script in your Supabase dashboard SQL Editor!`);
-        }
+        console.warn('Backend API offline or failed:', err);
+        alert(`Placing COD order failed. Please check your internet connection or try again later. Error: ${err.message}`);
       } finally {
         setIsPaymentLoading(false);
       }
@@ -590,7 +557,6 @@ export default function CartPage() {
       }
 
       let razorpayOrder = null;
-      let useBackendFlow = false;
 
       try {
         // Try to create order on backend
@@ -604,117 +570,66 @@ export default function CartPage() {
           })
         });
         
-        if (orderResponse.ok) {
-          const orderResult = await orderResponse.json();
-          if (orderResult.success) {
-            razorpayOrder = orderResult.razorpayOrder;
-            useBackendFlow = true;
-          }
+        if (!orderResponse.ok) throw new Error('API server offline');
+        
+        const orderResult = await orderResponse.json();
+        if (orderResult.success) {
+          razorpayOrder = orderResult.razorpayOrder;
+        } else {
+          throw new Error(orderResult.error || 'Failed to create payment order');
         }
       } catch (err) {
-        console.warn('Backend payment creation API offline. Falling back to secure client-side Razorpay flow.', err);
+        console.error('Payment creation failed:', err);
+        alert('Payment server is currently offline. Please try Cash on Delivery or try again later.');
+        setIsPaymentLoading(false);
+        return;
       }
 
       try {
+        if (!import.meta.env.VITE_RAZORPAY_KEY_ID) {
+          alert('Payment gateway is not configured properly (Missing API Key).');
+          setIsPaymentLoading(false);
+          return;
+        }
+
         const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_SsUdDbfNytrJV9',
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
           amount: razorpayOrder ? razorpayOrder.amount : Math.round(grandTotal * 100),
           currency: razorpayOrder ? razorpayOrder.currency : 'INR',
           name: 'MOLVBRIV',
           description: 'Timeless Luxury Jewelry Sourcing & Purchase',
           image: `${window.location.origin}/logo.png`,
-          ...(useBackendFlow && razorpayOrder ? { order_id: razorpayOrder.id } : {}), // only include order_id if backend is online
+          ...(razorpayOrder ? { order_id: razorpayOrder.id } : {}),
           handler: async function (response) {
             setIsPaymentLoading(true);
             
-            if (useBackendFlow) {
-              // A. BACKEND VERIFICATION FLOW
-              try {
-                const verifyResponse = await fetch(`${API_BASE_URL}/api/payments/verify`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    razorpay_order_id: response.razorpay_order_id,
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    razorpay_signature: response.razorpay_signature,
-                    checkoutDetails
-                  })
-                });
-                
-                if (!verifyResponse.ok) throw new Error('Verification server offline');
-                
-                const verifyResult = await verifyResponse.json();
-                if (verifyResult.success) {
-                  saveOrClearCheckoutInfo();
-                  clearCart();
-                  navigate('/payment-success', { state: { order: verifyResult.order } });
-                } else {
-                  throw new Error(verifyResult.error || 'Payment signature mismatch');
-                }
-              } catch (err) {
-                console.warn('Backend verification offline during transaction. Inserting paid order directly to Supabase:', err);
-                try {
-                  const { data, error } = await supabase
-                    .from('orders')
-                    .update({
-                      payment_status: 'paid',
-                      order_status: 'Paid',
-                      status: 'processing',
-                      payment_id: response.razorpay_payment_id,
-                      razorpay_payment_id: response.razorpay_payment_id
-                    })
-                    .eq('razorpay_order_id', response.razorpay_order_id)
-                    .select()
-                    .single();
-
-                  if (error) throw error;
-                  saveOrClearCheckoutInfo();
-                  clearCart();
-                  navigate('/payment-success', { state: { order: data } });
-                } catch (dbErr) {
-                  console.error('Direct Supabase update failed:', dbErr);
-                  navigate('/payment-failed', { state: { error: 'Payment succeeded but database syncing failed. Payment ID: ' + response.razorpay_payment_id, checkoutDetails } });
-                }
-              } finally {
-                setIsPaymentLoading(false);
-              }
-            } else {
-              // B. CLIENT-SIDE FLOW WITH DIRECT SUPABASE INSERT (Backup if backend is offline)
-              try {
-                const orderNumber = `MB-${Math.floor(Date.now() / 1000)}`;
-                const { data, error } = await supabase
-                  .from('orders')
-                  .insert([{
-                    user_id: user?.id || null,
-                    customer_name: checkoutDetails.customerName,
-                    customer_email: checkoutDetails.customerEmail,
-                    customer_phone: checkoutDetails.customerPhone,
-                    shipping_address: checkoutDetails.shippingAddress,
-                    products: checkoutDetails.products,
-                    quantity: checkoutDetails.quantity,
-                    total_price: parseFloat(checkoutDetails.amount),
-                    total_amount: parseFloat(checkoutDetails.amount),
-                    razorpay_order_id: response.razorpay_order_id || orderNumber,
-                    payment_id: response.razorpay_payment_id,
-                    razorpay_payment_id: response.razorpay_payment_id,
-                    payment_method: 'Online',
-                    payment_status: 'paid',
-                    order_status: 'Paid',
-                    status: 'processing'
-                  }])
-                  .select()
-                  .single();
-
-                if (error) throw error;
+            try {
+              const verifyResponse = await fetch(`${API_BASE_URL}/api/payments/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  checkoutDetails
+                })
+              });
+              
+              if (!verifyResponse.ok) throw new Error('Verification server offline');
+              
+              const verifyResult = await verifyResponse.json();
+              if (verifyResult.success) {
                 saveOrClearCheckoutInfo();
                 clearCart();
-                navigate('/payment-success', { state: { order: data } });
-              } catch (dbErr) {
-                console.error('Direct paid order insertion failed:', dbErr);
-                alert(`Payment was successful (ID: ${response.razorpay_payment_id}) but we failed to sync with the database. Error: ${dbErr.message || 'Unknown database error'}. Please make sure you have executed the Supabase SQL script in your Supabase dashboard SQL Editor!`);
-              } finally {
-                setIsPaymentLoading(false);
+                navigate('/payment-success', { state: { order: verifyResult.order } });
+              } else {
+                throw new Error(verifyResult.error || 'Payment signature mismatch');
               }
+            } catch (err) {
+              console.error('Backend verification offline during transaction:', err);
+              navigate('/payment-failed', { state: { error: 'Payment succeeded but server verification failed. Please contact support. Payment ID: ' + response.razorpay_payment_id, checkoutDetails } });
+            } finally {
+              setIsPaymentLoading(false);
             }
           },
           prefill: {
@@ -804,7 +719,25 @@ export default function CartPage() {
           {/* Left Column: Cart & Checkout Steps */}
           <div className="lg:col-span-8 space-y-12">
             
-            {/* Cart Items Section */}
+            {/* Wizard Progress Bar */}
+            <div className="flex justify-between items-center mb-8 border-b border-on-surface/5 pb-6">
+              {[
+                { id: 1, name: 'Cart' },
+                { id: 2, name: 'Delivery' },
+                { id: 3, name: 'Payment' }
+              ].map((step) => (
+                <div key={step.id} className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${activeStep === step.id ? 'bg-primary text-white shadow-md' : activeStep > step.id ? 'bg-[#1a4a35] text-white' : 'bg-outline-variant/20 text-on-surface-variant'}`}>
+                    {activeStep > step.id ? <span className="material-symbols-outlined text-[16px]">check</span> : step.id}
+                  </div>
+                  <span className={`text-[10px] md:text-xs uppercase tracking-widest font-bold ${activeStep >= step.id ? 'text-primary' : 'text-on-surface-variant/50'}`}>{step.name}</span>
+                  {step.id !== 3 && <div className="hidden md:block w-12 md:w-20 h-[1px] bg-outline-variant/30 ml-3"></div>}
+                </div>
+              ))}
+            </div>
+
+            {/* Step 1: Cart Items Section */}
+            {activeStep === 1 && (
             <section className="p-8 md:p-12 shadow-sm rounded-none" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)' }}>
               <div className="flex justify-between items-end mb-10 pb-4 border-b border-on-surface/5">
                 <h2 className="font-headline text-2xl text-primary">Shopping Cart</h2>
@@ -847,9 +780,17 @@ export default function CartPage() {
                   ))
                 )}
               </div>
+              <div className="mt-8 flex justify-end">
+                <button onClick={() => cartItems.length > 0 ? setActiveStep(2) : null} className={`px-8 py-4 bg-primary text-white text-[10px] uppercase tracking-widest font-bold hover:bg-primary-container transition-all ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  Continue to Delivery
+                </button>
+              </div>
             </section>
+            )}
 
-            {/* Personal Details */}
+            {/* Step 2: Personal Details */}
+            {activeStep === 2 && (
+            <>
             <section className="bg-surface p-8 md:p-12 space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <h2 className="font-headline text-3xl text-primary">Delivery Details</h2>
@@ -1143,9 +1084,20 @@ export default function CartPage() {
                       </div>
                     </div>
                   )}
+                  <div className="mt-10 flex justify-between">
+                    <button onClick={() => setActiveStep(1)} className="px-6 py-4 border border-outline-variant/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-bold hover:bg-surface-container transition-all">
+                      Back to Cart
+                    </button>
+                    <button onClick={() => { if (validateForm()) { setActiveStep(3); window.scrollTo(0,0); } else { alert('Please fill all required fields correctly.'); } }} className="px-8 py-4 bg-primary text-white text-[10px] uppercase tracking-widest font-bold hover:bg-primary-container transition-all">
+                      Continue to Payment
+                    </button>
+                  </div>
                 </section>
+            </>
+                )}
 
-                {/* Payment Integration */}
+                {/* Step 3: Payment Integration */}
+                {activeStep === 3 && (
                 <section className="bg-surface p-8 md:p-12 border-t border-on-surface/5 space-y-8">
                   <div className="flex justify-between items-center">
                     <h2 className="font-headline text-3xl text-primary">Secure Payment</h2>
@@ -1187,7 +1139,13 @@ export default function CartPage() {
                       <div className={`w-5 h-5 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
                     </div>
                   </div>
+                  <div className="mt-10 flex justify-start">
+                    <button onClick={() => setActiveStep(2)} className="px-6 py-4 border border-outline-variant/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-bold hover:bg-surface-container transition-all">
+                      Back to Delivery
+                    </button>
+                  </div>
                 </section>
+                )}
             
           </div>
 
@@ -1349,7 +1307,24 @@ export default function CartPage() {
         <main className="flex-1 px-6">
           <h1 className="font-headline text-3xl text-primary mb-8">Your Selection</h1>
 
-          {/* Cart Items */}
+          {/* Wizard Progress Bar */}
+          <div className="flex justify-between items-center mb-8 border-b border-on-surface/5 pb-6">
+            {[
+              { id: 1, name: 'Cart' },
+              { id: 2, name: 'Delivery' },
+              { id: 3, name: 'Payment' }
+            ].map((step) => (
+              <div key={step.id} className="flex flex-col items-center gap-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${activeStep === step.id ? 'bg-primary text-white shadow-md' : activeStep > step.id ? 'bg-[#1a4a35] text-white' : 'bg-outline-variant/20 text-on-surface-variant'}`}>
+                  {activeStep > step.id ? <span className="material-symbols-outlined text-[16px]">check</span> : step.id}
+                </div>
+                <span className={`text-[9px] uppercase tracking-widest font-bold ${activeStep >= step.id ? 'text-primary' : 'text-on-surface-variant/50'}`}>{step.name}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Step 1: Cart Items */}
+          {activeStep === 1 && (
           <div className="space-y-8">
             {cartItems.length === 0 ? (
                <p className="text-on-surface-variant text-sm italic">Your cart is empty.</p>
@@ -1377,9 +1352,17 @@ export default function CartPage() {
                 </div>
               ))
             )}
+            <div className="mt-8 flex justify-end">
+              <button onClick={() => cartItems.length > 0 ? setActiveStep(2) : null} className={`w-full py-4 bg-primary text-white text-[10px] uppercase tracking-widest font-bold hover:bg-primary-container transition-all ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                Continue to Delivery
+              </button>
+            </div>
           </div>
+          )}
 
-          {/* Personal Details */}
+          {/* Step 2: Personal Details */}
+          {activeStep === 2 && (
+            <>
               <div className="mt-12 space-y-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="font-headline text-2xl text-primary">Delivery Details</h2>
@@ -1671,9 +1654,21 @@ export default function CartPage() {
                     </div>
                   </div>
                 )}
+                
+                <div className="mt-10 flex flex-col gap-4">
+                  <button onClick={() => { if (validateForm()) { setActiveStep(3); window.scrollTo(0,0); } else { alert('Please fill all required fields correctly.'); } }} className="w-full py-4 bg-primary text-white text-[10px] uppercase tracking-widest font-bold hover:bg-primary-container transition-all">
+                    Continue to Payment
+                  </button>
+                  <button onClick={() => setActiveStep(1)} className="w-full py-4 border border-outline-variant/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-bold hover:bg-surface-container transition-all">
+                    Back to Cart
+                  </button>
+                </div>
               </div>
+            </>
+          )}
 
-              {/* Secure Payment */}
+              {/* Step 3: Secure Payment */}
+          {activeStep === 3 && (
               <div className="mt-12">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="font-headline text-2xl text-primary">Secure Payment</h2>
@@ -1717,7 +1712,13 @@ export default function CartPage() {
                     <div className={`w-4 h-4 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
                   </div>
                 </div>
+                <div className="mt-10 flex flex-col gap-4">
+                  <button onClick={() => setActiveStep(2)} className="w-full py-4 border border-outline-variant/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-bold hover:bg-surface-container transition-all">
+                    Back to Delivery
+                  </button>
+                </div>
               </div>
+          )}
 
 
           {/* Summary */}

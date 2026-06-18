@@ -63,19 +63,7 @@ export default function AdminPage() {
         .eq('id', user.id)
         .single();
 
-      // Fallback: If no profile exists but it's the primary admin email, create it
-      if (profileError && profileError.code === 'PGRST116' && user.email === 'roy839693@gmail.com') {
-        const { data: newProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert([{ id: user.id, email: user.email, role: 'admin' }])
-          .select()
-          .single();
-        
-        if (!createError) {
-          profile = newProfile;
-          profileError = null;
-        }
-      }
+
 
       if (profileError) {
         console.error('Admin Profile Fetch Error:', profileError);

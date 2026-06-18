@@ -1,24 +1,25 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense, lazy } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
-import HomePage from './pages/HomePage.jsx'
-import CollectionsPage from './pages/CollectionsPage.jsx'
-import ProductPage from './pages/ProductPage.jsx'
-import CartPage from './pages/CartPage.jsx'
-import LoginPage from './pages/LoginPage.jsx'
-import NewArrivalsPage from './pages/NewArrivalsPage.jsx'
-import AllProductsPage from './pages/AllProductsPage.jsx'
-import BuyNowPage from './pages/BuyNowPage.jsx'
-import AboutUsPage from './pages/AboutUsPage.jsx'
-import OrderTrackingPage from './pages/OrderTrackingPage.jsx'
-import AdminPage from './pages/AdminPage.jsx'
-import PaymentSuccessPage from './pages/PaymentSuccessPage.jsx'
-import PaymentFailedPage from './pages/PaymentFailedPage.jsx'
-import UserOrdersPage from './pages/UserOrdersPage.jsx'
-import ShippingReturnsPage from './pages/ShippingReturnsPage.jsx'
-import TermsOfServicePage from './pages/TermsOfServicePage.jsx'
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage.jsx'
 import ProtectedRoute from './components/ProtectedRoute.jsx'
-import ProfilePage from './pages/ProfilePage.jsx'
+
+const HomePage = lazy(() => import('./pages/HomePage.jsx'))
+const CollectionsPage = lazy(() => import('./pages/CollectionsPage.jsx'))
+const ProductPage = lazy(() => import('./pages/ProductPage.jsx'))
+const CartPage = lazy(() => import('./pages/CartPage.jsx'))
+const LoginPage = lazy(() => import('./pages/LoginPage.jsx'))
+const NewArrivalsPage = lazy(() => import('./pages/NewArrivalsPage.jsx'))
+const AllProductsPage = lazy(() => import('./pages/AllProductsPage.jsx'))
+const BuyNowPage = lazy(() => import('./pages/BuyNowPage.jsx'))
+const AboutUsPage = lazy(() => import('./pages/AboutUsPage.jsx'))
+const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage.jsx'))
+const AdminPage = lazy(() => import('./pages/AdminPage.jsx'))
+const PaymentSuccessPage = lazy(() => import('./pages/PaymentSuccessPage.jsx'))
+const PaymentFailedPage = lazy(() => import('./pages/PaymentFailedPage.jsx'))
+const UserOrdersPage = lazy(() => import('./pages/UserOrdersPage.jsx'))
+const ShippingReturnsPage = lazy(() => import('./pages/ShippingReturnsPage.jsx'))
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage.jsx'))
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage.jsx'))
+const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'))
 import { CartProvider } from './context/CartContext.jsx'
 import { analytics } from './services/analytics'
 
@@ -39,25 +40,7 @@ function App() {
     analytics.trackPageView(location.pathname + location.search)
   }, [location.pathname, location.search])
 
-  useEffect(() => {
-    async function loadFavicon() {
-      try {
-        const { data } = await supabase.from('site_settings').select('value').eq('key', 'favicon_url').single()
-        if (data && data.value) {
-          let link = document.querySelector("link[rel~='icon']");
-          if (!link) {
-            link = document.createElement('link');
-            link.rel = 'icon';
-            document.head.appendChild(link);
-          }
-          link.href = data.value;
-        }
-      } catch (err) {
-        // Silently fail if favicon not set
-      }
-    }
-    loadFavicon();
-  }, [])
+  // Favicon is now statically loaded from index.html for maximum performance
 
   useEffect(() => {
     // Catch OAuth errors in hash fragment (e.g. from Google login failure)
@@ -76,26 +59,28 @@ function App() {
     <CartProvider>
       <ScrollToTop />
       <div className="min-h-screen" key={location.pathname}>
-        <Routes location={location}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/collections" element={<CollectionsPage />} />
-          <Route path="/all-products" element={<AllProductsPage />} />
-          <Route path="/new-arrivals" element={<NewArrivalsPage />} />
-          <Route path="/product/:id" element={<ProductPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/buy-now" element={<BuyNowPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/about" element={<AboutUsPage />} />
-          <Route path="/shipping-returns" element={<ShippingReturnsPage />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-          <Route path="/track-order" element={<OrderTrackingPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="/payment-success" element={<PaymentSuccessPage />} />
-          <Route path="/payment-failed" element={<PaymentFailedPage />} />
-          <Route path="/orders" element={<UserOrdersPage />} />
-          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        </Routes>
+        <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-background"><div className="w-12 h-12 border-4 border-secondary/20 border-t-secondary rounded-full animate-spin"></div></div>}>
+          <Routes location={location}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/collections" element={<CollectionsPage />} />
+            <Route path="/all-products" element={<AllProductsPage />} />
+            <Route path="/new-arrivals" element={<NewArrivalsPage />} />
+            <Route path="/product/:id" element={<ProductPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/buy-now" element={<BuyNowPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/about" element={<AboutUsPage />} />
+            <Route path="/shipping-returns" element={<ShippingReturnsPage />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+            <Route path="/track-order" element={<OrderTrackingPage />} />
+            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/payment-success" element={<PaymentSuccessPage />} />
+            <Route path="/payment-failed" element={<PaymentFailedPage />} />
+            <Route path="/orders" element={<UserOrdersPage />} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          </Routes>
+        </Suspense>
       </div>
     </CartProvider>
   )

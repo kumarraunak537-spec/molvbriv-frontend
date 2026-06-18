@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
@@ -152,7 +151,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
 
 // Initialize Supabase Client (bypasses RLS to write verified payments securely)
 const supabaseUrl = process.env.SUPABASE_URL || 'https://oiksafoujlduutkcgays.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy_key_to_prevent_crash_on_init';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // RBAC Middleware: Auth & Admin Validation
@@ -1154,23 +1153,6 @@ app.post('/api/subscribe', sensitiveLimiter, async (req, res, next) => {
       }
     }
 
-    // B. Insert in local SQLite database 'subscribers' table
-    try {
-      db.run(`INSERT INTO subscribers (email) VALUES (?)`, [subscriber.email], (err) => {
-        if (err) {
-          if (err.message.includes('UNIQUE')) {
-            console.log(`Subscriber email "${email}" already registered in SQLite.`);
-          } else {
-            console.error('SQLite subscribers insertion error:', err.message);
-          }
-        } else {
-          console.log(`Audited subscriber in SQLite: ${subscriber.email}`);
-        }
-      });
-    } catch (sqlErr) {
-      console.error('SQLite subscribers insert failure:', sqlErr.message);
-    }
-
     // Defer newsletter email dispatches
     setImmediate(() => {
       emailService.sendNewsletterEmail(subscriber, 'newsletter_welcome')
@@ -1186,113 +1168,65 @@ app.post('/api/subscribe', sensitiveLimiter, async (req, res, next) => {
   }
 });
 
-// Initialize SQLite Database
-const dbPath = path.resolve(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database', err.message);
-  } else {
-    console.log('Connected to the SQLite database.');
-    
-    // Create Tables
-    db.serialize(() => {
-      db.run(`CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        price REAL,
-        category TEXT,
-        material TEXT,
-        stock INTEGER,
-        status TEXT,
-        image TEXT
-      )`);
-
-      db.run(`CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        order_number TEXT,
-        customer_name TEXT,
-        product_name TEXT,
-        amount REAL,
-        status TEXT
-      )`);
-
-      db.run(`CREATE TABLE IF NOT EXISTS subscribers (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`);
-
-      // Seed initial data if empty
-      db.get("SELECT count(*) as count FROM products", (err, row) => {
-        if (row && row.count === 0) {
-          console.log('Seeding initial products...');
-          const insertStmt = db.prepare("INSERT INTO products (name, price, category, material, stock, status) VALUES (?, ?, ?, ?, ?, ?)");
-          insertStmt.run('Polki Jhumka Set', 1299, 'Jhumka', 'Gold Plated', 24, 'Live');
-          insertStmt.run('Kundan Necklace', 2899, 'Necklace', 'Kundan', 10, 'Live');
-          insertStmt.run('Floral Ear Studs', 649, 'Earrings', 'Silver', 2, 'Low Stock');
-          insertStmt.run('Chandbali Jhumka', 1599, 'Jhumka', 'Antique', 30, 'Draft');
-          insertStmt.finalize();
-        }
-      });
-
-      db.get("SELECT count(*) as count FROM orders", (err, row) => {
-        if (row && row.count === 0) {
-          console.log('Seeding initial orders...');
-          const insertStmt = db.prepare("INSERT INTO orders (order_number, customer_name, product_name, amount, status) VALUES (?, ?, ?, ?, ?)");
-          insertStmt.run('#MLV-1041', 'Priya Sharma', 'Kundan Necklace', 2899, 'Delivered');
-          insertStmt.run('#MLV-1040', 'Ananya R.', 'Polki Jhumka', 1299, 'Shipped');
-          insertStmt.run('#MLV-1039', 'Meera V.', 'Rani Haar Set', 4999, 'Processing');
-          insertStmt.finalize();
-        }
-      });
-    });
-  }
-});
+// Initialize Supabase already handled above
 
 // --- API ROUTES ---
 
 // GET all products (Publicly accessible)
-app.get('/api/products', (req, res, next) => {
-  db.all("SELECT * FROM products", [], (err, rows) => {
-    if (err) return next(err);
-    res.json(rows);
-  });
+app.get('/api/products', async (req, res, next) => {
+  try {
+    const { data, error } = await supabase.from('products').select('*');
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // POST new product (Admin protected)
-app.post('/api/products', authenticateAdmin, (req, res, next) => {
-  const { name, price, category, material, stock, status } = req.body;
-  const sql = "INSERT INTO products (name, price, category, material, stock, status) VALUES (?, ?, ?, ?, ?, ?)";
-  db.run(sql, [name, price, category, material, stock, status], function(err) {
-    if (err) return next(err);
-    res.json({ id: this.lastID, name, price, category, material, stock, status });
-  });
+app.post('/api/products', authenticateAdmin, async (req, res, next) => {
+  try {
+    const { name, price, category, material, stock, status, image } = req.body;
+    const { data, error } = await supabase.from('products').insert([{ name, price, category, material, stock, status, image }]).select().single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // PUT update product (Admin protected)
-app.put('/api/products/:id', authenticateAdmin, (req, res, next) => {
-  const { name, price, category, material, stock, status } = req.body;
-  const sql = "UPDATE products SET name = ?, price = ?, category = ?, material = ?, stock = ?, status = ? WHERE id = ?";
-  db.run(sql, [name, price, category, material, stock, status, req.params.id], function(err) {
-    if (err) return next(err);
-    res.json({ updated: this.changes });
-  });
+app.put('/api/products/:id', authenticateAdmin, async (req, res, next) => {
+  try {
+    const { name, price, category, material, stock, status, image } = req.body;
+    const { data, error } = await supabase.from('products').update({ name, price, category, material, stock, status, image }).eq('id', req.params.id).select().single();
+    if (error) throw error;
+    res.json({ updated: 1, data });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // DELETE product (Admin protected)
-app.delete('/api/products/:id', authenticateAdmin, (req, res, next) => {
-  db.run("DELETE FROM products WHERE id = ?", req.params.id, function(err) {
-    if (err) return next(err);
-    res.json({ deleted: this.changes });
-  });
+app.delete('/api/products/:id', authenticateAdmin, async (req, res, next) => {
+  try {
+    const { error } = await supabase.from('products').delete().eq('id', req.params.id);
+    if (error) throw error;
+    res.json({ deleted: 1 });
+  } catch (err) {
+    next(err);
+  }
 });
 
 // GET all orders (Admin protected)
-app.get('/api/orders', authenticateAdmin, (req, res, next) => {
-  db.all("SELECT * FROM orders", [], (err, rows) => {
-    if (err) return next(err);
-    res.json(rows);
-  });
+app.get('/api/orders', authenticateAdmin, async (req, res, next) => {
+  try {
+    const { data, error } = await supabase.from('orders').select('*');
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Update order status (Admin protected)
@@ -1346,11 +1280,6 @@ app.put('/api/orders/:id/status', authenticateAdmin, async (req, res, next) => {
     if (emailType) {
       emailService.sendOrderEmail(updatedOrder, emailType).catch(err => console.error(`Error sending ${emailType} email:`, err));
     }
-
-    // Update local SQLite order status for compatibility
-    db.run("UPDATE orders SET status = ? WHERE order_number = ? OR id = ?", [status, updatedOrder.razorpay_order_id, orderId], (err) => {
-      if (err) console.error('SQLite order status sync failed:', err);
-    });
 
     res.json({ success: true, order: updatedOrder });
   } catch (err) {

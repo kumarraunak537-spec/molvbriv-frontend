@@ -4,7 +4,7 @@ require('dotenv').config();
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL || 'https://oiksafoujlduutkcgays.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy_key_to_prevent_crash_on_init';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Global cached SMTP transporter singleton

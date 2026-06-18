@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   colors TEXT[] DEFAULT '{}',
   status TEXT DEFAULT 'draft' CHECK (status IN ('live', 'draft', 'out_of_stock')),
   tags TEXT[] DEFAULT '{}',
+  variants JSONB DEFAULT '[]'::jsonb,
   sku TEXT UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -192,6 +193,7 @@ CREATE POLICY "Users can update own reviews" ON public.reviews FOR UPDATE USING 
 
 -- Create Storage Bucket for Product Images
 INSERT INTO storage.buckets (id, name, public) VALUES ('products', 'products', true) ON CONFLICT DO NOTHING;
+INSERT INTO storage.buckets (id, name, public) VALUES ('reviews', 'reviews', true) ON CONFLICT DO NOTHING;
 
 -- Storage Policies
 CREATE POLICY "Product images are publicly accessible" ON storage.objects FOR SELECT USING (bucket_id = 'products');
@@ -204,6 +206,9 @@ CREATE POLICY "Admins can update images" ON storage.objects FOR UPDATE USING (
 CREATE POLICY "Admins can delete images" ON storage.objects FOR DELETE USING (
   bucket_id = 'products' AND EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin')
 );
+
+CREATE POLICY "Review media are publicly accessible" ON storage.objects FOR SELECT USING (bucket_id = 'reviews');
+CREATE POLICY "Anyone can upload review media" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'reviews');
 
 -- Function to handle new user signups
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -263,11 +268,9 @@ CREATE POLICY "Users can view their own orders or Admins view all" ON public.ord
     EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
   );
 
--- 2. Anyone can insert orders (supports guest checkout, but restricts user_id to auth.uid() if authenticated)
-CREATE POLICY "Anyone can insert orders" ON public.orders
+-- 2. Only Admins can insert orders (Frontend users must use the backend API)
+CREATE POLICY "Admins can insert orders" ON public.orders
   FOR INSERT WITH CHECK (
-    (auth.uid() IS NULL AND user_id IS NULL) OR 
-    (auth.uid() = user_id) OR
     EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')
   );
 

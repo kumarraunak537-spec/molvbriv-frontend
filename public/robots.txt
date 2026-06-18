@@ -1,4 +1,6 @@
 User-agent: *
+Disallow: /admin
+Disallow: /cart
 Allow: /
 
 Sitemap: https://www.molvbriv.in/sitemap.xml

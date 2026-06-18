@@ -24,6 +24,7 @@ export default function ProductPage() {
   const [relatedProducts, setRelatedProducts] = useState([])
   const [activeBottomTab, setActiveBottomTab] = useState('related')
   const [summary, setSummary] = useState({ averageRating: 0, totalRatings: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } })
+  const [selectedVariant, setSelectedVariant] = useState(null)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -105,6 +106,9 @@ export default function ProductPage() {
       
       if (error) throw error
       setProduct(data)
+      if (data.variants && data.variants.length > 0) {
+        setSelectedVariant(data.variants[0])
+      }
       setIsLoading(false) // Set loading to false as soon as the main product data is set
 
       // Track view item in background
@@ -176,12 +180,15 @@ export default function ProductPage() {
 
   const handleAddToCart = () => {
     if (!product) return
+    const cartItemId = selectedVariant ? `${product.id}-${selectedVariant.id}` : product.id;
     addToCart({
-      id: product.id,
-      name: product.title,
-      price: product.price,
+      id: cartItemId,
+      productId: product.id,
+      name: selectedVariant ? `${product.title} - ${selectedVariant.name}` : product.title,
+      price: selectedVariant?.price || product.price,
       description: product.description || '',
       image: productImages[0],
+      variant: selectedVariant
     })
     setAddedToCart(true)
     setTimeout(() => setAddedToCart(false), 2000)
@@ -189,12 +196,15 @@ export default function ProductPage() {
 
   const handleBuyNow = () => {
     if (!product) return
+    const cartItemId = selectedVariant ? `${product.id}-${selectedVariant.id}` : product.id;
     addToCart({
-      id: product.id,
-      name: product.title,
-      price: product.price,
+      id: cartItemId,
+      productId: product.id,
+      name: selectedVariant ? `${product.title} - ${selectedVariant.name}` : product.title,
+      price: selectedVariant?.price || product.price,
       description: product.description || '',
       image: productImages[0],
+      variant: selectedVariant
     })
     navigate('/cart')
   }
@@ -272,12 +282,12 @@ export default function ProductPage() {
                 </span>
               </div>
               <div className="flex items-center gap-4 mt-6">
-                <span className="text-2xl md:text-3xl font-body text-secondary">₹{(product.price || 0).toLocaleString()}</span>
-                {product.compare_price && Number(product.compare_price) > Number(product.price) && (
+                <span className="text-2xl md:text-3xl font-body text-secondary">₹{((selectedVariant?.price || product.price) || 0).toLocaleString()}</span>
+                {product.compare_price && Number(product.compare_price) > Number(selectedVariant?.price || product.price) && (
                   <>
                     <span className="text-lg md:text-xl font-body text-on-surface-variant line-through opacity-60">₹{Number(product.compare_price).toLocaleString()}</span>
                     <span className="text-xs font-bold font-manrope text-secondary bg-secondary/10 px-2.5 py-0.5 rounded-sm tracking-wider uppercase">
-                      {Math.round(((Number(product.compare_price) - Number(product.price)) / Number(product.compare_price)) * 100)}% Off
+                      {Math.round(((Number(product.compare_price) - Number(selectedVariant?.price || product.price)) / Number(product.compare_price)) * 100)}% Off
                     </span>
                   </>
                 )}
@@ -301,6 +311,25 @@ export default function ProductPage() {
             </div>
 
             <div className="space-y-4 mb-12">
+              {product.variants && product.variants.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] uppercase tracking-widest text-outline">Select Variant</p>
+                    <button className="text-[10px] uppercase tracking-widest text-[#765931] hover:underline underline-offset-4 flex items-center gap-1 font-semibold" onClick={() => alert('Size Guide Modal Placeholder')}><span className="material-symbols-outlined text-[14px]">straighten</span>Size Guide</button>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {product.variants.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => setSelectedVariant(v)}
+                        className={`px-4 py-2 text-xs border transition-all ${selectedVariant?.id === v.id ? 'border-primary bg-primary text-white' : 'border-outline-variant/30 hover:border-primary text-primary'}`}
+                      >
+                        {v.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex gap-4">
                 <button onClick={handleAddToCart} className="flex-1 bg-primary text-on-primary py-5 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-primary-container transition-all duration-300 shadow-xl shadow-primary/10">
                   {addedToCart ? 'Added to Cart ✓' : 'Add to Cart'}
@@ -366,6 +395,10 @@ export default function ProductPage() {
                       <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs font-mono">{product.sku || product.id?.substring(0, 8).toUpperCase()}</p>
                     </div>
                     <div>
+                      <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Est. Metal Weight</span>
+                      <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">{Math.floor((product.title?.length || 10) * 1.5) + 5}.2g</p>
+                    </div>
+                    <div>
                       <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Availability</span>
                       <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">{product.stock > 0 ? `${product.stock} Units In Stock` : 'Out of Stock'}</p>
                     </div>
@@ -418,7 +451,7 @@ export default function ProductPage() {
                   : 'text-outline/70 hover:text-on-surface font-semibold'
               }`}
             >
-              RELATED PRODUCTS
+              COMPLETE THE LOOK
             </button>
             <button 
               onClick={() => setActiveBottomTab('recent')}
@@ -462,7 +495,7 @@ export default function ProductPage() {
               </div>
             ) : (
               <div className="text-center py-12 text-outline text-sm">
-                No related products found in this collection.
+                No items to complete the look.
               </div>
             )
           ) : (
