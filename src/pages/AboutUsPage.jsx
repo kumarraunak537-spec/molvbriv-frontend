@@ -2,10 +2,15 @@ import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { updateSEO } from '../utils/seo'
 
 export default function AboutUsPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
+    updateSEO({
+      title: "About Our Heritage — Molvbriv",
+      description: "Discover the history, design philosophy, and craftsmanship behind Molvbriv fine jewelry. Crafting quiet luxury and timeless masterpieces since 1904."
+    })
   }, [])
 
   return (

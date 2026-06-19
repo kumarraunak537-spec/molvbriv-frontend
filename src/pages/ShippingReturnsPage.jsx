@@ -1,10 +1,15 @@
 import React, { useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { updateSEO } from '../utils/seo'
 
 export default function ShippingReturnsPage() {
   useEffect(() => {
     window.scrollTo(0, 0)
+    updateSEO({
+      title: "Shipping & Returns Policy — Molvbriv",
+      description: "Review Molvbriv's delivery schedules, packaging safety standards, and 24-hour return guidelines."
+    })
   }, [])
 
   return (

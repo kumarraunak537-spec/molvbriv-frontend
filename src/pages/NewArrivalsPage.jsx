@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
-import { supabase } from '../supabaseClient'
+import { supabase, getCachedProducts, getCachedRatingsMap } from '../supabaseClient'
 import { useCart } from '../context/CartContext'
 import { analytics } from '../services/analytics'
 import { updateSEO } from '../utils/seo'
@@ -42,16 +42,10 @@ export default function NewArrivalsPage() {
   const fetchNewArrivals = async () => {
     setIsLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(8)
-      
-      if (error) throw error
-      setProducts(data || [])
-      analytics.trackViewItemList(data || [], 'New Arrivals')
-
+      const data = await getCachedProducts()
+      const sliced = data ? data.slice(0, 8) : []
+      setProducts(sliced)
+      analytics.trackViewItemList(sliced, 'New Arrivals')
     } catch (err) {
       console.error('Error fetching new arrivals:', err.message)
     } finally {
@@ -61,23 +55,8 @@ export default function NewArrivalsPage() {
 
   const fetchRatings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('product_id, rating')
-        .eq('status', 'approved')
-      if (error) throw error
-      
-      const lookup = {}
-      if (data) {
-        data.forEach(r => {
-          if (!lookup[r.product_id]) {
-            lookup[r.product_id] = { sum: 0, count: 0 }
-          }
-          lookup[r.product_id].sum += r.rating
-          lookup[r.product_id].count += 1
-        })
-      }
-      setRatingsMap(lookup)
+      const lookup = await getCachedRatingsMap()
+      setRatingsMap(lookup || {})
     } catch (err) {
       console.error('Error fetching ratings:', err.message)
     }

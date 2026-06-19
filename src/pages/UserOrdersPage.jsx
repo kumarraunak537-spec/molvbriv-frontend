@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
+import { updateSEO } from '../utils/seo'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
 
@@ -14,6 +15,14 @@ export default function UserOrdersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [actionLoadingId, setActionLoadingId] = useState(null)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    updateSEO({
+      title: "Your Order History — Molvbriv",
+      description: "Securely view and manage your history of luxury fine jewelry purchases from Molvbriv."
+    })
+  }, [])
 
   useEffect(() => {
     if (!isLoggedIn && !isLoading) {

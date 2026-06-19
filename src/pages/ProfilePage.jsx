@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
 import { analytics } from '../services/analytics'
+import { updateSEO } from '../utils/seo'
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
@@ -94,6 +95,14 @@ export default function ProfilePage() {
   })
   const [addrErrors, setAddrErrors] = useState({})
   const [isAddrSaving, setIsAddrSaving] = useState(false)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    updateSEO({
+      title: "Your Account Portfolio — Molvbriv",
+      description: "Manage your profile, view orders and wishlist, and edit your saved boutique delivery addresses."
+    })
+  }, [])
 
   useEffect(() => {
     if (isSessionLoaded && !isLoggedIn && !isLoading) {

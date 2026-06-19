@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar.jsx'
 import Footer from '../components/Footer.jsx'
 import { useCart } from '../context/CartContext.jsx'
-import { supabase } from '../supabaseClient'
+import { supabase, getCachedProducts, getCachedRatingsMap } from '../supabaseClient'
 import { analytics } from '../services/analytics'
 import { updateSEO } from '../utils/seo'
 
@@ -40,8 +40,7 @@ export default function CollectionsPage() {
   const fetchProducts = async () => {
     setIsLoading(true)
     try {
-      const { data, error } = await supabase.from('products').select('*')
-      if (error) throw error
+      const data = await getCachedProducts()
       setProducts(data || [])
     } catch (err) {
       console.error('Error fetching products:', err.message)
@@ -52,23 +51,8 @@ export default function CollectionsPage() {
 
   const fetchRatings = async () => {
     try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('product_id, rating')
-        .eq('status', 'approved')
-      if (error) throw error
-      
-      const lookup = {}
-      if (data) {
-        data.forEach(r => {
-          if (!lookup[r.product_id]) {
-            lookup[r.product_id] = { sum: 0, count: 0 }
-          }
-          lookup[r.product_id].sum += r.rating
-          lookup[r.product_id].count += 1
-        })
-      }
-      setRatingsMap(lookup)
+      const lookup = await getCachedRatingsMap()
+      setRatingsMap(lookup || {})
     } catch (err) {
       console.error('Error fetching ratings:', err.message)
     }

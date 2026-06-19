@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext.jsx'
 import { supabase } from '../supabaseClient'
 import { analytics } from '../services/analytics'
+import { updateSEO } from '../utils/seo'
 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'https://molvbriv-frontend.onrender.com';
@@ -28,6 +29,11 @@ export default function LoginPage() {
   const [countdown, setCountdown] = useState(0)
 
   useEffect(() => {
+    window.scrollTo(0, 0)
+    updateSEO({
+      title: "Sign In / Register — Molvbriv",
+      description: "Sign in or create your Molvbriv account to view orders, track packages, and manage your account."
+    })
     const params = new URLSearchParams(window.location.search)
     const err = params.get('error')
     if (err) {

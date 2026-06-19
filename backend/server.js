@@ -154,6 +154,10 @@ const supabaseUrl = process.env.SUPABASE_URL || 'https://oiksafoujlduutkcgays.su
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dummy_key_to_prevent_crash_on_init';
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Memory Cache for public catalog data to optimize performance
+let cachedProducts = null;
+const cachedRatingSummaries = new Map();
+
 // RBAC Middleware: Auth & Admin Validation
 const authenticateAdmin = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -1175,9 +1179,13 @@ app.post('/api/subscribe', sensitiveLimiter, async (req, res, next) => {
 // GET all products (Publicly accessible)
 app.get('/api/products', async (req, res, next) => {
   try {
+    if (cachedProducts) {
+      return res.json(cachedProducts);
+    }
     const { data, error } = await supabase.from('products').select('*');
     if (error) throw error;
-    res.json(data);
+    cachedProducts = data || [];
+    res.json(cachedProducts);
   } catch (err) {
     next(err);
   }
@@ -1189,6 +1197,7 @@ app.post('/api/products', authenticateAdmin, async (req, res, next) => {
     const { name, price, category, material, stock, status, image } = req.body;
     const { data, error } = await supabase.from('products').insert([{ name, price, category, material, stock, status, image }]).select().single();
     if (error) throw error;
+    cachedProducts = null; // Invalidate cache
     res.json(data);
   } catch (err) {
     next(err);
@@ -1201,6 +1210,7 @@ app.put('/api/products/:id', authenticateAdmin, async (req, res, next) => {
     const { name, price, category, material, stock, status, image } = req.body;
     const { data, error } = await supabase.from('products').update({ name, price, category, material, stock, status, image }).eq('id', req.params.id).select().single();
     if (error) throw error;
+    cachedProducts = null; // Invalidate cache
     res.json({ updated: 1, data });
   } catch (err) {
     next(err);
@@ -1212,6 +1222,7 @@ app.delete('/api/products/:id', authenticateAdmin, async (req, res, next) => {
   try {
     const { error } = await supabase.from('products').delete().eq('id', req.params.id);
     if (error) throw error;
+    cachedProducts = null; // Invalidate cache
     res.json({ deleted: 1 });
   } catch (err) {
     next(err);
@@ -1763,6 +1774,10 @@ app.post('/api/shiprocket/webhook', async (req, res) => {
 
 // Helper to calculate rating summary for a product
 async function getProductRatingSummary(productId) {
+  if (cachedRatingSummaries.has(productId)) {
+    return cachedRatingSummaries.get(productId);
+  }
+
   const { data: reviews, error } = await supabase
     .from('reviews')
     .select('rating')
@@ -1776,7 +1791,9 @@ async function getProductRatingSummary(productId) {
 
   const totalRatings = reviews.length;
   if (totalRatings === 0) {
-    return { averageRating: 0, totalRatings: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
+    const defaultSummary = { averageRating: 0, totalRatings: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } };
+    cachedRatingSummaries.set(productId, defaultSummary);
+    return defaultSummary;
   }
 
   const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
@@ -1794,7 +1811,9 @@ async function getProductRatingSummary(productId) {
     breakdown[star] = Math.round((counts[star] / totalRatings) * 100);
   }
 
-  return { averageRating, totalRatings, breakdown };
+  const summary = { averageRating, totalRatings, breakdown };
+  cachedRatingSummaries.set(productId, summary);
+  return summary;
 }
 
 // --- PRODUCT RATINGS & REVIEWS ENDPOINTS ---
@@ -1897,6 +1916,7 @@ app.post('/api/reviews', authenticateUser, reviewLimiter, async (req, res) => {
     }
 
     // Compute updated ratings summary
+    cachedRatingSummaries.delete(productId);
     const summary = await getProductRatingSummary(productId);
 
     // Map review response format
@@ -1987,6 +2007,7 @@ app.put('/api/reviews/:id', authenticateUser, async (req, res) => {
       }
     }
 
+    cachedRatingSummaries.delete(review.product_id);
     const summary = await getProductRatingSummary(review.product_id);
 
     // Emit socket update
@@ -2041,6 +2062,7 @@ app.delete('/api/reviews/:id', authenticateUser, async (req, res) => {
 
     if (deleteErr) throw deleteErr;
 
+    cachedRatingSummaries.delete(review.product_id);
     const summary = await getProductRatingSummary(review.product_id);
 
     // Emit socket update
@@ -2322,6 +2344,7 @@ app.put('/api/admin/reviews/:id/status', authenticateAdmin, async (req, res) => 
 
     if (updateErr) throw updateErr;
 
+    cachedRatingSummaries.delete(review.product_id);
     const summary = await getProductRatingSummary(review.product_id);
 
     // Emit live update

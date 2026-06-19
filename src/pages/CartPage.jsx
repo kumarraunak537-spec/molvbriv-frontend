@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
 import { supabase } from '../supabaseClient'
 import { analytics } from '../services/analytics'
+import { updateSEO } from '../utils/seo'
 
 
 const INDIAN_STATES = [
@@ -50,6 +51,13 @@ export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, subtotal, clearCart, user, isLoggedIn } = useCart()
   const [savedAddresses, setSavedAddresses] = useState([])
   const [selectedAddressId, setSelectedAddressId] = useState(null)
+
+  useEffect(() => {
+    updateSEO({
+      title: "Your Boutique Selection — Molvbriv",
+      description: "Securely review and complete your selection of Molvbriv luxury fine jewelry."
+    });
+  }, []);
 
   const prefillAddress = (addr) => {
     if (addr.full_name) setFullName(addr.full_name);
@@ -104,7 +112,7 @@ export default function CartPage() {
     }
   }, [cartItems, subtotal]);
 
-  const [activeStep, setActiveStep] = useState(1)
+
 
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
@@ -142,7 +150,7 @@ export default function CartPage() {
   const [upiVerified, setUpiVerified] = useState(null)
   const [discount, setDiscount] = useState(0)
   const [showConfirmation, setShowConfirmation] = useState(false)
-  const [accordionOpen, setAccordionOpen] = useState(null)
+
   const [errors, setErrors] = useState({})
   const [isPaymentLoading, setIsPaymentLoading] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
@@ -452,7 +460,7 @@ export default function CartPage() {
 
   const completePurchase = async () => {
     if (!validateForm()) {
-      setActiveStep(activeStep > 1 ? activeStep : 1);
+      alert('Please complete all required fields in the delivery details section.');
       return;
     }
 
@@ -666,11 +674,7 @@ export default function CartPage() {
     }
   };
 
-  const steps = [
-    { num: '01', label: 'Cart' },
-    { num: '02', label: 'Shipping' },
-    { num: '03', label: 'Payment' },
-  ]
+
 
   if (showConfirmation) {
     return (
@@ -718,26 +722,9 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
           {/* Left Column: Cart & Checkout Steps */}
           <div className="lg:col-span-8 space-y-12">
-            
-            {/* Wizard Progress Bar */}
-            <div className="flex justify-between items-center mb-8 border-b border-on-surface/5 pb-6">
-              {[
-                { id: 1, name: 'Cart' },
-                { id: 2, name: 'Delivery' },
-                { id: 3, name: 'Payment' }
-              ].map((step) => (
-                <div key={step.id} className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${activeStep === step.id ? 'bg-primary text-white shadow-md' : activeStep > step.id ? 'bg-[#1a4a35] text-white' : 'bg-outline-variant/20 text-on-surface-variant'}`}>
-                    {activeStep > step.id ? <span className="material-symbols-outlined text-[16px]">check</span> : step.id}
-                  </div>
-                  <span className={`text-[10px] md:text-xs uppercase tracking-widest font-bold ${activeStep >= step.id ? 'text-primary' : 'text-on-surface-variant/50'}`}>{step.name}</span>
-                  {step.id !== 3 && <div className="hidden md:block w-12 md:w-20 h-[1px] bg-outline-variant/30 ml-3"></div>}
-                </div>
-              ))}
-            </div>
+
 
             {/* Step 1: Cart Items Section */}
-            {activeStep === 1 && (
             <section className="p-8 md:p-12 shadow-sm rounded-none" style={{ background: 'rgba(255,255,255,0.06)', backdropFilter: 'blur(16px)' }}>
               <div className="flex justify-between items-end mb-10 pb-4 border-b border-on-surface/5">
                 <h2 className="font-headline text-2xl text-primary">Shopping Cart</h2>
@@ -780,18 +767,10 @@ export default function CartPage() {
                   ))
                 )}
               </div>
-              <div className="mt-8 flex justify-end">
-                <button onClick={() => cartItems.length > 0 ? setActiveStep(2) : null} className={`px-8 py-4 bg-primary text-white text-[10px] uppercase tracking-widest font-bold hover:bg-primary-container transition-all ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                  Continue to Delivery
-                </button>
-              </div>
             </section>
-            )}
 
             {/* Step 2: Personal Details */}
-            {activeStep === 2 && (
-            <>
-            <section className="bg-surface p-8 md:p-12 space-y-6">
+            <section className="bg-surface p-8 md:p-12 space-y-6 mt-12">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <h2 className="font-headline text-3xl text-primary">Delivery Details</h2>
                 <button
@@ -1084,21 +1063,10 @@ export default function CartPage() {
                       </div>
                     </div>
                   )}
-                  <div className="mt-10 flex justify-between">
-                    <button onClick={() => setActiveStep(1)} className="px-6 py-4 border border-outline-variant/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-bold hover:bg-surface-container transition-all">
-                      Back to Cart
-                    </button>
-                    <button onClick={() => { if (validateForm()) { setActiveStep(3); window.scrollTo(0,0); } else { alert('Please fill all required fields correctly.'); } }} className="px-8 py-4 bg-primary text-white text-[10px] uppercase tracking-widest font-bold hover:bg-primary-container transition-all">
-                      Continue to Payment
-                    </button>
-                  </div>
                 </section>
-            </>
-                )}
 
                 {/* Step 3: Payment Integration */}
-                {activeStep === 3 && (
-                <section className="bg-surface p-8 md:p-12 border-t border-on-surface/5 space-y-8">
+                <section className="bg-surface p-8 md:p-12 border-t border-on-surface/5 space-y-8 mt-12">
                   <div className="flex justify-between items-center">
                     <h2 className="font-headline text-3xl text-primary">Secure Payment</h2>
                     <div className="flex items-center gap-1 text-on-surface-variant/50">
@@ -1139,13 +1107,7 @@ export default function CartPage() {
                       <div className={`w-5 h-5 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border-2 border-outline-variant/30'} bg-white transition-all`}></div>
                     </div>
                   </div>
-                  <div className="mt-10 flex justify-start">
-                    <button onClick={() => setActiveStep(2)} className="px-6 py-4 border border-outline-variant/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-bold hover:bg-surface-container transition-all">
-                      Back to Delivery
-                    </button>
-                  </div>
                 </section>
-                )}
             
           </div>
 
@@ -1239,45 +1201,7 @@ export default function CartPage() {
               </p>
             </div>
 
-            {/* FAQ Accordion */}
-            <div className="space-y-4">
-              <h4 className="font-headline text-lg text-primary">Need Assistance?</h4>
-              <div className="space-y-1">
-                {['Shipping & Returns', 'Bespoke Sizing', 'Track My Order'].map((item) => (
-                  <details 
-                    key={item} 
-                    className="group bg-surface-container-low p-4" 
-                    open={accordionOpen === item} 
-                    onClick={(e) => { 
-                      e.preventDefault()
-                      setAccordionOpen(accordionOpen === item ? null : item) 
-                    }}
-                  >
-                    <summary className="list-none flex justify-between items-center cursor-pointer font-label text-xs uppercase tracking-widest font-semibold">
-                      {item}
-                      <span className={`material-symbols-outlined transition-transform ${accordionOpen === item ? 'rotate-180' : ''}`}>expand_more</span>
-                    </summary>
-                    {accordionOpen === item && (
-                      <p className="mt-4 text-xs text-on-surface-variant leading-relaxed">
-                        {item === 'Shipping & Returns' && "We offer complimentary insured shipping globally. Unworn items may be returned within 30 days in their original packaging with the security seal intact."}
-                        {item === 'Bespoke Sizing' && "Complimentary resizing is available for all ring purchases within 6 months of delivery. Please contact our Concierge."}
-                        {item === 'Track My Order' && "Once dispatched, you will receive a private tracking link and a direct contact for our delivery partner."}
-                      </p>
-                    )}
-                  </details>
-                ))}
-              </div>
-            </div>
 
-            {/* Help Link */}
-            <div className="flex items-center gap-4 p-4 border border-outline-variant/30 text-on-surface-variant">
-              <span className="material-symbols-outlined text-secondary">support_agent</span>
-              <div className="flex-1">
-                <p className="text-[10px] uppercase tracking-widest font-bold">Client Advisor</p>
-                <p className="text-xs">Speak with a specialist now</p>
-              </div>
-              <span className="material-symbols-outlined">chevron_right</span>
-            </div>
           </aside>
 
         </div>
@@ -1307,24 +1231,9 @@ export default function CartPage() {
         <main className="flex-1 px-6">
           <h1 className="font-headline text-3xl text-primary mb-8">Your Selection</h1>
 
-          {/* Wizard Progress Bar */}
-          <div className="flex justify-between items-center mb-8 border-b border-on-surface/5 pb-6">
-            {[
-              { id: 1, name: 'Cart' },
-              { id: 2, name: 'Delivery' },
-              { id: 3, name: 'Payment' }
-            ].map((step) => (
-              <div key={step.id} className="flex flex-col items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${activeStep === step.id ? 'bg-primary text-white shadow-md' : activeStep > step.id ? 'bg-[#1a4a35] text-white' : 'bg-outline-variant/20 text-on-surface-variant'}`}>
-                  {activeStep > step.id ? <span className="material-symbols-outlined text-[16px]">check</span> : step.id}
-                </div>
-                <span className={`text-[9px] uppercase tracking-widest font-bold ${activeStep >= step.id ? 'text-primary' : 'text-on-surface-variant/50'}`}>{step.name}</span>
-              </div>
-            ))}
-          </div>
+
 
           {/* Step 1: Cart Items */}
-          {activeStep === 1 && (
           <div className="space-y-8">
             {cartItems.length === 0 ? (
                <p className="text-on-surface-variant text-sm italic">Your cart is empty.</p>
@@ -1352,17 +1261,9 @@ export default function CartPage() {
                 </div>
               ))
             )}
-            <div className="mt-8 flex justify-end">
-              <button onClick={() => cartItems.length > 0 ? setActiveStep(2) : null} className={`w-full py-4 bg-primary text-white text-[10px] uppercase tracking-widest font-bold hover:bg-primary-container transition-all ${cartItems.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                Continue to Delivery
-              </button>
-            </div>
           </div>
-          )}
 
           {/* Step 2: Personal Details */}
-          {activeStep === 2 && (
-            <>
               <div className="mt-12 space-y-6">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="font-headline text-2xl text-primary">Delivery Details</h2>
@@ -1655,20 +1556,9 @@ export default function CartPage() {
                   </div>
                 )}
                 
-                <div className="mt-10 flex flex-col gap-4">
-                  <button onClick={() => { if (validateForm()) { setActiveStep(3); window.scrollTo(0,0); } else { alert('Please fill all required fields correctly.'); } }} className="w-full py-4 bg-primary text-white text-[10px] uppercase tracking-widest font-bold hover:bg-primary-container transition-all">
-                    Continue to Payment
-                  </button>
-                  <button onClick={() => setActiveStep(1)} className="w-full py-4 border border-outline-variant/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-bold hover:bg-surface-container transition-all">
-                    Back to Cart
-                  </button>
-                </div>
               </div>
-            </>
-          )}
 
               {/* Step 3: Secure Payment */}
-          {activeStep === 3 && (
               <div className="mt-12">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="font-headline text-2xl text-primary">Secure Payment</h2>
@@ -1712,13 +1602,7 @@ export default function CartPage() {
                     <div className={`w-4 h-4 rounded-full ${paymentMethod === 'cod' ? 'border-4 border-[#765931]' : 'border border-outline-variant/30'} bg-white`}></div>
                   </div>
                 </div>
-                <div className="mt-10 flex flex-col gap-4">
-                  <button onClick={() => setActiveStep(2)} className="w-full py-4 border border-outline-variant/50 text-on-surface-variant text-[10px] uppercase tracking-widest font-bold hover:bg-surface-container transition-all">
-                    Back to Delivery
-                  </button>
-                </div>
               </div>
-          )}
 
 
           {/* Summary */}

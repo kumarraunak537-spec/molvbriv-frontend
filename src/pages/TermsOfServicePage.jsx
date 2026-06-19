@@ -1,10 +1,15 @@
 import React, { useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { updateSEO } from '../utils/seo'
 
 export default function TermsOfServicePage() {
   useEffect(() => {
     window.scrollTo(0, 0)
+    updateSEO({
+      title: "Terms of Service — Molvbriv",
+      description: "Read the Terms of Service for Molvbriv to understand the usage terms, rules, and purchasing conditions."
+    })
   }, [])
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
+import { updateSEO } from '../utils/seo';
 
 export default function OrderTrackingPage() {
   const [orderId, setOrderId] = useState('');
@@ -8,6 +9,14 @@ export default function OrderTrackingPage() {
   const [isTracking, setIsTracking] = useState(false);
   const [trackingStep, setTrackingStep] = useState(0);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    updateSEO({
+      title: "Track Your Order — Molvbriv",
+      description: "Track the journey and delivery status of your hand-packaged Molvbriv fine jewelry masterpiece."
+    });
+  }, []);
   const [orderDetails, setOrderDetails] = useState(null);
   const [showHistory, setShowHistory] = useState(false);
 

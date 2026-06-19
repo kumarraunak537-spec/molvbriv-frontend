@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useCart } from '../context/CartContext'
-import { supabase } from '../supabaseClient'
+import { supabase, getCachedProducts } from '../supabaseClient'
 import { analytics } from '../services/analytics'
 import { updateSEO } from '../utils/seo'
 import ProductReviews from '../components/ProductReviews'
@@ -98,13 +98,10 @@ export default function ProductPage() {
   const fetchProductDetails = async () => {
     setIsLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single()
+      const dataList = await getCachedProducts()
+      const data = dataList ? dataList.find(p => p.id === id) : null
       
-      if (error) throw error
+      if (!data) throw new Error('Product not found')
       setProduct(data)
       if (data.variants && data.variants.length > 0) {
         setSelectedVariant(data.variants[0])
@@ -137,16 +134,12 @@ export default function ProductPage() {
 
       // Fetch related products in background
       if (data.category) {
-        supabase
-          .from('products')
-          .select('*')
-          .eq('category', data.category)
-          .neq('id', data.id)
-          .limit(4)
-          .then(({ data: related, error: relError }) => {
-            if (!relError && related) {
-              setRelatedProducts(related)
-            }
+        getCachedProducts()
+          .then(products => {
+            const related = products
+              .filter(p => p.category === data.category && p.id !== data.id)
+              .slice(0, 4)
+            setRelatedProducts(related)
           })
           .catch(err => {
             console.error('Error fetching related products:', err);
