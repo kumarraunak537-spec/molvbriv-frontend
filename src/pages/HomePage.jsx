@@ -59,17 +59,7 @@ import { updateSEO } from '../utils/seo'
 
 // Memoized Hero Video component to prevent DOM re-renders and playbacks restarts.
 // Applies GPU hardware acceleration via translate3d and will-change: transform.
-const HeroVideo = memo(({ poster, shouldLoadVideo }) => {
-  if (!shouldLoadVideo) {
-    return (
-      <img src={poster} alt="Molvbriv Hero" className="w-full h-full object-cover scale-105" style={{
-        transform: 'scale(1.05) translate3d(0, 0, 0)',
-        backfaceVisibility: 'hidden',
-        willChange: 'transform',
-      }} />
-    );
-  }
-
+const HeroVideo = memo(({ poster }) => {
   return (
     <video 
       autoPlay 
@@ -78,15 +68,14 @@ const HeroVideo = memo(({ poster, shouldLoadVideo }) => {
       playsInline
       preload="auto"
       poster={poster}
+      src={heroVideoBg}
       className="w-full h-full object-cover scale-105"
       style={{
         transform: 'scale(1.05) translate3d(0, 0, 0)',
         backfaceVisibility: 'hidden',
         willChange: 'transform',
       }}
-    >
-      <source src={heroVideoBg} type="video/mp4" />
-    </video>
+    />
   )
 })
 
@@ -99,9 +88,6 @@ export default function HomePage() {
   const [subscribed, setSubscribed] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  // Connection-aware delayed video loading
-  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -109,25 +95,6 @@ export default function HomePage() {
       title: "Molvbriv — The Timeless Curator",
       description: "Molvbriv — Luxury fine jewelry crafted with timeless elegance since 1904. Discover our Heritage Collection of handcrafted rings, necklaces, earrings and more."
     })
-
-    // Detect slow connection
-    let isSlowConnection = false;
-    if (navigator.connection) {
-      const { effectiveType, saveData } = navigator.connection;
-      if (saveData || effectiveType === 'slow-2g' || effectiveType === '2g') {
-        isSlowConnection = true;
-      }
-    }
-
-    // Delay video loading until after first paint on fast connections
-    if (!isSlowConnection) {
-      const timeout = setTimeout(() => {
-        requestAnimationFrame(() => {
-          setShouldLoadVideo(true);
-        });
-      }, 500); // Wait 500ms after component mounts
-      return () => clearTimeout(timeout);
-    }
   }, [])
 
 
@@ -168,7 +135,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative h-screen w-full overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 bg-surface-container-highest">
-          <HeroVideo shouldLoadVideo={shouldLoadVideo} poster={heroPoster} />
+          <HeroVideo poster={heroPoster} />
           <div className="absolute inset-0 bg-primary/20"></div>
         </div>
 
