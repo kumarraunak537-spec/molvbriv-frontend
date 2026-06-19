@@ -61,24 +61,14 @@ import { updateSEO } from '../utils/seo'
 // Applies GPU hardware acceleration via translate3d and will-change: transform.
 const HeroVideo = memo(({ poster }) => {
   const videoRef = useRef(null)
-  const [videoSrc, setVideoSrc] = useState(null)
 
   useEffect(() => {
-    // Wait for initial render, then set video source to start loading asynchronously
-    const timer = setTimeout(() => {
-      setVideoSrc(heroVideoBg)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
-
-  useEffect(() => {
-    if (videoRef.current && videoSrc) {
+    if (videoRef.current) {
       videoRef.current.play().catch(err => {
         console.warn("Hero video autoplay failed, retrying on user interaction or DOM mount:", err)
       })
     }
-  }, [videoSrc])
+  }, [])
 
   return (
     <video 
@@ -90,7 +80,7 @@ const HeroVideo = memo(({ poster }) => {
       playsInline
       preload="auto"
       poster={poster}
-      src={videoSrc || undefined}
+      src={heroVideoBg}
       className="w-full h-full object-cover scale-105"
       style={{
         transform: 'scale(1.05) translate3d(0, 0, 0)',
