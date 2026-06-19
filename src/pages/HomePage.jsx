@@ -1,4 +1,4 @@
-import React, { useEffect, useState, memo, lazy, Suspense } from 'react'
+import React, { useEffect, useState, memo, lazy, Suspense, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -60,11 +60,23 @@ import { updateSEO } from '../utils/seo'
 // Memoized Hero Video component to prevent DOM re-renders and playbacks restarts.
 // Applies GPU hardware acceleration via translate3d and will-change: transform.
 const HeroVideo = memo(({ poster }) => {
+  const videoRef = useRef(null)
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(err => {
+        console.warn("Hero video autoplay failed, retrying on user interaction or DOM mount:", err)
+      })
+    }
+  }, [])
+
   return (
     <video 
+      ref={videoRef}
       autoPlay 
       loop 
       muted 
+      defaultMuted
       playsInline
       preload="auto"
       poster={poster}
