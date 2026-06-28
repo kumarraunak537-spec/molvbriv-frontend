@@ -92,26 +92,23 @@ const HeroVideo = memo(({ poster }) => {
   }, [])
 
   return (
-    <video
+    <video 
       ref={videoRef}
-      autoPlay
-      loop
-      muted
+      autoPlay 
+      loop 
+      muted 
+      defaultMuted
       playsInline
       preload="auto"
       poster={poster}
-      className="w-full h-full object-cover scale-105 pointer-events-none"
+      src={heroVideoBg}
+      className="w-full h-full object-cover scale-105"
       style={{
         transform: 'scale(1.05) translate3d(0, 0, 0)',
         backfaceVisibility: 'hidden',
         willChange: 'transform',
-        width: '100%',
-        height: '100%',
-        objectFit: 'cover'
       }}
-    >
-      <source src={heroVideoBg} type="video/mp4" />
-    </video>
+    />
   )
 })
 
