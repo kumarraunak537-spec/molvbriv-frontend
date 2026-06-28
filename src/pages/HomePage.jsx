@@ -5,6 +5,9 @@ import Footer from '../components/Footer'
 
 import heroVideoBg from '../assets/hero-bg.mp4'
 import heroPoster from '../assets/hero-poster.jpg'
+import heroMobileMp4 from '../assets/hero-mobile.mp4'
+import heroMobileWebm from '../assets/hero-mobile.webm'
+import hero2k from '../assets/hero-2k.mp4'
 
 import jhumkaPink from '../assets/jhumka-pink.png'
 import jhumkaGreen from '../assets/jhumka-green.png'
@@ -63,31 +66,61 @@ const HeroVideo = memo(({ poster }) => {
   const videoRef = useRef(null)
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(err => {
-        console.warn("Hero video autoplay failed, retrying on user interaction or DOM mount:", err)
-      })
+    const video = videoRef.current
+    if (!video) return
+
+    // Explicitly set muted properties to satisfy autoplay policies
+    video.defaultMuted = true
+    video.muted = true
+
+    const playVideo = () => {
+      if (video.paused) {
+        video.play().catch(err => {
+          console.warn("Hero video autoplay was prevented by the browser:", err)
+        })
+      }
+    }
+
+    // Try playing immediately
+    playVideo()
+
+    // Add event listeners to guarantee play starts as soon as media is ready
+    video.addEventListener('canplay', playVideo)
+    video.addEventListener('loadedmetadata', playVideo)
+
+    return () => {
+      video.removeEventListener('canplay', playVideo)
+      video.removeEventListener('loadedmetadata', playVideo)
     }
   }, [])
 
   return (
-    <video 
+    <video
       ref={videoRef}
-      autoPlay 
-      loop 
-      muted 
-      defaultMuted
+      autoPlay
+      loop
+      muted
       playsInline
       preload="auto"
       poster={poster}
-      src={heroVideoBg}
-      className="w-full h-full object-cover scale-105"
+      className="w-full h-full object-cover scale-105 pointer-events-none"
       style={{
         transform: 'scale(1.05) translate3d(0, 0, 0)',
         backfaceVisibility: 'hidden',
         willChange: 'transform',
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover'
       }}
-    />
+    >
+      {/* Mobile Sources (Screens <= 768px) */}
+      <source src={heroMobileWebm} type='video/webm; codecs="vp9, opus"' media="(max-width: 768px)" />
+      <source src={heroMobileMp4} type='video/mp4; codecs="avc1.64001e, mp4a.40.2"' media="(max-width: 768px)" />
+
+      {/* Desktop Sources (Screens > 768px) */}
+      <source src={heroVideoBg} type='video/mp4; codecs="hvc1.1.6.L150.90, mp4a.40.2"' media="(min-width: 769px)" />
+      <source src={hero2k} type='video/mp4; codecs="avc1.640032, mp4a.40.2"' media="(min-width: 769px)" />
+    </video>
   )
 })
 
