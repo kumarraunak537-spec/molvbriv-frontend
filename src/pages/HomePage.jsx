@@ -101,9 +101,10 @@ const HeroVideo = memo(({ poster }) => {
       playsInline
       preload="auto"
       poster={poster}
-      className="w-full h-full object-cover scale-105 pointer-events-none"
+      className="w-full h-full object-cover pointer-events-none"
       style={{
-        transform: 'scale(1.05) translate3d(0, 0, 0)',
+        // Disable heavy GPU scale transform on mobile viewports to prevent rendering stutter
+        transform: typeof window !== 'undefined' && window.innerWidth > 768 ? 'scale(1.05) translate3d(0, 0, 0)' : 'none',
         backfaceVisibility: 'hidden',
         willChange: 'transform',
         width: '100%',
