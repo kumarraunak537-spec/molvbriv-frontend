@@ -5,8 +5,6 @@ import Footer from '../components/Footer'
 
 import heroVideoBg from '../assets/hero-bg.mp4'
 import heroPoster from '../assets/hero-poster.jpg'
-import heroMobileMp4 from '../assets/hero-mobile.mp4'
-import heroMobileWebm from '../assets/hero-mobile.webm'
 import hero2k from '../assets/hero-2k.mp4'
 
 import jhumkaPink from '../assets/jhumka-pink.png'
@@ -113,13 +111,9 @@ const HeroVideo = memo(({ poster }) => {
         objectFit: 'cover'
       }}
     >
-      {/* Mobile Sources (Screens <= 768px) */}
-      <source src={heroMobileWebm} type='video/webm; codecs="vp9, opus"' media="(max-width: 768px)" />
-      <source src={heroMobileMp4} type='video/mp4; codecs="avc1.64001e, mp4a.40.2"' media="(max-width: 768px)" />
-
-      {/* Desktop Sources (Screens > 768px) */}
-      <source src={heroVideoBg} type='video/mp4; codecs="hvc1.1.6.L150.90, mp4a.40.2"' media="(min-width: 769px)" />
-      <source src={hero2k} type='video/mp4; codecs="avc1.640032, mp4a.40.2"' media="(min-width: 769px)" />
+      {/* Unified 2K Quality Video Sources for All Viewports */}
+      <source src={heroVideoBg} type='video/mp4; codecs="hvc1.1.6.L150.90, mp4a.40.2"' />
+      <source src={hero2k} type='video/mp4; codecs="avc1.640032, mp4a.40.2"' />
     </video>
   )
 })
