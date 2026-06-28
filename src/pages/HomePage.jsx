@@ -5,7 +5,6 @@ import Footer from '../components/Footer'
 
 import heroVideoBg from '../assets/hero-bg.mp4'
 import heroPoster from '../assets/hero-poster.jpg'
-import hero2k from '../assets/hero-2k.mp4'
 
 import jhumkaPink from '../assets/jhumka-pink.png'
 import jhumkaGreen from '../assets/jhumka-green.png'
@@ -101,10 +100,9 @@ const HeroVideo = memo(({ poster }) => {
       playsInline
       preload="auto"
       poster={poster}
-      className="w-full h-full object-cover pointer-events-none"
+      className="w-full h-full object-cover scale-105 pointer-events-none"
       style={{
-        // Disable heavy GPU scale transform on mobile viewports to prevent rendering stutter
-        transform: typeof window !== 'undefined' && window.innerWidth > 768 ? 'scale(1.05) translate3d(0, 0, 0)' : 'none',
+        transform: 'scale(1.05) translate3d(0, 0, 0)',
         backfaceVisibility: 'hidden',
         willChange: 'transform',
         width: '100%',
@@ -112,9 +110,7 @@ const HeroVideo = memo(({ poster }) => {
         objectFit: 'cover'
       }}
     >
-      {/* Unified 2K Quality Video Sources for All Viewports */}
-      <source src={heroVideoBg} type='video/mp4; codecs="hvc1.1.6.L150.90, mp4a.40.2"' />
-      <source src={hero2k} type='video/mp4; codecs="avc1.640032, mp4a.40.2"' />
+      <source src={heroVideoBg} type="video/mp4" />
     </video>
   )
 })
