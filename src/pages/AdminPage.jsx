@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { supabase, clearFrontendCache } from '../supabaseClient';
 import './AdminPage.css';
 
 export default function AdminPage() {
@@ -196,6 +196,7 @@ export default function AdminPage() {
       
       if (error) throw error;
       setProductsData([...productsData, data[0]]);
+      clearFrontendCache();
       showToast(status === 'live' ? 'Product published successfully' : 'Saved as draft');
       setNewProduct({ title: '', category: '', price: '', comparePrice: '', material: '', estMetalWeight: '', stock: '', description: '', sku: '', tag: '' });
       setProductImages([]);
@@ -212,6 +213,7 @@ export default function AdminPage() {
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) throw error;
       setProductsData(productsData.filter(p => p.id !== id));
+      clearFrontendCache();
       showToast('Product deleted');
     } catch (err) {
       console.error(err);
@@ -244,6 +246,7 @@ export default function AdminPage() {
       // Refresh data
       const { data } = await supabase.from('products').select('*').order('created_at', { ascending: false });
       if (data) setProductsData(data);
+      clearFrontendCache();
     } catch (err) {
       console.error(err);
       showToast('Error updating product');
