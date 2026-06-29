@@ -290,18 +290,7 @@ export default function ProductPage() {
               </div>
             </div>
 
-            <div className="space-y-8 mb-10">
-              <div className="grid grid-cols-2 gap-y-6 gap-x-12">
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-outline mb-1">Material</p>
-                  <p className="font-body text-sm font-medium capitalize">{product.material || 'Gold Plated'}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-widest text-outline mb-1">Stock</p>
-                  <p className="font-body text-sm font-medium">{product.stock > 0 ? `${product.stock} available` : 'Out of stock'}</p>
-                </div>
-              </div>
-            </div>
+
 
             <div className="space-y-4 mb-12">
               {product.variants && product.variants.length > 0 && (
