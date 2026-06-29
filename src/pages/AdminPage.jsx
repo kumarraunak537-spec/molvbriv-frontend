@@ -134,7 +134,7 @@ export default function AdminPage() {
   const [reviewsError, setReviewsError] = useState('');
 
   const [newProduct, setNewProduct] = useState({
-    title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: '', tag: ''
+    title: '', category: '', price: '', comparePrice: '', material: '', estMetalWeight: '', stock: '', description: '', sku: '', tag: ''
   });
   const [productImages, setProductImages] = useState([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
@@ -172,6 +172,11 @@ export default function AdminPage() {
       // Auto-generate slug from title
       const slug = newProduct.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
       
+      let finalDescription = newProduct.description || '';
+      if (newProduct.estMetalWeight) {
+        finalDescription += (finalDescription ? '\n\n' : '') + `Est. Metal Weight: ${newProduct.estMetalWeight}`;
+      }
+
       const productData = {
         title: newProduct.title,
         slug: slug,
@@ -180,7 +185,7 @@ export default function AdminPage() {
         compare_price: parseFloat(newProduct.comparePrice) || null,
         material: newProduct.material,
         stock: parseInt(newProduct.stock) || 0,
-        description: newProduct.description,
+        description: finalDescription,
         sku: newProduct.sku || null,
         status: status,
         images: productImages.length > 0 ? productImages : [],
@@ -192,7 +197,7 @@ export default function AdminPage() {
       if (error) throw error;
       setProductsData([...productsData, data[0]]);
       showToast(status === 'live' ? 'Product published successfully' : 'Saved as draft');
-      setNewProduct({ title: '', category: '', price: '', comparePrice: '', material: '', stock: '', description: '', sku: '', tag: '' });
+      setNewProduct({ title: '', category: '', price: '', comparePrice: '', material: '', estMetalWeight: '', stock: '', description: '', sku: '', tag: '' });
       setProductImages([]);
       nav('products');
     } catch (err) {
@@ -994,6 +999,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                       <option value="Limited Release">Limited Release</option>
                     </select>
                   </div>
+                  <div className="fg"><label>EST. METAL WEIGHT</label><input className="fi" type="text" placeholder="e.g. 5g, 10.5g" value={newProduct.estMetalWeight} onChange={e => setNewProduct({...newProduct, estMetalWeight: e.target.value})} /></div>
                   <div className="fg full"><label>DESCRIPTION</label><textarea className="fi" placeholder="Design, occasion, weight, size..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})}></textarea></div>
                 </div>
               </div>
