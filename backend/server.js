@@ -655,6 +655,44 @@ async function sendConfirmationEmail(order) {
 
 // --- SECURE PAYMENT & WEBHOOK ENDPOINTS ---
 
+/**
+ * Ensures a user profile exists in public.profiles to prevent foreign key violations on orders.
+ * Returns the userId if verified/created, or null if it failed (fallback for guest orders).
+ */
+async function ensureUserProfileExists(userId, checkoutDetails) {
+  if (!userId) return null;
+  
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (!profile) {
+        // Attempt to auto-create missing profile
+        const { error } = await supabase.from('profiles').insert([{
+          id: userId,
+          name: checkoutDetails.customerName || 'Boutique Patron',
+          email: checkoutDetails.customerEmail || null,
+          phone: checkoutDetails.customerPhone || null,
+          role: 'user'
+        }]);
+        if (error) {
+          console.warn('Failed to auto-create missing profile:', error);
+          return null; // Fallback to null to prevent FK constraint error
+        }
+      }
+      return userId;
+    } catch (err) {
+      console.error('Error verifying user profile:', err);
+      return null;
+    }
+  }
+  return userId;
+}
+
 // 1. Create Razorpay Order and pre-create 'Pending' order in Supabase
 app.post('/api/payments/create-order', sensitiveLimiter, async (req, res, next) => {
   const { amount, currency, checkoutDetails } = req.body;
@@ -690,10 +728,12 @@ app.post('/api/payments/create-order', sensitiveLimiter, async (req, res, next) 
 
     // Pre-create the order in Supabase (anti-loss safety guard)
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const safeUserId = await ensureUserProfileExists(checkoutDetails.userId, checkoutDetails);
+
       const { data, error } = await supabase
         .from('orders')
         .insert([{
-          user_id: checkoutDetails.userId || null,
+          user_id: safeUserId,
           customer_name: checkoutDetails.customerName,
           customer_email: checkoutDetails.customerEmail,
           customer_phone: checkoutDetails.customerPhone,
@@ -795,11 +835,13 @@ app.post('/api/payments/verify', sensitiveLimiter, async (req, res, next) => {
         .single();
 
       if (error || !data) {
+        const safeUserId = await ensureUserProfileExists(checkoutDetails.userId, checkoutDetails);
+
         // Fallback create order if somehow missed
         const { data: newOrder, error: insErr } = await supabase
           .from('orders')
           .insert([{
-            user_id: checkoutDetails.userId || null,
+            user_id: safeUserId,
             customer_name: checkoutDetails.customerName,
             customer_email: checkoutDetails.customerEmail,
             customer_phone: checkoutDetails.customerPhone,
@@ -865,10 +907,12 @@ app.post('/api/payments/cod', sensitiveLimiter, async (req, res, next) => {
     let orderRecord = null;
 
     if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const safeUserId = await ensureUserProfileExists(checkoutDetails.userId, checkoutDetails);
+
       const { data, error } = await supabase
         .from('orders')
         .insert([{
-          user_id: checkoutDetails.userId || null,
+          user_id: safeUserId,
           customer_name: checkoutDetails.customerName,
           customer_email: checkoutDetails.customerEmail,
           customer_phone: checkoutDetails.customerPhone,
@@ -916,7 +960,7 @@ app.post('/api/payments/cod', sensitiveLimiter, async (req, res, next) => {
     res.json({ success: true, order: orderRecord });
   } catch (error) {
     console.error('COD order creation error:', error);
-    res.status(500).json({ success: false, error: error.message || 'Failed to place order' });
+    res.status(500).json({ success: false, error: 'Failed to place COD order due to an internal server error.' });
   }
 });
 

@@ -550,8 +550,8 @@ export default function CartPage() {
           throw new Error(result.error || 'Failed to place COD order');
         }
       } catch (err) {
-        console.warn('Backend API offline or failed:', err);
-        alert(`Placing COD order failed. Please check your internet connection or try again later. Error: ${err.message}`);
+        console.error('Checkout failed internally:', err);
+        alert('We are unable to process your order at the moment. Please try again later or contact support.');
       } finally {
         setIsPaymentLoading(false);
       }

@@ -44,9 +44,9 @@ async function main() {
   // Let's test which columns actually exist in public.reviews.
   // We can do this by trying to insert a row with only 'user_id' and 'rating' and 'comment', and see if it succeeds.
   // Wait, let's see what happens if we select other fields like 'title', 'status', 'is_verified'.
-  const fields = ['id', 'user_id', 'product_id', 'rating', 'comment', 'created_at', 'title', 'customer_name', 'status', 'is_verified'];
+  const fields = ['id', 'title', 'price', 'category', 'metal_weight', 'est_metal_weight', 'weight', 'description'];
   for (let field of fields) {
-    const { data, error } = await supabase.from('reviews').select(field).limit(1);
+    const { data, error } = await supabase.from('products').select(field).limit(1);
     if (error) {
       console.log(`Field '${field}': NOT EXISTS (${error.message})`);
     } else {
