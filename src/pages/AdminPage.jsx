@@ -221,13 +221,18 @@ export default function AdminPage() {
   const handleUpdateProduct = async () => {
     try {
       if (!editingProduct.id) return showToast('Cannot update product: Missing ID');
+      let finalDesc = editingProduct.description || '';
+      if (editingProduct.estMetalWeight) {
+        finalDesc += (finalDesc ? '\n\n' : '') + `Est. Metal Weight: ${editingProduct.estMetalWeight}`;
+      }
+
       const { error } = await supabase.from('products').update({
         title: editingProduct.title || editingProduct.name, // Handle both name/title mapping
         price: parseFloat(editingProduct.price),
         compare_price: parseFloat(editingProduct.compare_price) || null,
         category: editingProduct.category || editingProduct.cat,
         material: editingProduct.material || editingProduct.mat,
-        description: editingProduct.description || '',
+        description: finalDesc,
         status: editingProduct.status || 'live',
         stock: parseInt(editingProduct.stock) || 0,
         tags: editingProduct.tag ? [editingProduct.tag] : []
@@ -1043,7 +1048,16 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
               </div>
               <div className="peg">
                 {productsData.length > 0 ? productsData.filter(p => customizeFilter === 'all' || p.category === customizeFilter).map(p => (
-                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price, compare_price: p.compare_price, description: p.description || '', status: p.status || 'live', stock: p.stock ?? 0, tag: (p.tags && p.tags.length > 0) ? p.tags[0] : '' })}>
+                  <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => {
+                    let desc = p.description || '';
+                    let weight = '';
+                    const weightMatch = desc.match(/Est\. Metal Weight: (.*)/);
+                    if (weightMatch) {
+                      weight = weightMatch[1];
+                      desc = desc.replace(/[\n]*Est\. Metal Weight: .*/g, '').trim();
+                    }
+                    setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price, compare_price: p.compare_price, description: desc, estMetalWeight: weight, status: p.status || 'live', stock: p.stock ?? 0, tag: (p.tags && p.tags.length > 0) ? p.tags[0] : '' });
+                  }}>
                     <div className="pen">{p.title}</div>
                     <div className="pec2">{(p.category || 'General').charAt(0).toUpperCase() + (p.category || 'General').slice(1)} · {p.material}</div>
                     <div className="pep">Rs {p.price}</div>
@@ -1096,6 +1110,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                         <option value="Limited Release">Limited Release</option>
                       </select>
                     </div>
+                    <div className="fg"><label>EST. METAL WEIGHT</label><input className="fi" type="text" placeholder="e.g. 5g, 10.5g" value={editingProduct.estMetalWeight || ''} onChange={(e) => setEditingProduct({ ...editingProduct, estMetalWeight: e.target.value })} /></div>
                   </div>
                   <div className="fa" style={{ marginTop: '13px' }}>
                     <button className="btn btn-p" onClick={handleUpdateProduct}>Save Changes</button>
