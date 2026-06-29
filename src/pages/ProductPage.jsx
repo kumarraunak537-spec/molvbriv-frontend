@@ -439,7 +439,7 @@ export default function ProductPage() {
                   : 'text-outline/70 hover:text-on-surface font-semibold'
               }`}
             >
-              COMPLETE THE LOOK
+              Related Products
             </button>
             <button 
               onClick={() => setActiveBottomTab('recent')}
