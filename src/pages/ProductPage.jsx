@@ -378,7 +378,13 @@ export default function ProductPage() {
                     </div>
                     <div>
                       <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Est. Metal Weight</span>
-                      <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">{Math.floor((product.title?.length || 10) * 1.5) + 5}.2g</p>
+                      <p className="text-primary font-semibold mt-1 text-[11px] md:text-xs">
+                        {(() => {
+                          const desc = product.description || '';
+                          const match = desc.match(/Est\.?\s*Metal\s*Weight:\s*([^\n\r<]+)/i);
+                          return match ? match[1].trim() : `${Math.floor((product.title?.length || 10) * 1.5) + 5}.2g`;
+                        })()}
+                      </p>
                     </div>
                     <div>
                       <span className="text-outline-variant/80 uppercase tracking-widest text-[9px] font-bold">Availability</span>
