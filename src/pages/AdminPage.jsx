@@ -1051,10 +1051,10 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                   <div key={p.id} className={`pec ${editingProduct?.id === p.id ? 'sel' : ''}`} onClick={() => {
                     let desc = p.description || '';
                     let weight = '';
-                    const weightMatch = desc.match(/Est\. Metal Weight: (.*)/);
+                    const weightMatch = desc.match(/Est\. Metal Weight:\s*(.*)/i);
                     if (weightMatch) {
-                      weight = weightMatch[1];
-                      desc = desc.replace(/[\n]*Est\. Metal Weight: .*/g, '').trim();
+                      weight = weightMatch[1].trim();
+                      desc = desc.replace(/[\r\n]*Est\. Metal Weight:\s*.*/gi, '').trim();
                     }
                     setEditingProduct({ id: p.id, name: p.title, cat: p.category || '', mat: p.material || '', price: p.price, compare_price: p.compare_price, description: desc, estMetalWeight: weight, status: p.status || 'live', stock: p.stock ?? 0, tag: (p.tags && p.tags.length > 0) ? p.tags[0] : '' });
                   }}>
