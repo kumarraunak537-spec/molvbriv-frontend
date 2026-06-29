@@ -342,7 +342,7 @@ export default function ProductPage() {
             {product.description && (
               <div className="mb-12 p-6 bg-surface-container-low border-l-2 border-secondary/20">
                 <p className="text-sm text-on-surface-variant leading-relaxed font-inter whitespace-pre-line">
-                  {product.description}
+                  {product.description.replace(/(?:Est\.?\s*Metal\s*Weight|Estimated\s*Material\s*Weight):\s*[^\n\r<]+/ig, '').trim()}
                 </p>
               </div>
             )}
