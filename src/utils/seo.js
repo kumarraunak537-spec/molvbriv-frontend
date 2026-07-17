@@ -4,7 +4,8 @@ export function updateSEO(metadata = {}) {
     description = "Molvbriv — Luxury fine jewelry crafted with timeless elegance since 1904. Discover our Heritage Collection of handcrafted rings, necklaces, earrings and more.",
     canonicalUrl = window.location.origin + window.location.pathname,
     ogType = "website",
-    ogImage = "https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=1200&h=630&fit=crop"
+    ogImage = "https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=1200&h=630&fit=crop",
+    schema = null
   } = metadata;
 
   // 1. Update Title
@@ -28,6 +29,9 @@ export function updateSEO(metadata = {}) {
   updateMetaTag('property', 'twitter:description', description);
   updateMetaTag('property', 'twitter:url', canonicalUrl);
   updateMetaTag('property', 'twitter:image', ogImage);
+
+  // 6. Update JSON-LD Schema
+  updateSchema(schema);
 }
 
 function updateMetaTag(attributeName, attributeValue, contentValue) {
@@ -50,4 +54,23 @@ function updateLinkTag(attributeName, attributeValue, hrefValue) {
     document.head.appendChild(element);
   }
   element.setAttribute('href', hrefValue);
+}
+
+function updateSchema(schema) {
+  if (typeof document === 'undefined') return;
+  
+  // Remove existing schema scripts added by this utility
+  const existingScripts = document.querySelectorAll('script[data-dynamic-schema="true"]');
+  existingScripts.forEach(script => script.remove());
+
+  if (schema) {
+    const schemas = Array.isArray(schema) ? schema : [schema];
+    schemas.forEach(s => {
+      const script = document.createElement('script');
+      script.setAttribute('type', 'application/ld+json');
+      script.setAttribute('data-dynamic-schema', 'true');
+      script.textContent = JSON.stringify(s);
+      document.head.appendChild(script);
+    });
+  }
 }

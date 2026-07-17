@@ -35,7 +35,14 @@ export default function NewArrivalsPage() {
     updateSEO({
       title: "New Arrivals — Molvbriv",
       description: "Explore the latest additions to Molvbriv. Handcrafted luxury jewelry freshly curated for our signature collection.",
-      canonicalUrl: window.location.origin + "/new-arrivals"
+      canonicalUrl: window.location.origin + "/new-arrivals",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "New Arrivals — Molvbriv",
+        "description": "Explore the latest additions to Molvbriv. Handcrafted luxury jewelry freshly curated for our signature collection.",
+        "url": window.location.origin + "/new-arrivals"
+      }
     })
   }, [])
 

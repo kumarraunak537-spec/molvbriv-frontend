@@ -8,7 +8,15 @@ export default function TermsOfServicePage() {
     window.scrollTo(0, 0)
     updateSEO({
       title: "Terms of Service — Molvbriv",
-      description: "Read the Terms of Service for Molvbriv to understand the usage terms, rules, and purchasing conditions."
+      description: "Read the Terms of Service for Molvbriv to understand the usage terms, rules, and purchasing conditions.",
+      canonicalUrl: window.location.origin + "/terms-of-service",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Terms of Service — Molvbriv",
+        "description": "Read the Terms of Service for Molvbriv to understand the usage terms, rules, and purchasing conditions.",
+        "url": window.location.origin + "/terms-of-service"
+      }
     })
   }, [])
 

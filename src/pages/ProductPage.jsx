@@ -39,24 +39,6 @@ export default function ProductPage() {
         ? product.images[0] 
         : 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=1200&h=630&fit=crop'
       
-      updateSEO({
-        title: `${product.title} — Molvbriv`,
-        description: product.description || `Buy ${product.title} on Molvbriv. Luxury fine jewelry crafted with timeless elegance.`,
-        canonicalUrl,
-        ogType: "product",
-        ogImage: imageUrl
-      })
-
-      // Dynamic Product Schema (JSON-LD) injection
-      const schemaId = 'product-jsonld'
-      let script = document.getElementById(schemaId)
-      if (!script) {
-        script = document.createElement('script')
-        script.id = schemaId
-        script.type = 'application/ld+json'
-        document.head.appendChild(script)
-      }
-
       const productSchema = {
         "@context": "https://schema.org",
         "@type": "Product",
@@ -64,6 +46,10 @@ export default function ProductPage() {
         "image": product.images && product.images.length > 0 ? product.images : [imageUrl],
         "description": product.description || `Luxury fine jewelry - ${product.title} on Molvbriv.`,
         "sku": product.id,
+        "brand": {
+          "@type": "Brand",
+          "name": "Molvbriv"
+        },
         "offers": {
           "@type": "Offer",
           "url": canonicalUrl,
@@ -74,15 +60,39 @@ export default function ProductPage() {
         }
       }
 
-      script.textContent = JSON.stringify(productSchema)
-    }
-
-    return () => {
-      // Cleanup schema script tag when component unmounts or product changes
-      const script = document.getElementById('product-jsonld')
-      if (script) {
-        script.remove()
+      const breadcrumbSchema = {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://www.molvbriv.in"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Collections",
+            "item": "https://www.molvbriv.in/collections"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": product.title,
+            "item": canonicalUrl
+          }
+        ]
       }
+      
+      updateSEO({
+        title: `${product.title} — Molvbriv`,
+        description: product.description || `Buy ${product.title} on Molvbriv. Luxury fine jewelry crafted with timeless elegance.`,
+        canonicalUrl,
+        ogType: "product",
+        ogImage: imageUrl,
+        schema: [productSchema, breadcrumbSchema]
+      })
     }
   }, [product])
 

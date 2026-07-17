@@ -9,7 +9,14 @@ export default function AboutUsPage() {
     window.scrollTo(0, 0)
     updateSEO({
       title: "About Our Heritage — Molvbriv",
-      description: "Discover the history, design philosophy, and craftsmanship behind Molvbriv fine jewelry. Crafting quiet luxury and timeless masterpieces since 1904."
+      description: "Discover the history, design philosophy, and craftsmanship behind Molvbriv fine jewelry. Crafting quiet luxury and timeless masterpieces since 1904.",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "About Our Heritage — Molvbriv",
+        "description": "Discover the history, design philosophy, and craftsmanship behind Molvbriv fine jewelry. Crafting quiet luxury and timeless masterpieces since 1904.",
+        "url": window.location.origin + "/about"
+      }
     })
   }, [])
 

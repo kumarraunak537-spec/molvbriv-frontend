@@ -25,7 +25,14 @@ export default function CollectionsPage() {
     updateSEO({
       title: "Jewelry Collections — Molvbriv",
       description: "Discover the Molvbriv Heritage Collections of fine jewelry. From royal jhumkas and traditional earrings to designer necklaces and modern bangles.",
-      canonicalUrl: window.location.origin + "/collections"
+      canonicalUrl: window.location.origin + "/collections",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Jewelry Collections — Molvbriv",
+        "description": "Discover the Molvbriv Heritage Collections of fine jewelry. From royal jhumkas and traditional earrings to designer necklaces and modern bangles.",
+        "url": window.location.origin + "/collections"
+      }
     })
   }, [])
 

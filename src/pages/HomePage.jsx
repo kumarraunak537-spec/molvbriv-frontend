@@ -126,7 +126,38 @@ export default function HomePage() {
     window.scrollTo(0, 0)
     updateSEO({
       title: "Molvbriv — The Timeless Curator",
-      description: "Molvbriv — Luxury fine jewelry crafted with timeless elegance since 1904. Discover our Heritage Collection of handcrafted rings, necklaces, earrings and more."
+      description: "Molvbriv — Luxury fine jewelry crafted with timeless elegance since 1904. Discover our Heritage Collection of handcrafted rings, necklaces, earrings and more.",
+      canonicalUrl: "https://www.molvbriv.in",
+      schema: [
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          "name": "Molvbriv",
+          "url": "https://www.molvbriv.in",
+          "logo": "https://www.molvbriv.in/logo.png",
+          "description": "Molvbriv — Luxury fine jewelry crafted with timeless elegance since 1904.",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+91-9876543210",
+            "contactType": "customer service"
+          },
+          "sameAs": [
+            "https://www.facebook.com/molvbriv",
+            "https://www.instagram.com/molvbriv"
+          ]
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Molvbriv",
+          "url": "https://www.molvbriv.in",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://www.molvbriv.in/collections?category={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
     })
   }, [])
 

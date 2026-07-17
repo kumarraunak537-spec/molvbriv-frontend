@@ -52,7 +52,7 @@ export default function Footer({ variant = 'default' }) {
         </div>
       </div>
       <div className="px-6 md:px-16 py-6 md:py-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
-        <p className="text-white/40 text-[10px] uppercase tracking-widest">© 2024 Molvbriv</p>
+        <p className="text-white/40 text-[10px] uppercase tracking-widest">© 2026 Molvbriv</p>
       </div>
     </footer>
   )

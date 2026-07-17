@@ -8,7 +8,15 @@ export default function PrivacyPolicyPage() {
     window.scrollTo(0, 0)
     updateSEO({
       title: "Privacy Policy — Molvbriv",
-      description: "Read the Privacy Policy for Molvbriv to understand how we secure and protect your personal information."
+      description: "Read the Privacy Policy for Molvbriv to understand how we secure and protect your personal information.",
+      canonicalUrl: window.location.origin + "/privacy-policy",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Privacy Policy — Molvbriv",
+        "description": "Read the Privacy Policy for Molvbriv to understand how we secure and protect your personal information.",
+        "url": window.location.origin + "/privacy-policy"
+      }
     })
   }, [])
 

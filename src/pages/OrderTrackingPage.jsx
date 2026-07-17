@@ -14,7 +14,15 @@ export default function OrderTrackingPage() {
     window.scrollTo(0, 0);
     updateSEO({
       title: "Track Your Order — Molvbriv",
-      description: "Track the journey and delivery status of your hand-packaged Molvbriv fine jewelry masterpiece."
+      description: "Track the journey and delivery status of your hand-packaged Molvbriv fine jewelry masterpiece.",
+      canonicalUrl: window.location.origin + "/track-order",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Track Your Order — Molvbriv",
+        "description": "Track the journey and delivery status of your hand-packaged Molvbriv fine jewelry masterpiece.",
+        "url": window.location.origin + "/track-order"
+      }
     });
   }, []);
   const [orderDetails, setOrderDetails] = useState(null);

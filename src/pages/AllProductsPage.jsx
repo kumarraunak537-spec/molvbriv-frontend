@@ -51,7 +51,14 @@ export default function AllProductsPage() {
     updateSEO({
       title,
       description,
-      canonicalUrl
+      canonicalUrl,
+      schema: {
+        "@context": "https://schema.org",
+        "@type": searchQuery ? "SearchResultsPage" : "CollectionPage",
+        "name": title,
+        "description": description,
+        "url": canonicalUrl
+      }
     })
   }, [searchQuery])
 

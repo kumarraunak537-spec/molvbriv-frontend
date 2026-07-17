@@ -8,7 +8,15 @@ export default function ShippingReturnsPage() {
     window.scrollTo(0, 0)
     updateSEO({
       title: "Shipping & Returns Policy — Molvbriv",
-      description: "Review Molvbriv's delivery schedules, packaging safety standards, and 24-hour return guidelines."
+      description: "Review Molvbriv's delivery schedules, packaging safety standards, and 24-hour return guidelines.",
+      canonicalUrl: window.location.origin + "/shipping-returns",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Shipping & Returns Policy — Molvbriv",
+        "description": "Review Molvbriv's delivery schedules, packaging safety standards, and 24-hour return guidelines.",
+        "url": window.location.origin + "/shipping-returns"
+      }
     })
   }, [])
 
