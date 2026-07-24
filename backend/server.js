@@ -605,12 +605,6 @@ async function autoFulfillShipment(orderId, attempt = 1) {
     }
 
     console.log(`[Shiprocket Sync] Success for order ${orderId}. Shipment ID: ${shiprocketDetails.shipment_id}`);
-
-    // Update SQLite local order status compatibility
-    db.run("UPDATE orders SET status = ? WHERE id = ? OR order_number = ?", ['Processing', orderId, order.razorpay_order_id], (dbErr) => {
-      if (dbErr) console.error('[Shiprocket Sync] SQLite order status sync failed:', dbErr);
-    });
-
   } catch (err) {
     const errorMsg = err.message || JSON.stringify(err);
     console.error(`[Shiprocket Sync] Attempt ${attempt} failed for order ${orderId}: ${errorMsg}`);
