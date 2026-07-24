@@ -425,67 +425,101 @@ async function createShiprocketOrder(order) {
     let trackingId = '';
     let labelUrl = '';
 
-    // B. GENERATE AWB & ASSIGN COURIER (Auto assignment)
+    // B. GENERATE AWB & ASSIGN COURIER (Auto assignment with courier fallback)
     try {
       const awbController = new AbortController();
-      const awbTimeout = setTimeout(() => awbController.abort(), 5000);
+      const awbTimeout = setTimeout(() => awbController.abort(), 10000);
       
-      const awbRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/assign/awb', {
+      console.log(`[Shiprocket API] Requesting AWB assignment for shipment_id: ${shipmentId}...`);
+      let awbRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/assign/awb', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ shipment_id: shipmentId }),
+        body: JSON.stringify({ shipment_id: parseInt(shipmentId) }),
         signal: awbController.signal
       });
       clearTimeout(awbTimeout);
 
-      if (awbRes.ok) {
-        const awbData = await awbRes.json();
-        if (awbData.status === 200 && awbData.response && awbData.response.data) {
-          const awbDetails = awbData.response.data;
-          awbCode = awbDetails.awb_code || '';
-          courierName = awbDetails.courier_name || 'Shiprocket Courier';
-          trackingId = awbDetails.awb_code || '';
-          console.log(`AWB code generated successfully: ${awbCode} via ${courierName}`);
-        } else {
-          console.warn('AWB generation response was not successful:', JSON.stringify(awbData));
+      let awbData = await awbRes.json();
+      console.log(`[Shiprocket API] AWB response status ${awbRes.status}:`, JSON.stringify(awbData));
+
+      let awbDetails = awbData?.response?.data || awbData?.data || awbData;
+      awbCode = awbDetails?.awb_code || awbData?.awb_code || '';
+      courierName = awbDetails?.courier_name || awbData?.courier_name || courierName;
+
+      // Fallback: If auto-assignment failed because courier_id is needed, check serviceability & retry with courier_id
+      if (!awbCode) {
+        console.log(`[Shiprocket API] Auto AWB assignment pending. Fetching serviceability for courier selection...`);
+        const deliveryPin = addr.pinCode || pinCode || '110001';
+        const pickupPin = process.env.SHIPROCKET_PICKUP_PINCODE || '110001';
+        const sRes = await fetch(`https://apiv2.shiprocket.in/v1/external/courier/serviceability?pickup_postcode=${pickupPin}&delivery_postcode=${deliveryPin}&weight=0.5&cod=${order.payment_method === 'COD' ? 1 : 0}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          const availableCouriers = sData?.data?.available_courier_companies || sData?.available_courier_companies || [];
+          if (availableCouriers.length > 0) {
+            const bestCourier = availableCouriers[0];
+            const courierId = bestCourier.courier_company_id;
+            console.log(`[Shiprocket API] Retrying AWB assign with recommended courier_id: ${courierId} (${bestCourier.courier_name})`);
+            const retryAwbRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/assign/awb', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ shipment_id: parseInt(shipmentId), courier_id: parseInt(courierId) })
+            });
+            if (retryAwbRes.ok) {
+              const retryAwbData = await retryAwbRes.json();
+              console.log(`[Shiprocket API] Retry AWB response:`, JSON.stringify(retryAwbData));
+              const rDetails = retryAwbData?.response?.data || retryAwbData?.data || retryAwbData;
+              awbCode = rDetails?.awb_code || retryAwbData?.awb_code || '';
+              courierName = rDetails?.courier_name || bestCourier.courier_name || courierName;
+            }
+          }
         }
+      }
+
+      if (awbCode) {
+        trackingId = awbCode;
+        console.log(`✓ AWB code generated successfully: ${awbCode} via ${courierName}`);
       } else {
-        const awbErrText = await awbRes.text();
-        console.error(`AWB assignment failed: ${awbRes.statusText} - ${awbErrText}`);
+        console.warn('⚠️ AWB generation could not resolve AWB code immediately.');
       }
     } catch (awbErr) {
       console.error('Error assigning AWB:', awbErr);
     }
 
     // C. GENERATE SHIPPING LABEL
-    try {
-      const labelController = new AbortController();
-      const labelTimeout = setTimeout(() => labelController.abort(), 5000);
-      
-      const labelRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/generate/label', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ shipment_id: [shipmentId] }),
-        signal: labelController.signal
-      });
-      clearTimeout(labelTimeout);
+    if (awbCode || shipmentId) {
+      try {
+        const labelController = new AbortController();
+        const labelTimeout = setTimeout(() => labelController.abort(), 10000);
+        
+        console.log(`[Shiprocket API] Requesting Label generation for shipment_id: ${shipmentId}...`);
+        const labelRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/generate/label', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ shipment_id: [parseInt(shipmentId)] }),
+          signal: labelController.signal
+        });
+        clearTimeout(labelTimeout);
 
-      if (labelRes.ok) {
         const labelData = await labelRes.json();
-        labelUrl = labelData.label_url || '';
-        console.log(`Shipping label generated successfully: ${labelUrl}`);
-      } else {
-        const labelErrText = await labelRes.text();
-        console.error(`Shipping label generation failed: ${labelRes.statusText} - ${labelErrText}`);
+        console.log(`[Shiprocket API] Label response status ${labelRes.status}:`, JSON.stringify(labelData));
+        labelUrl = labelData?.label_url || labelData?.response?.label_url || labelData?.url || '';
+        if (labelUrl) {
+          console.log(`✓ Shipping label generated successfully: ${labelUrl}`);
+        }
+      } catch (labelErr) {
+        console.error('Error generating shipping label:', labelErr);
       }
-    } catch (labelErr) {
-      console.error('Error generating shipping label:', labelErr);
     }
 
     return {
@@ -1544,27 +1578,36 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
       return res.json({ success: true, order: updatedOrder });
     }
 
-    // A. Fetch shipment details from Shiprocket
-    const shipRes = await fetch(`https://apiv2.shiprocket.in/v1/external/shipments/${shipmentId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    console.log(`[Shiprocket Sync Endpoint] Syncing shipment_id: ${shipmentId} for order: ${orderId}`);
 
-    if (!shipRes.ok) {
-      const errText = await shipRes.text();
-      throw new Error(`Failed to fetch shipment from Shiprocket: ${shipRes.statusText} - ${errText}`);
+    let awbCode = (order.awb_code && order.awb_code !== 'N/A') ? order.awb_code : '';
+    let courierName = order.courier_name || '';
+    let labelUrl = (order.shipping_label_url && order.shipping_label_url !== 'N/A') ? order.shipping_label_url : '';
+
+    // A. Attempt to fetch shipment details using proper API endpoint
+    try {
+      const shipRes = await fetch(`https://apiv2.shiprocket.in/v1/external/shipments/show/${shipmentId}`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (shipRes.ok) {
+        const shipData = await shipRes.json();
+        console.log(`[Shiprocket Sync Endpoint] Shipment details response:`, JSON.stringify(shipData));
+        const sData = shipData?.data || shipData;
+        if (sData?.awb) awbCode = sData.awb;
+        if (sData?.courier) courierName = sData.courier;
+        if (sData?.label_url) labelUrl = sData.label_url;
+      } else {
+        const errText = await shipRes.text();
+        console.warn(`[Shiprocket Sync Endpoint] Shipment show endpoint returned ${shipRes.status}: ${errText}`);
+      }
+    } catch (showErr) {
+      console.warn(`[Shiprocket Sync Endpoint] Shipment show error:`, showErr.message);
     }
 
-    const shipData = await shipRes.json();
-    let awbCode = shipData?.data?.awb || '';
-    let courierName = shipData?.data?.courier || '';
-    let labelUrl = shipData?.data?.label_url || '';
-
-    // B. If AWB is still not assigned, attempt to assign AWB
-    if (!awbCode) {
-      console.log(`AWB not assigned on Shiprocket yet. Requesting AWB assignment for shipment ${shipmentId}...`);
+    // B. If AWB is missing, request AWB Assignment
+    if (!awbCode || awbCode === 'N/A') {
+      console.log(`[Shiprocket Sync Endpoint] Requesting AWB Assignment for shipment_id: ${shipmentId}...`);
       const awbRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/assign/awb', {
         method: 'POST',
         headers: {
@@ -1574,23 +1617,52 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
         body: JSON.stringify({ shipment_id: parseInt(shipmentId) })
       });
 
-      if (awbRes.ok) {
-        const awbData = await awbRes.json();
-        if (awbData.status === 200 && awbData.response && awbData.response.data) {
-          const awbDetails = awbData.response.data;
-          awbCode = awbDetails.awb_code || '';
-          courierName = awbDetails.courier_name || courierName;
-        } else {
-          console.warn('AWB generation failed on assign attempt:', JSON.stringify(awbData));
+      const awbData = await awbRes.json();
+      console.log(`[Shiprocket Sync Endpoint] AWB assign response status ${awbRes.status}:`, JSON.stringify(awbData));
+
+      const awbDetails = awbData?.response?.data || awbData?.data || awbData;
+      awbCode = awbDetails?.awb_code || awbData?.awb_code || '';
+      courierName = awbDetails?.courier_name || awbData?.courier_name || courierName;
+
+      // Fallback if courier selection is required
+      if (!awbCode) {
+        const addr = order.shipping_address || {};
+        const deliveryPin = addr.pinCode || '110001';
+        const pickupPin = process.env.SHIPROCKET_PICKUP_PINCODE || '110001';
+        console.log(`[Shiprocket Sync Endpoint] Auto AWB assign pending. Querying serviceability (pickup: ${pickupPin}, delivery: ${deliveryPin})...`);
+        const sRes = await fetch(`https://apiv2.shiprocket.in/v1/external/courier/serviceability?pickup_postcode=${pickupPin}&delivery_postcode=${deliveryPin}&weight=0.5&cod=${order.payment_method === 'COD' ? 1 : 0}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (sRes.ok) {
+          const sData = await sRes.json();
+          const availableCouriers = sData?.data?.available_courier_companies || sData?.available_courier_companies || [];
+          if (availableCouriers.length > 0) {
+            const bestCourier = availableCouriers[0];
+            const courierId = bestCourier.courier_company_id;
+            console.log(`[Shiprocket Sync Endpoint] Retrying AWB assign with courier_id: ${courierId} (${bestCourier.courier_name})...`);
+            const retryRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/assign/awb', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ shipment_id: parseInt(shipmentId), courier_id: parseInt(courierId) })
+            });
+            if (retryRes.ok) {
+              const retryData = await retryRes.json();
+              console.log(`[Shiprocket Sync Endpoint] Retry AWB response:`, JSON.stringify(retryData));
+              const rDetails = retryData?.response?.data || retryData?.data || retryData;
+              awbCode = rDetails?.awb_code || retryData?.awb_code || '';
+              courierName = rDetails?.courier_name || bestCourier.courier_name || courierName;
+            }
+          }
         }
-      } else {
-        const awbErrText = await awbRes.text();
-        console.error(`AWB assignment failed on sync: ${awbRes.statusText} - ${awbErrText}`);
       }
     }
 
-    // C. If label URL is missing and we have AWB, attempt to generate label
-    if (!labelUrl && awbCode) {
+    // C. Request Label Generation
+    if (!labelUrl || labelUrl === 'N/A') {
+      console.log(`[Shiprocket Sync Endpoint] Requesting Label Generation for shipment_id: ${shipmentId}...`);
       try {
         const labelRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/generate/label', {
           method: 'POST',
@@ -1600,12 +1672,11 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
           },
           body: JSON.stringify({ shipment_id: [parseInt(shipmentId)] })
         });
-        if (labelRes.ok) {
-          const labelData = await labelRes.json();
-          labelUrl = labelData.label_url || '';
-        }
+        const labelData = await labelRes.json();
+        console.log(`[Shiprocket Sync Endpoint] Label generation response status ${labelRes.status}:`, JSON.stringify(labelData));
+        labelUrl = labelData?.label_url || labelData?.response?.label_url || labelData?.url || '';
       } catch (labelErr) {
-        console.error('Error generating label on sync:', labelErr);
+        console.error('[Shiprocket Sync Endpoint] Error generating label on sync:', labelErr);
       }
     }
 
