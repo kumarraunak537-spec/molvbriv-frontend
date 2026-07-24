@@ -1658,10 +1658,36 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
           }
         }
       }
+
+      // C. Server-Side Polling Loop for Async AWB Allocation on Shiprocket
+      if (!awbCode) {
+        console.log(`[Shiprocket Sync Endpoint] AWB generation queued asynchronously on Shiprocket. Polling shipment status...`);
+        for (let attempt = 1; attempt <= 4; attempt++) {
+          await new Promise(r => setTimeout(r, 1500));
+          try {
+            const pollRes = await fetch(`https://apiv2.shiprocket.in/v1/external/shipments/show/${shipmentId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (pollRes.ok) {
+              const pollData = await pollRes.json();
+              const pData = pollData?.data || pollData;
+              if (pData?.awb || pData?.awb_code) {
+                awbCode = pData.awb || pData.awb_code;
+                if (pData.courier) courierName = pData.courier;
+                if (pData.label_url) labelUrl = pData.label_url;
+                console.log(`[Shiprocket Sync Endpoint] ✓ Polling attempt ${attempt} resolved AWB Code: ${awbCode}`);
+                break;
+              }
+            }
+          } catch (pollErr) {
+            console.warn(`[Shiprocket Sync Endpoint] Poll attempt ${attempt} warning:`, pollErr.message);
+          }
+        }
+      }
     }
 
-    // C. Request Label Generation
-    if (!labelUrl || labelUrl === 'N/A') {
+    // D. Request Label Generation (Once AWB Code exists or is allocated)
+    if ((!labelUrl || labelUrl === 'N/A') && (awbCode || shipmentId)) {
       console.log(`[Shiprocket Sync Endpoint] Requesting Label Generation for shipment_id: ${shipmentId}...`);
       try {
         const labelRes = await fetch('https://apiv2.shiprocket.in/v1/external/courier/generate/label', {
@@ -1675,6 +1701,18 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
         const labelData = await labelRes.json();
         console.log(`[Shiprocket Sync Endpoint] Label generation response status ${labelRes.status}:`, JSON.stringify(labelData));
         labelUrl = labelData?.label_url || labelData?.response?.label_url || labelData?.url || '';
+
+        // If label generation queued asynchronously, poll once to retrieve label_url
+        if (!labelUrl) {
+          await new Promise(r => setTimeout(r, 1500));
+          const pLabelRes = await fetch(`https://apiv2.shiprocket.in/v1/external/shipments/show/${shipmentId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (pLabelRes.ok) {
+            const pLabelData = await pLabelRes.json();
+            labelUrl = pLabelData?.data?.label_url || pLabelData?.label_url || '';
+          }
+        }
       } catch (labelErr) {
         console.error('[Shiprocket Sync Endpoint] Error generating label on sync:', labelErr);
       }

@@ -328,7 +328,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     }
   };
 
-  const handleSyncShipment = async (orderId) => {
+  const handleSyncShipment = async (orderId, isAutoRetry = false) => {
     setIsLogisticsLoading(true);
     setLogisticsError('');
     const targetUrl = `${API_BASE_URL}/api/shiprocket/sync-shipment`;
@@ -346,9 +346,26 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Failed to sync shipment with Shiprocket');
       }
-      showToast('Shipment synchronized successfully!');
+      
       setSelectedAdminOrder(data.order);
       setOrdersData(prev => prev.map(o => o.id === orderId ? data.order : o));
+
+      const hasAwb = data.order?.awb_code && data.order?.awb_code !== 'N/A';
+      const hasLabel = data.order?.shipping_label_url && data.order?.shipping_label_url !== 'N/A';
+
+      if (hasAwb && hasLabel) {
+        showToast('AWB & Shipping Label generated successfully!');
+      } else if (hasAwb) {
+        showToast('AWB assigned! Fetching shipping label...');
+        if (!isAutoRetry) {
+          setTimeout(() => handleSyncShipment(orderId, true), 3000);
+        }
+      } else {
+        showToast('Syncing with Shiprocket courier allocation queue...');
+        if (!isAutoRetry) {
+          setTimeout(() => handleSyncShipment(orderId, true), 3500);
+        }
+      }
     } catch (err) {
       console.error(err);
       setLogisticsError(getFailingFetchError(err, targetUrl));
