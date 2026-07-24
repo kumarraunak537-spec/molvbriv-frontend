@@ -1623,6 +1623,7 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
       const awbDetails = awbData?.response?.data || awbData?.data || awbData;
       awbCode = awbDetails?.awb_code || awbData?.awb_code || '';
       courierName = awbDetails?.courier_name || awbData?.courier_name || courierName;
+      let lastApiError = awbData?.message || awbData?.response?.data?.awb_assign_error || '';
 
       // Fallback if courier selection is required
       if (!awbCode) {
@@ -1648,12 +1649,13 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
               },
               body: JSON.stringify({ shipment_id: parseInt(shipmentId), courier_id: parseInt(courierId) })
             });
-            if (retryRes.ok) {
-              const retryData = await retryRes.json();
-              console.log(`[Shiprocket Sync Endpoint] Retry AWB response:`, JSON.stringify(retryData));
-              const rDetails = retryData?.response?.data || retryData?.data || retryData;
-              awbCode = rDetails?.awb_code || retryData?.awb_code || '';
-              courierName = rDetails?.courier_name || bestCourier.courier_name || courierName;
+            const retryData = await retryRes.json();
+            console.log(`[Shiprocket Sync Endpoint] Retry AWB response:`, JSON.stringify(retryData));
+            const rDetails = retryData?.response?.data || retryData?.data || retryData;
+            awbCode = rDetails?.awb_code || retryData?.awb_code || '';
+            courierName = rDetails?.courier_name || bestCourier.courier_name || courierName;
+            if (!awbCode) {
+              lastApiError = retryData?.message || retryData?.response?.data?.awb_assign_error || lastApiError;
             }
           }
         }
@@ -1683,6 +1685,10 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
             console.warn(`[Shiprocket Sync Endpoint] Poll attempt ${attempt} warning:`, pollErr.message);
           }
         }
+      }
+
+      if (!awbCode && lastApiError) {
+        console.error(`[Shiprocket Sync Endpoint] AWB assignment rejected by Shiprocket: ${lastApiError}`);
       }
     }
 
@@ -1718,10 +1724,10 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
       }
     }
 
-    // D. Update Supabase Database
+    // E. Update Supabase Database
     const updatePayload = {
-      shiprocket_sync_status: 'Created',
-      shiprocket_sync_error: null
+      shiprocket_sync_status: awbCode ? 'Created' : 'Failed',
+      shiprocket_sync_error: awbCode ? null : (order.shiprocket_sync_error || lastApiError || 'Shiprocket AWB allocation pending/failed.')
     };
 
     if (awbCode) {
@@ -1744,8 +1750,13 @@ app.post('/api/shiprocket/sync-shipment', authenticateAdmin, async (req, res, ne
 
     if (updErr) throw updErr;
 
-    res.json({ success: true, order: updatedOrder });
+    console.log(`[Shiprocket Sync Endpoint] Result - AWB: ${awbCode || 'FAILED'}, Courier: ${courierName}, Label: ${labelUrl}`);
+    
+    if (!awbCode && updatePayload.shiprocket_sync_error) {
+      return res.status(400).json({ success: false, error: updatePayload.shiprocket_sync_error, order: updatedOrder });
+    }
 
+    res.json({ success: true, order: updatedOrder });
   } catch (err) {
     next(err);
   }
