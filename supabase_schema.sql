@@ -628,6 +628,17 @@ CREATE TABLE IF NOT EXISTS public.blog_comments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 4. Blog Comments Table
+CREATE TABLE IF NOT EXISTS public.blog_comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  blog_id TEXT NOT NULL,
+  author_name TEXT NOT NULL,
+  author_email TEXT NOT NULL,
+  comment TEXT NOT NULL,
+  status TEXT DEFAULT 'approved',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- 5. Blog Views (for analytics / view count)
 CREATE TABLE IF NOT EXISTS public.blog_views (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
