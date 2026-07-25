@@ -1157,6 +1157,11 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
               )}
             </div>
 
+            {/* BLOG MANAGEMENT */}
+            <div className={`pg ${activePage === 'blog' ? 'active' : ''}`}>
+              <AdminBlogManager showToast={showToast} />
+            </div>
+
             {/* VIEW ORDERS */}
             <div className={`pg ${activePage === 'orders' ? 'active' : ''}`}>
               {/* Sales Overview Graph */}
