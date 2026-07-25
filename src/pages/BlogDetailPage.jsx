@@ -212,14 +212,14 @@ export default function BlogDetailPage() {
           </div>
         </header>
 
-        {/* FEATURED IMAGE BANNER */}
+        {/* FEATURED IMAGE BANNER - Complete Uncropped Display */}
         {blog.featured_image && (
-          <div className="mb-12 max-w-5xl mx-auto">
-            <div className="aspect-[16/9] bg-surface-container-low overflow-hidden rounded-sm shadow-md">
+          <div className="mb-12 max-w-4xl mx-auto flex justify-center">
+            <div className="bg-surface-container-low p-3 md:p-6 rounded-sm shadow-sm border border-black/5 w-full flex items-center justify-center">
               <img
                 src={blog.featured_image}
                 alt={blog.title}
-                className="w-full h-full object-cover"
+                className="max-w-full max-h-[75vh] w-auto h-auto object-contain rounded-sm"
               />
             </div>
           </div>
@@ -242,7 +242,8 @@ export default function BlogDetailPage() {
                 [&>strong]:text-primary [&>strong]:font-semibold
                 [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:space-y-2
                 [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:space-y-2
-                [&>blockquote]:border-l-2 [&>blockquote]:border-secondary [&>blockquote]:pl-4 [&>blockquote]:py-2 [&>blockquote]:italic [&>blockquote]:bg-surface-container-low"
+                [&>blockquote]:border-l-2 [&>blockquote]:border-secondary [&>blockquote]:pl-4 [&>blockquote]:py-2 [&>blockquote]:italic [&>blockquote]:bg-surface-container-low
+                [&_img]:max-w-full [&_img]:max-h-[65vh] [&_img]:w-auto [&_img]:h-auto [&_img]:mx-auto [&_img]:object-contain [&_img]:rounded-sm"
               dangerouslySetInnerHTML={{ __html: processedHtml }}
             />
 
