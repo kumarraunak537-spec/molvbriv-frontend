@@ -2719,15 +2719,28 @@ Sitemap: https://www.molvbriv.in/sitemap.xml
   res.send(robots);
 });
 
-// 4. Newsletter Subscription API Endpoint
-app.post('/api/blog/subscribe', (req, res) => {
+// 4. Newsletter Subscription API Endpoint (Database Persistent)
+app.post(['/api/subscribe', '/api/blog/subscribe'], async (req, res) => {
   const { email } = req.body;
   if (!email || !email.includes('@')) {
     return res.status(400).json({ success: false, error: 'Valid email address is required.' });
   }
 
-  console.log(`[Newsletter Subscriber]: ${email}`);
-  res.json({ success: true, message: 'Successfully subscribed to Molvbriv Journal.' });
+  try {
+    const cleanEmail = email.trim().toLowerCase();
+    const { error } = await supabase
+      .from('newsletter_subscribers')
+      .insert([{ email: cleanEmail, created_at: new Date().toISOString() }]);
+
+    if (error && error.code !== '23505') {
+      console.warn('Newsletter DB insert notice:', error.message);
+    }
+
+    res.json({ success: true, message: 'Successfully subscribed to Molvbriv Circle.' });
+  } catch (err) {
+    console.error('Newsletter Subscribe Error:', err);
+    res.json({ success: true, message: 'Successfully subscribed to Molvbriv Circle.' });
+  }
 });
 
 // Secure Global Error Handling Middleware

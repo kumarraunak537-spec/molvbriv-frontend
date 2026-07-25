@@ -703,7 +703,7 @@ CREATE POLICY "Admins full access to blog comments" ON public.blog_comments FOR 
 DROP POLICY IF EXISTS "Admins full access to blog related products" ON public.blog_related_products;
 CREATE POLICY "Admins full access to blog related products" ON public.blog_related_products FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
 
--- Public Insert Policies for Views, Likes, and Comments
+-- Public Insert Policies for Views, Likes, Comments, and Newsletter
 DROP POLICY IF EXISTS "Anyone can record a blog view" ON public.blog_views;
 CREATE POLICY "Anyone can record a blog view" ON public.blog_views FOR INSERT WITH CHECK (true);
 
@@ -712,5 +712,18 @@ CREATE POLICY "Anyone can like a blog post" ON public.blog_likes FOR INSERT WITH
 
 DROP POLICY IF EXISTS "Anyone can post a blog comment" ON public.blog_comments;
 CREATE POLICY "Anyone can post a blog comment" ON public.blog_comments FOR INSERT WITH CHECK (true);
+
+-- 8. Newsletter Subscribers Table
+CREATE TABLE IF NOT EXISTS public.newsletter_subscribers (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can subscribe to newsletter" ON public.newsletter_subscribers;
+CREATE POLICY "Anyone can subscribe to newsletter" ON public.newsletter_subscribers FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Admins full access to newsletter subscribers" ON public.newsletter_subscribers;
+CREATE POLICY "Admins full access to newsletter subscribers" ON public.newsletter_subscribers FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
 
 
