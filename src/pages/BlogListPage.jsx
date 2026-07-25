@@ -6,7 +6,7 @@ import SEOHead from '../components/blog/SEOHead';
 import BlogCard from '../components/blog/BlogCard';
 import NewsletterBlock from '../components/blog/NewsletterBlock';
 import { supabase } from '../supabaseClient';
-import { MOCK_BLOGS, MOCK_BLOG_CATEGORIES, MOCK_BLOG_TAGS } from '../data/mockBlogs';
+import { MOCK_BLOGS, MOCK_BLOG_TAGS } from '../data/mockBlogs';
 import { updateSEO } from '../utils/seo';
 
 export default function BlogListPage() {
@@ -14,13 +14,11 @@ export default function BlogListPage() {
   const navigate = useNavigate();
 
   const [blogs, setBlogs] = useState(MOCK_BLOGS);
-  const [categories, setCategories] = useState(MOCK_BLOG_CATEGORIES);
   const [tags, setTags] = useState(MOCK_BLOG_TAGS);
   const [loading, setLoading] = useState(true);
 
   // Filter & Search states
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedTag, setSelectedTag] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const POSTS_PER_PAGE = 6;
@@ -28,11 +26,9 @@ export default function BlogListPage() {
   // Sync URL query params on mount & location change
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const catParam = params.get('category') || 'all';
     const tagParam = params.get('tag') || 'all';
     const searchParam = params.get('search') || '';
 
-    setSelectedCategory(catParam);
     setSelectedTag(tagParam);
     setSearchQuery(searchParam);
   }, [location.search]);
@@ -58,9 +54,6 @@ export default function BlogListPage() {
     async function fetchBlogData() {
       setLoading(true);
       try {
-        const { data: catData } = await supabase.from('blog_categories').select('*').order('name');
-        if (catData && catData.length > 0) setCategories(catData);
-
         const { data: tagData } = await supabase.from('blog_tags').select('*').order('name');
         if (tagData && tagData.length > 0) setTags(tagData);
 
@@ -93,10 +86,6 @@ export default function BlogListPage() {
   // Filtered & Searched Blogs computation
   const filteredBlogs = useMemo(() => {
     return blogs.filter(blog => {
-      const categoryMatch = selectedCategory === 'all' || 
-        (blog.category_name && blog.category_name.toLowerCase() === selectedCategory.toLowerCase()) ||
-        (blog.category_id && blog.category_id === selectedCategory);
-
       const tagMatch = selectedTag === 'all' || 
         (Array.isArray(blog.tags) && blog.tags.some(t => t.toLowerCase() === selectedTag.toLowerCase()));
 
@@ -106,9 +95,9 @@ export default function BlogListPage() {
         (blog.content && blog.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (Array.isArray(blog.tags) && blog.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
 
-      return categoryMatch && tagMatch && searchMatch;
+      return tagMatch && searchMatch;
     });
-  }, [blogs, selectedCategory, selectedTag, searchQuery]);
+  }, [blogs, selectedTag, searchQuery]);
 
   // Featured Blog Post (first featured post or first article)
   const featuredBlog = useMemo(() => {
@@ -122,9 +111,8 @@ export default function BlogListPage() {
     return filteredBlogs.slice(startIndex, startIndex + POSTS_PER_PAGE);
   }, [filteredBlogs, currentPage]);
 
-  const updateFilters = (newCat, newTag, newSearch) => {
+  const updateFilters = (newTag, newSearch) => {
     const params = new URLSearchParams();
-    if (newCat && newCat !== 'all') params.set('category', newCat);
     if (newTag && newTag !== 'all') params.set('tag', newTag);
     if (newSearch && newSearch.trim()) params.set('search', newSearch.trim());
     
@@ -161,7 +149,7 @@ export default function BlogListPage() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  updateFilters(selectedCategory, selectedTag, searchQuery);
+                  updateFilters(selectedTag, searchQuery);
                 }}
                 className="relative flex items-center"
               >
@@ -170,7 +158,7 @@ export default function BlogListPage() {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    updateFilters(selectedCategory, selectedTag, e.target.value);
+                    updateFilters(selectedTag, e.target.value);
                   }}
                   placeholder="Search journal stories..."
                   className="w-full bg-surface-container-low border-none focus:ring-1 focus:ring-secondary py-3.5 md:py-4 px-6 pr-12 text-sm text-primary placeholder-on-surface-variant/60"
@@ -186,8 +174,8 @@ export default function BlogListPage() {
           </div>
         </section>
 
-        {/* FEATURED CAMPAIGN SERIES (Identical to HomePage FeaturedSeries Layout) */}
-        {currentPage === 1 && !searchQuery && selectedCategory === 'all' && selectedTag === 'all' && featuredBlog && (
+        {/* FEATURED CAMPAIGN SERIES */}
+        {currentPage === 1 && !searchQuery && selectedTag === 'all' && featuredBlog && (
           <section className="bg-surface-container-low py-16 md:py-24 px-5 md:px-12 overflow-hidden border-b border-black/5">
             <div className="max-w-7xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-center">
@@ -253,36 +241,15 @@ export default function BlogListPage() {
         {/* MAIN ARTICLES CONTAINER */}
         <section className="py-12 md:py-20 px-5 md:px-12 bg-surface">
           <div className="max-w-7xl mx-auto">
-            {/* CATEGORY FILTER BAR */}
+            {/* SECTION HEADER & TOPIC FILTERS */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 pb-6 border-b border-black/5">
-              <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                <button
-                  onClick={() => updateFilters('all', selectedTag, searchQuery)}
-                  className={`px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors cursor-pointer ${
-                    selectedCategory === 'all'
-                      ? 'bg-primary text-white'
-                      : 'bg-surface-container-low text-on-surface-variant hover:text-primary'
-                  }`}
-                >
+              <div>
+                <span className="text-secondary tracking-[0.3em] uppercase text-[10px] font-bold block mb-1">
+                  Editorial Collection
+                </span>
+                <h2 className="text-2xl md:text-3xl font-manrope text-primary">
                   All Stories
-                </button>
-
-                {categories.map((cat) => {
-                  const isActive = selectedCategory.toLowerCase() === cat.slug.toLowerCase() || selectedCategory.toLowerCase() === cat.name.toLowerCase();
-                  return (
-                    <button
-                      key={cat.id || cat.slug}
-                      onClick={() => updateFilters(cat.slug, selectedTag, searchQuery)}
-                      className={`px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors cursor-pointer whitespace-nowrap ${
-                        isActive
-                          ? 'bg-primary text-white'
-                          : 'bg-surface-container-low text-on-surface-variant hover:text-primary'
-                      }`}
-                    >
-                      {cat.name}
-                    </button>
-                  );
-                })}
+                </h2>
               </div>
 
               {/* Tag Filters */}
@@ -296,7 +263,7 @@ export default function BlogListPage() {
                     return (
                       <button
                         key={t.id || t.slug}
-                        onClick={() => updateFilters(selectedCategory, isActive ? 'all' : t.slug, searchQuery)}
+                        onClick={() => updateFilters(isActive ? 'all' : t.slug, searchQuery)}
                         className={`px-3 py-1 text-[10px] uppercase tracking-wider transition-all cursor-pointer font-bold ${
                           isActive
                             ? 'bg-secondary text-white'
@@ -322,7 +289,7 @@ export default function BlogListPage() {
                   No stories found matching your filter criteria.
                 </p>
                 <button
-                  onClick={() => updateFilters('all', 'all', '')}
+                  onClick={() => updateFilters('all', '')}
                   className="bg-primary text-white px-8 py-3 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors cursor-pointer"
                 >
                   Reset Filters
