@@ -255,7 +255,7 @@ export default function BlogListPage() {
           <div className="max-w-7xl mx-auto">
             {/* CATEGORY FILTER BAR */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 pb-6 border-b border-black/5">
-              <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
+              <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   onClick={() => updateFilters('all', selectedTag, searchQuery)}
                   className={`px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors cursor-pointer ${
