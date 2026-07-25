@@ -267,6 +267,63 @@ export default function AdminBlogManager({ showToast }) {
     }
   };
 
+  // Toggle Status (Publish / Draft)
+  const handleToggleStatus = async (blog) => {
+    const newStatus = blog.status === 'published' ? 'draft' : 'published';
+    try {
+      if (blog.id && typeof blog.id === 'string' && blog.id.length > 20) {
+        await supabase
+          .from('blogs')
+          .update({ status: newStatus, published_at: newStatus === 'published' ? new Date().toISOString() : blog.published_at })
+          .eq('id', blog.id);
+      }
+      setBlogs(prev => prev.map(b => b.id === blog.id ? { ...b, status: newStatus } : b));
+      showToast(`Article status updated to ${newStatus}`);
+    } catch (err) {
+      console.error('Status toggle error:', err);
+    }
+  };
+
+  // Duplicate Blog Post
+  const handleDuplicateBlog = async (blog) => {
+    const duplicatedPayload = {
+      title: `${blog.title} (Copy)`,
+      slug: `${blog.slug}-copy-${Date.now().toString(36)}`,
+      excerpt: blog.excerpt,
+      content: blog.content,
+      content_format: blog.content_format || 'html',
+      featured_image: blog.featured_image,
+      gallery: blog.gallery || [],
+      category_id: blog.category_id || null,
+      tags: blog.tags || [],
+      author_name: blog.author_name || 'Molvbriv Editorial',
+      author_role: blog.author_role || 'Jewellery Specialist',
+      status: 'draft',
+      meta_title: blog.meta_title ? `${blog.meta_title} (Copy)` : '',
+      meta_description: blog.meta_description,
+      meta_keywords: blog.meta_keywords,
+      canonical_url: blog.canonical_url ? `${blog.canonical_url}-copy` : '',
+      reading_time_min: blog.reading_time_min || 3,
+      is_featured: false,
+      related_product_ids: blog.related_product_ids || [],
+      faqs: blog.faqs || [],
+      published_at: null
+    };
+
+    try {
+      const { data, error } = await supabase.from('blogs').insert([duplicatedPayload]).select();
+      if (!error && data && data.length > 0) {
+        setBlogs(prev => [data[0], ...prev]);
+        showToast('Article duplicated as draft!');
+      } else {
+        setBlogs(prev => [{ id: `blog-${Date.now()}`, ...duplicatedPayload }, ...prev]);
+        showToast('Article duplicated as draft!');
+      }
+    } catch (err) {
+      console.error('Duplicate blog error:', err);
+    }
+  };
+
   // Delete Blog
   const handleDeleteBlog = async (id) => {
     if (!window.confirm('Are you sure you want to delete this blog post?')) return;
@@ -710,11 +767,17 @@ export default function AdminBlogManager({ showToast }) {
                   </div>
 
                   {/* Actions */}
-                  <div className="rab justify-end">
+                  <div className="rab justify-end flex-wrap">
+                    <button onClick={() => handleToggleStatus(b)} className="ab" title={b.status === 'published' ? 'Unpublish to draft' : 'Publish live'}>
+                      {b.status === 'published' ? 'Unpublish' : 'Publish'}
+                    </button>
                     <button onClick={() => handleOpenEdit(b)} className="ab">
                       Edit
                     </button>
-                    <button onClick={() => handleDeleteBlog(b.id)} className="ab">
+                    <button onClick={() => handleDuplicateBlog(b)} className="ab" title="Duplicate article">
+                      Copy
+                    </button>
+                    <button onClick={() => handleDeleteBlog(b.id)} className="ab text-rose-500">
                       Delete
                     </button>
                   </div>

@@ -10,7 +10,6 @@ import BlogComments from '../components/blog/BlogComments';
 import BlogCard from '../components/blog/BlogCard';
 import NewsletterBlock from '../components/blog/NewsletterBlock';
 import { supabase } from '../supabaseClient';
-import { MOCK_BLOGS } from '../data/mockBlogs';
 import { addHeadingIdsToHtml, sanitizeBlogHtml, calculateReadingTime } from '../utils/blogUtils';
 import { updateSEO } from '../utils/seo';
 
@@ -26,32 +25,79 @@ export default function BlogDetailPage() {
   const [likeCount, setLikeCount] = useState(0);
   const [hasLiked, setHasLiked] = useState(false);
 
+  // Generate or retrieve persistent Session ID for deduplicated views & likes
+  const getSessionId = () => {
+    let sid = localStorage.getItem('molvbriv_user_session_id');
+    if (!sid) {
+      sid = 'sess_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+      localStorage.setItem('molvbriv_user_session_id', sid);
+    }
+    return sid;
+  };
+
   useEffect(() => {
-    async function loadArticle() {
+    async function loadArticleAndTrack() {
       setLoading(true);
       window.scrollTo(0, 0);
 
       try {
-        let currentArticle = null;
+        const sessionId = getSessionId();
+
+        // 1. Fetch Blog Post from Supabase DB
         const { data, error } = await supabase
           .from('blogs')
           .select('*, blog_categories(name)')
           .eq('slug', slug)
           .single();
 
-        if (!error && data) {
-          currentArticle = {
-            ...data,
-            category_name: data.blog_categories?.name || data.category_name || 'Jewellery Guide'
-          };
-        } else {
-          currentArticle = MOCK_BLOGS.find(b => b.slug === slug) || MOCK_BLOGS[0];
+        if (error || !data) {
+          console.error('Blog not found in database:', error);
+          setBlog(null);
+          setLoading(false);
+          return;
         }
+
+        const currentArticle = {
+          ...data,
+          category_name: data.blog_categories?.name || data.category_name || 'Jewellery Story'
+        };
 
         setBlog(currentArticle);
         setLikeCount(currentArticle.likes_count || 0);
 
-        // Update Molvbriv global SEO
+        // Check if user has already liked this article in DB / localStorage
+        const likedKey = `molvbriv_liked_${currentArticle.id || slug}`;
+        if (localStorage.getItem(likedKey)) {
+          setHasLiked(true);
+        }
+
+        // 2. Track Unique View in Database (24-hour deduplication window)
+        const viewKey = `molvbriv_viewed_${currentArticle.id || slug}`;
+        const lastViewed = localStorage.getItem(viewKey);
+        const now = Date.now();
+
+        if (!lastViewed || (now - parseInt(lastViewed, 10)) > 24 * 60 * 60 * 1000) {
+          localStorage.setItem(viewKey, now.toString());
+
+          // Record view in DB
+          try {
+            await supabase.from('blog_views').insert([{
+              blog_id: String(currentArticle.id || slug),
+              session_id: sessionId
+            }]);
+
+            // Increment views count in database
+            const newViews = (currentArticle.views_count || 0) + 1;
+            await supabase
+              .from('blogs')
+              .update({ views_count: newViews })
+              .eq('id', currentArticle.id);
+          } catch (vErr) {
+            console.warn('View tracking notice:', vErr);
+          }
+        }
+
+        // 3. Update Molvbriv Global SEO & JSON-LD Schemas
         const canonicalUrl = `${window.location.origin}/blog/${currentArticle.slug}`;
         updateSEO({
           title: `${currentArticle.title} — Molvbriv Journal`,
@@ -64,53 +110,69 @@ export default function BlogDetailPage() {
             "@type": "BlogPosting",
             "headline": currentArticle.title,
             "description": currentArticle.excerpt,
-            "url": canonicalUrl
+            "url": canonicalUrl,
+            "datePublished": currentArticle.published_at || currentArticle.created_at,
+            "author": {
+              "@type": "Person",
+              "name": currentArticle.author_name || "Molvbriv Editorial"
+            }
           }
         });
 
-        // Fetch prev/next & related
+        // 4. Fetch Previous / Next & Related Articles from DB
         const { data: allBlogs } = await supabase
           .from('blogs')
           .select('id, title, slug, featured_image, category_name, created_at, published_at')
           .eq('status', 'published')
           .order('published_at', { ascending: false });
 
-        const blogList = (allBlogs && allBlogs.length > 0) ? allBlogs : MOCK_BLOGS;
-        const currentIndex = blogList.findIndex(b => b.slug === currentArticle.slug);
-
-        if (currentIndex !== -1) {
-          setPrevBlog(currentIndex > 0 ? blogList[currentIndex - 1] : null);
-          setNextBlog(currentIndex < blogList.length - 1 ? blogList[currentIndex + 1] : null);
+        if (allBlogs && allBlogs.length > 0) {
+          const currentIndex = allBlogs.findIndex(b => b.slug === currentArticle.slug);
+          if (currentIndex !== -1) {
+            setPrevBlog(currentIndex > 0 ? allBlogs[currentIndex - 1] : null);
+            setNextBlog(currentIndex < allBlogs.length - 1 ? allBlogs[currentIndex + 1] : null);
+          }
+          const related = allBlogs.filter(b => b.slug !== currentArticle.slug).slice(0, 3);
+          setRelatedArticles(related);
         }
-
-        const related = blogList.filter(b => b.slug !== currentArticle.slug).slice(0, 3);
-        setRelatedArticles(related);
       } catch (err) {
-        console.error('Error fetching blog post:', err);
-        const fallback = MOCK_BLOGS.find(b => b.slug === slug) || MOCK_BLOGS[0];
-        setBlog(fallback);
+        console.error('Error loading article:', err);
+        setBlog(null);
       } finally {
         setLoading(false);
       }
     }
 
-    loadArticle();
+    loadArticleAndTrack();
   }, [slug]);
 
+  // Handle Like Increment in Database
   const handleLike = async () => {
     if (hasLiked || !blog) return;
+    const sessionId = getSessionId();
+    const blogIdentifier = String(blog.id || slug);
+
     setLikeCount(prev => prev + 1);
     setHasLiked(true);
+    localStorage.setItem(`molvbriv_liked_${blogIdentifier}`, 'true');
 
     try {
+      // Record like in DB
+      await supabase.from('blog_likes').insert([{
+        blog_id: blogIdentifier,
+        session_id: sessionId
+      }]);
+
+      // Increment likes count on blog in DB
       if (blog.id) {
+        const newLikes = (blog.likes_count || 0) + 1;
         await supabase
           .from('blogs')
-          .update({ likes_count: (blog.likes_count || 0) + 1 })
+          .update({ likes_count: newLikes })
           .eq('id', blog.id);
       }
     } catch (err) {
-      console.error('Like increment error:', err);
+      console.warn('Like DB sync notice:', err);
     }
   };
 
@@ -128,7 +190,7 @@ export default function BlogDetailPage() {
         <Navbar />
         <div className="pt-40 text-center space-y-4 max-w-md mx-auto px-4">
           <h2 className="text-2xl font-manrope text-primary">Article Not Found</h2>
-          <p className="text-sm text-on-surface-variant">The requested story could not be found.</p>
+          <p className="text-sm text-on-surface-variant">The requested story could not be found in our database.</p>
           <Link to="/blog" className="inline-block bg-primary text-white px-8 py-3 text-[10px] uppercase tracking-[0.2em] font-bold">
             Return to Journal Hub
           </Link>
@@ -140,7 +202,7 @@ export default function BlogDetailPage() {
 
   const rawContent = blog.content || '';
   const processedHtml = sanitizeBlogHtml(addHeadingIdsToHtml(rawContent));
-  const readingTime = blog.reading_time_min || calculateReadingTime(rawContent);
+  const readingTime = calculateReadingTime(rawContent);
   const formattedDate = new Date(blog.published_at || blog.created_at || Date.now()).toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',

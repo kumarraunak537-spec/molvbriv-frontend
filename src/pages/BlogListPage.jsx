@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -6,21 +6,22 @@ import SEOHead from '../components/blog/SEOHead';
 import BlogCard from '../components/blog/BlogCard';
 import NewsletterBlock from '../components/blog/NewsletterBlock';
 import { supabase } from '../supabaseClient';
-import { MOCK_BLOGS, MOCK_BLOG_TAGS } from '../data/mockBlogs';
 import { updateSEO } from '../utils/seo';
 
 export default function BlogListPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [blogs, setBlogs] = useState(MOCK_BLOGS);
-  const [tags, setTags] = useState(MOCK_BLOG_TAGS);
+  const [blogs, setBlogs] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [featuredBlog, setFeaturedBlog] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Filter & Search states
+  // Database Filter & Pagination states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const POSTS_PER_PAGE = 6;
 
   // Sync URL query params on mount & location change
@@ -28,9 +29,11 @@ export default function BlogListPage() {
     const params = new URLSearchParams(location.search);
     const tagParam = params.get('tag') || 'all';
     const searchParam = params.get('search') || '';
+    const pageParam = parseInt(params.get('page') || '1', 10);
 
     setSelectedTag(tagParam);
     setSearchQuery(searchParam);
+    setCurrentPage(isNaN(pageParam) ? 1 : pageParam);
   }, [location.search]);
 
   useEffect(() => {
@@ -49,75 +52,112 @@ export default function BlogListPage() {
     });
   }, []);
 
-  // Load published blogs from Supabase
+  // Fetch Tags dynamically from Supabase DB
   useEffect(() => {
-    async function fetchBlogData() {
+    async function loadTags() {
+      try {
+        const { data } = await supabase
+          .from('blog_tags')
+          .select('*')
+          .order('name');
+        if (data) setTags(data);
+      } catch (err) {
+        console.error('Error fetching blog tags from DB:', err);
+      }
+    }
+    loadTags();
+  }, []);
+
+  // Fetch Published Articles from Supabase DB with server-side pagination & filtering
+  useEffect(() => {
+    async function fetchPublishedBlogs() {
       setLoading(true);
       try {
-        const { data: tagData } = await supabase.from('blog_tags').select('*').order('name');
-        if (tagData && tagData.length > 0) setTags(tagData);
+        // 1. Fetch Featured Article if page 1
+        if (currentPage === 1 && !searchQuery && selectedTag === 'all') {
+          const { data: featData } = await supabase
+            .from('blogs')
+            .select('*, blog_categories(name)')
+            .eq('status', 'published')
+            .eq('is_featured', true)
+            .limit(1);
 
-        const { data: blogData, error: blogErr } = await supabase
+          if (featData && featData.length > 0) {
+            setFeaturedBlog({
+              ...featData[0],
+              category_name: featData[0].blog_categories?.name || featData[0].category_name || 'Jewellery'
+            });
+          } else {
+            const { data: latest } = await supabase
+              .from('blogs')
+              .select('*, blog_categories(name)')
+              .eq('status', 'published')
+              .order('published_at', { ascending: false })
+              .limit(1);
+
+            if (latest && latest.length > 0) {
+              setFeaturedBlog({
+                ...latest[0],
+                category_name: latest[0].blog_categories?.name || latest[0].category_name || 'Jewellery'
+              });
+            }
+          }
+        }
+
+        // 2. Build Database Query for Blog List
+        let query = supabase
           .from('blogs')
-          .select('*, blog_categories(name)')
-          .eq('status', 'published')
-          .order('published_at', { ascending: false });
+          .select('*, blog_categories(name)', { count: 'exact' })
+          .eq('status', 'published');
 
-        if (!blogErr && blogData && blogData.length > 0) {
-          const mappedBlogs = blogData.map(b => ({
+        if (searchQuery.trim()) {
+          query = query.or(`title.ilike.%${searchQuery.trim()}%,excerpt.ilike.%${searchQuery.trim()}%`);
+        }
+
+        if (selectedTag && selectedTag !== 'all') {
+          query = query.contains('tags', [selectedTag]);
+        }
+
+        const from = (currentPage - 1) * POSTS_PER_PAGE;
+        const to = from + POSTS_PER_PAGE - 1;
+
+        query = query.order('published_at', { ascending: false }).range(from, to);
+
+        const { data, count, error } = await query;
+
+        if (error) {
+          console.error('Supabase query error:', error);
+          setBlogs([]);
+          setTotalCount(0);
+        } else {
+          const mapped = (data || []).map(b => ({
             ...b,
             category_name: b.blog_categories?.name || b.category_name || 'Jewellery'
           }));
-          setBlogs(mappedBlogs);
-        } else {
-          setBlogs(MOCK_BLOGS);
+          setBlogs(mapped);
+          setTotalCount(count || 0);
         }
       } catch (err) {
-        console.error('Error loading blog data from Supabase:', err);
-        setBlogs(MOCK_BLOGS);
+        console.error('Error fetching blog articles:', err);
+        setBlogs([]);
+        setTotalCount(0);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchBlogData();
-  }, []);
+    fetchPublishedBlogs();
+  }, [currentPage, searchQuery, selectedTag]);
 
-  // Filtered & Searched Blogs computation
-  const filteredBlogs = useMemo(() => {
-    return blogs.filter(blog => {
-      const tagMatch = selectedTag === 'all' || 
-        (Array.isArray(blog.tags) && blog.tags.some(t => t.toLowerCase() === selectedTag.toLowerCase()));
+  const totalPages = Math.ceil(totalCount / POSTS_PER_PAGE) || 1;
 
-      const searchMatch = !searchQuery.trim() || 
-        blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (blog.excerpt && blog.excerpt.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (blog.content && blog.content.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (Array.isArray(blog.tags) && blog.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
-
-      return tagMatch && searchMatch;
-    });
-  }, [blogs, selectedTag, searchQuery]);
-
-  // Featured Blog Post (first featured post or first article)
-  const featuredBlog = useMemo(() => {
-    return blogs.find(b => b.is_featured) || blogs[0];
-  }, [blogs]);
-
-  // Paginated articles
-  const totalPages = Math.ceil(filteredBlogs.length / POSTS_PER_PAGE) || 1;
-  const paginatedBlogs = useMemo(() => {
-    const startIndex = (currentPage - 1) * POSTS_PER_PAGE;
-    return filteredBlogs.slice(startIndex, startIndex + POSTS_PER_PAGE);
-  }, [filteredBlogs, currentPage]);
-
-  const updateFilters = (newTag, newSearch) => {
+  const updateFilters = (newTag, newSearch, newPage = 1) => {
     const params = new URLSearchParams();
     if (newTag && newTag !== 'all') params.set('tag', newTag);
     if (newSearch && newSearch.trim()) params.set('search', newSearch.trim());
-    
+    if (newPage > 1) params.set('page', newPage);
+
     navigate({ search: params.toString() });
-    setCurrentPage(1);
   };
 
   return (
@@ -149,7 +189,7 @@ export default function BlogListPage() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  updateFilters(selectedTag, searchQuery);
+                  updateFilters(selectedTag, searchQuery, 1);
                 }}
                 className="relative flex items-center"
               >
@@ -158,7 +198,7 @@ export default function BlogListPage() {
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
-                    updateFilters(selectedTag, e.target.value);
+                    updateFilters(selectedTag, e.target.value, 1);
                   }}
                   placeholder="Search journal stories..."
                   className="w-full bg-surface-container-low border-none focus:ring-1 focus:ring-secondary py-3.5 md:py-4 px-6 pr-12 text-sm text-primary placeholder-on-surface-variant/60"
@@ -211,12 +251,14 @@ export default function BlogListPage() {
                 <div className="md:col-span-7 relative">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-4 pt-8">
-                      <img
-                        loading="lazy"
-                        className="w-full aspect-[4/5] object-cover rounded-sm shadow-md"
-                        alt={featuredBlog.title}
-                        src={featuredBlog.featured_image || '/hero-poster.jpg'}
-                      />
+                      <div className="aspect-[4/5] bg-surface-container-low overflow-hidden rounded-sm p-2 flex items-center justify-center border border-black/5">
+                        <img
+                          loading="lazy"
+                          className="max-w-full max-h-full object-contain rounded-sm"
+                          alt={featuredBlog.title}
+                          src={featuredBlog.featured_image || '/hero-poster.jpg'}
+                        />
+                      </div>
                       <div className="p-6 bg-surface-container-highest border border-black/5">
                         <span className="font-manrope italic text-primary text-xs md:text-sm block">
                           "{featuredBlog.excerpt?.slice(0, 90)}..."
@@ -224,12 +266,14 @@ export default function BlogListPage() {
                       </div>
                     </div>
                     <div className="space-y-4">
-                      <img
-                        loading="lazy"
-                        className="w-full aspect-[4/6] object-cover shadow-xl rounded-sm"
-                        alt="Editorial Detail"
-                        src={featuredBlog.gallery?.[0] || featuredBlog.featured_image}
-                      />
+                      <div className="aspect-[4/6] bg-surface-container-low overflow-hidden rounded-sm p-2 flex items-center justify-center border border-black/5">
+                        <img
+                          loading="lazy"
+                          className="max-w-full max-h-full object-contain rounded-sm"
+                          alt="Editorial Detail"
+                          src={featuredBlog.gallery?.[0] || featuredBlog.featured_image}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -259,11 +303,11 @@ export default function BlogListPage() {
                     Topics:
                   </span>
                   {tags.map((t) => {
-                    const isActive = selectedTag.toLowerCase() === t.slug.toLowerCase() || selectedTag.toLowerCase() === t.name.toLowerCase();
+                    const isActive = selectedTag.toLowerCase() === t.slug?.toLowerCase() || selectedTag.toLowerCase() === t.name?.toLowerCase();
                     return (
                       <button
                         key={t.id || t.slug}
-                        onClick={() => updateFilters(isActive ? 'all' : t.slug, searchQuery)}
+                        onClick={() => updateFilters(isActive ? 'all' : t.slug, searchQuery, 1)}
                         className={`px-3 py-1 text-[10px] uppercase tracking-wider transition-all cursor-pointer font-bold ${
                           isActive
                             ? 'bg-secondary text-white'
@@ -283,32 +327,32 @@ export default function BlogListPage() {
               <div className="flex justify-center py-20">
                 <div className="w-10 h-10 border-4 border-secondary border-t-transparent rounded-full animate-spin"></div>
               </div>
-            ) : paginatedBlogs.length === 0 ? (
+            ) : blogs.length === 0 ? (
               <div className="text-center py-20 bg-surface-container-low rounded-sm border border-dashed border-black/10">
                 <p className="text-on-surface-variant italic mb-4">
-                  No stories found matching your filter criteria.
+                  No stories found in database matching your filter criteria.
                 </p>
                 <button
-                  onClick={() => updateFilters('all', '')}
+                  onClick={() => updateFilters('all', '', 1)}
                   className="bg-primary text-white px-8 py-3 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors cursor-pointer"
                 >
-                  Reset Filters
+                  Reset Search & Filters
                 </button>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-                {paginatedBlogs.map((blog) => (
+                {blogs.map((blog) => (
                   <BlogCard key={blog.id || blog.slug} blog={blog} />
                 ))}
               </div>
             )}
 
-            {/* PAGINATION */}
+            {/* DATABASE PAGINATION */}
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-3 mt-16 pt-8 border-t border-black/5">
                 <button
                   disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => updateFilters(selectedTag, searchQuery, currentPage - 1)}
                   className="px-6 py-3 bg-surface-container-low text-primary text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-primary hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
                 >
                   &larr; Previous
@@ -317,7 +361,7 @@ export default function BlogListPage() {
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                   <button
                     key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => updateFilters(selectedTag, searchQuery, pageNum)}
                     className={`w-10 h-10 text-xs font-manrope font-bold transition-colors cursor-pointer ${
                       currentPage === pageNum
                         ? 'bg-primary text-white'
@@ -330,7 +374,7 @@ export default function BlogListPage() {
 
                 <button
                   disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => updateFilters(selectedTag, searchQuery, currentPage + 1)}
                   className="px-6 py-3 bg-surface-container-low text-primary text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-primary hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
                 >
                   Next &rarr;

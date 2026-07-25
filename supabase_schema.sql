@@ -616,22 +616,11 @@ CREATE TABLE IF NOT EXISTS public.blogs (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Blog Comments
-CREATE TABLE IF NOT EXISTS public.blog_comments (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  blog_id UUID NOT NULL REFERENCES public.blogs(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
-  author_name TEXT NOT NULL,
-  author_email TEXT NOT NULL,
-  comment TEXT NOT NULL,
-  status TEXT DEFAULT 'approved' CHECK (status IN ('approved', 'pending', 'spam')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 -- 4. Blog Comments Table
 CREATE TABLE IF NOT EXISTS public.blog_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   blog_id TEXT NOT NULL,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   author_name TEXT NOT NULL,
   author_email TEXT NOT NULL,
   comment TEXT NOT NULL,
@@ -642,7 +631,7 @@ CREATE TABLE IF NOT EXISTS public.blog_comments (
 -- 5. Blog Views (for analytics / view count)
 CREATE TABLE IF NOT EXISTS public.blog_views (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  blog_id UUID NOT NULL REFERENCES public.blogs(id) ON DELETE CASCADE,
+  blog_id TEXT NOT NULL,
   ip_hash TEXT,
   user_agent TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
@@ -651,7 +640,7 @@ CREATE TABLE IF NOT EXISTS public.blog_views (
 -- 6. Blog Likes
 CREATE TABLE IF NOT EXISTS public.blog_likes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  blog_id UUID NOT NULL REFERENCES public.blogs(id) ON DELETE CASCADE,
+  blog_id TEXT NOT NULL,
   session_id TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(blog_id, session_id)
