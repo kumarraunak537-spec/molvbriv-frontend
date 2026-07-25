@@ -129,6 +129,34 @@ export default function AdminBlogManager({ showToast, productsData = [] }) {
     }
   };
 
+  // Product Attach & Pulling Helper
+  const handleAttachProduct = (productId) => {
+    if (!productId) return;
+    const selectedProd = productsData.find(p => p.id === productId);
+    if (!selectedProd) return;
+
+    const prodImg = (selectedProd.images && selectedProd.images[0]) ? selectedProd.images[0] : '';
+    const internalLinkSnippet = `<p>Featured Piece: <a href="/product/${selectedProd.id}"><strong>${selectedProd.title}</strong></a> (₹${Number(selectedProd.price).toLocaleString()})</p>`;
+
+    setForm(prev => {
+      const alreadyRelated = Array.isArray(prev.related_product_ids) && prev.related_product_ids.includes(productId);
+      const newRelated = alreadyRelated ? prev.related_product_ids : [...(prev.related_product_ids || []), productId];
+      const newFeatured = prev.featured_image ? prev.featured_image : prodImg;
+      const newContent = prev.content ? `${prev.content}\n\n${internalLinkSnippet}` : internalLinkSnippet;
+      const newTags = [...new Set([...(prev.tags || []), selectedProd.category || '', ...(selectedProd.tags || [])])].filter(Boolean);
+
+      return {
+        ...prev,
+        featured_image: newFeatured,
+        related_product_ids: newRelated,
+        content: newContent,
+        tags: newTags
+      };
+    });
+
+    showToast(`Attached "${selectedProd.title}". Image & internal link added.`);
+  };
+
   // Content Formatting Helper
   const insertContentFormat = (prefix, suffix = '') => {
     setForm(prev => ({
@@ -707,6 +735,58 @@ export default function AdminBlogManager({ showToast, productsData = [] }) {
                     className="w-full px-3 py-2 rounded-lg bg-surface border border-surface-variant text-xs"
                   />
                 </div>
+              </div>
+
+              {/* ATTACH MOLVBRIV CATALOGUE PRODUCT WIDGET */}
+              <div className="p-4 rounded-xl bg-surface-container-low border border-surface-variant/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-headline uppercase font-semibold text-primary">
+                    Attach Molvbriv Product
+                  </label>
+                  <span className="text-[10px] text-secondary font-bold font-headline uppercase">Auto Pull</span>
+                </div>
+                <p className="text-[11px] text-on-surface-variant/80">
+                  Select a product from your shop. The system will automatically pull its featured image, insert an internal link, and add it to related products.
+                </p>
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      handleAttachProduct(e.target.value);
+                      e.target.value = '';
+                    }
+                  }}
+                  className="w-full px-3 py-2 rounded-lg bg-surface border border-surface-variant text-xs font-headline font-semibold text-primary focus:outline-none focus:border-secondary cursor-pointer"
+                >
+                  <option value="">+ Select Product to Attach...</option>
+                  {productsData.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.title} (₹{p.price})
+                    </option>
+                  ))}
+                </select>
+
+                {/* Attached Products Badge List */}
+                {Array.isArray(form.related_product_ids) && form.related_product_ids.length > 0 && (
+                  <div className="space-y-1.5 pt-2">
+                    <span className="text-[10px] uppercase font-bold text-on-surface-variant/70">Attached Products:</span>
+                    {form.related_product_ids.map(pId => {
+                      const pObj = productsData.find(p => p.id === pId);
+                      if (!pObj) return null;
+                      return (
+                        <div key={pId} className="flex items-center justify-between p-2 bg-surface rounded-md text-xs border border-surface-variant/30">
+                          <span className="truncate font-medium text-primary">{pObj.title}</span>
+                          <button
+                            type="button"
+                            onClick={() => setForm(prev => ({ ...prev, related_product_ids: prev.related_product_ids.filter(id => id !== pId) }))}
+                            className="text-rose-600 font-bold ml-2 cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Featured Image */}
