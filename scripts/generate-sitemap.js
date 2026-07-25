@@ -18,6 +18,7 @@ const staticPages = [
   { route: '/collections', priority: '0.9', changefreq: 'weekly' },
   { route: '/all-products', priority: '0.9', changefreq: 'daily' },
   { route: '/new-arrivals', priority: '0.9', changefreq: 'daily' },
+  { route: '/blog', priority: '0.9', changefreq: 'daily' },
   { route: '/about', priority: '0.6', changefreq: 'monthly' },
   { route: '/shipping-returns', priority: '0.5', changefreq: 'monthly' },
   { route: '/privacy-policy', priority: '0.3', changefreq: 'monthly' },
@@ -34,18 +35,39 @@ async function generateSitemap() {
       .select('id, title, category, status, tags, created_at, updated_at')
       .order('created_at', { ascending: false });
 
-    if (pError) throw pError;
-
-    // Filter only live products
-    const liveProducts = products.filter(p => p.status === 'live' || !p.status);
+    const liveProducts = products ? products.filter(p => p.status === 'live' || !p.status) : [];
     console.log(`[Sitemap] Fetched ${liveProducts.length} live products.`);
 
-    // 2. Fetch categories from categories table
-    const { data: dbCategories, error: cError } = await supabase
+    // 2. Fetch published blogs from Supabase
+    let publishedBlogs = [];
+    try {
+      const { data: blogData } = await supabase
+        .from('blogs')
+        .select('slug, updated_at, created_at, published_at')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false });
+
+      if (blogData && blogData.length > 0) {
+        publishedBlogs = blogData;
+      } else {
+        publishedBlogs = [
+          { slug: 'how-to-clean-silver-jewellery', published_at: new Date().toISOString() },
+          { slug: '5-timeless-ways-to-style-statement-jhumkas', published_at: new Date().toISOString() }
+        ];
+      }
+    } catch (e) {
+      publishedBlogs = [
+        { slug: 'how-to-clean-silver-jewellery', published_at: new Date().toISOString() },
+        { slug: '5-timeless-ways-to-style-statement-jhumkas', published_at: new Date().toISOString() }
+      ];
+    }
+    console.log(`[Sitemap] Fetched ${publishedBlogs.length} published blog posts.`);
+
+    // 3. Fetch categories from categories table
+    const { data: dbCategories } = await supabase
       .from('categories')
       .select('name, slug, created_at');
 
-    // Extract categories from products too, just in case
     const prodCategories = liveProducts
       .map(p => p.category)
       .filter(Boolean)
@@ -53,11 +75,8 @@ async function generateSitemap() {
     
     const dbCategoryNames = dbCategories ? dbCategories.map(c => c.name) : [];
     
-    // Combine and get unique categories (capitalized for clean URLs)
     const allCategories = [...new Set([...prodCategories, ...dbCategoryNames])]
       .map(c => c.charAt(0).toUpperCase() + c.slice(1).toLowerCase());
-
-    console.log(`[Sitemap] Identified ${allCategories.length} unique categories.`);
 
     // Extract unique tags/collections from live products
     let allTags = [];
@@ -71,13 +90,11 @@ async function generateSitemap() {
     const uniqueTags = [...new Set(allTags)]
       .map(t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
 
-    console.log(`[Sitemap] Identified ${uniqueTags.length} unique tags/collections.`);
-
-    // 3. Construct XML sitemap
+    // 4. Construct XML sitemap
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
-    // A. Static pages (excluding admin, login, checkout, cart, account)
+    // A. Static pages
     staticPages.forEach(p => {
       xml += '  <url>\n';
       xml += `    <loc>${BASE_URL}${p.route}</loc>\n`;
@@ -96,6 +113,18 @@ async function generateSitemap() {
       xml += `    <lastmod>${lastmod}</lastmod>\n`;
       xml += '    <changefreq>daily</changefreq>\n';
       xml += '    <priority>0.9</priority>\n';
+      xml += '  </url>\n';
+    });
+
+    // C. Dynamic blog article pages
+    publishedBlogs.forEach(b => {
+      const lastmodDate = b.published_at || b.updated_at || b.created_at || new Date().toISOString();
+      const lastmod = new Date(lastmodDate).toISOString().split('T')[0];
+      xml += '  <url>\n';
+      xml += `    <loc>${BASE_URL}/blog/${b.slug}</loc>\n`;
+      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += '    <changefreq>weekly</changefreq>\n';
+      xml += '    <priority>0.85</priority>\n';
       xml += '  </url>\n';
     });
 

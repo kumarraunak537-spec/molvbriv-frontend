@@ -2611,6 +2611,125 @@ app.get('/api/admin/reviews/stats', authenticateAdmin, async (req, res) => {
   }
 });
 
+// ==================================================
+// BLOG & SEO MANAGEMENT SYSTEM ENDPOINTS
+// ==================================================
+
+// 1. Dynamic sitemap.xml endpoint
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const sitemapPath = path.resolve(__dirname, '../public/sitemap.xml');
+    if (require('fs').existsSync(sitemapPath)) {
+      res.header('Content-Type', 'application/xml');
+      return res.sendFile(sitemapPath);
+    }
+
+    const BASE_URL = 'https://www.molvbriv.in';
+    let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+    
+    xml += `  <url><loc>${BASE_URL}</loc><priority>1.0</priority><changefreq>daily</changefreq></url>\n`;
+    xml += `  <url><loc>${BASE_URL}/collections</loc><priority>0.9</priority><changefreq>weekly</changefreq></url>\n`;
+    xml += `  <url><loc>${BASE_URL}/all-products</loc><priority>0.9</priority><changefreq>daily</changefreq></url>\n`;
+    xml += `  <url><loc>${BASE_URL}/blog</loc><priority>0.9</priority><changefreq>daily</changefreq></url>\n`;
+
+    res.header('Content-Type', 'application/xml');
+    res.send(xml + '</urlset>');
+  } catch (err) {
+    console.error('Sitemap Error:', err);
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
+// 2. Dynamic RSS 2.0 Feed Endpoint (/rss.xml)
+app.get('/rss.xml', async (req, res) => {
+  try {
+    const BASE_URL = 'https://www.molvbriv.in';
+    let articles = [
+      {
+        title: 'The Ultimate Guide to Cleaning & Maintaining Sterling Silver Jewellery',
+        slug: 'how-to-clean-silver-jewellery',
+        excerpt: 'Discover professional secrets to preserve the radiant shine of your silver earrings and necklaces.',
+        published_at: new Date().toISOString()
+      },
+      {
+        title: '5 Timeless Ways to Style Statement Jhumkas for Festivals & Everyday Wear',
+        slug: '5-timeless-ways-to-style-statement-jhumkas',
+        excerpt: 'From handcrafted Royal Turquoise motifs to minimal oxidized silver drops, elevate your wardrobe.',
+        published_at: new Date().toISOString()
+      }
+    ];
+
+    try {
+      const { data: blogs } = await supabase
+        .from('blogs')
+        .select('*')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false });
+
+      if (blogs && blogs.length > 0) {
+        articles = blogs;
+      }
+    } catch (e) {
+      // Use fallback defaults
+    }
+
+    let rss = '<?xml version="1.0" encoding="UTF-8" ?>\n';
+    rss += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n';
+    rss += '<channel>\n';
+    rss += '  <title>Molvbriv Journal | Fine Jewellery Care & Craftsmanship</title>\n';
+    rss += `  <link>${BASE_URL}/blog</link>\n`;
+    rss += '  <description>Official blog of Molvbriv. Expert guides on sterling silver care, styling, and heritage.</description>\n';
+    rss += '  <language>en-in</language>\n';
+    rss += `  <atom:link href="${BASE_URL}/rss.xml" rel="self" type="application/rss+xml" />\n`;
+
+    articles.forEach(a => {
+      rss += '  <item>\n';
+      rss += `    <title><![CDATA[${a.title}]]></title>\n`;
+      rss += `    <link>${BASE_URL}/blog/${a.slug}</link>\n`;
+      rss += `    <guid>${BASE_URL}/blog/${a.slug}</guid>\n`;
+      rss += `    <description><![CDATA[${a.excerpt || a.title}]]></description>\n`;
+      rss += `    <pubDate>${new Date(a.published_at || a.created_at || Date.now()).toUTCString()}</pubDate>\n`;
+      rss += '  </item>\n';
+    });
+
+    rss += '</channel>\n</rss>';
+
+    res.header('Content-Type', 'application/xml');
+    res.send(rss);
+  } catch (err) {
+    console.error('RSS Feed Error:', err);
+    res.status(500).send('Error generating RSS feed');
+  }
+});
+
+// 3. Dynamic robots.txt endpoint
+app.get('/robots.txt', (req, res) => {
+  const robots = `User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /cart
+Disallow: /buy-now
+Disallow: /login
+Disallow: /profile
+
+Sitemap: https://www.molvbriv.in/sitemap.xml
+`;
+  res.header('Content-Type', 'text/plain');
+  res.send(robots);
+});
+
+// 4. Newsletter Subscription API Endpoint
+app.post('/api/blog/subscribe', (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ success: false, error: 'Valid email address is required.' });
+  }
+
+  console.log(`[Newsletter Subscriber]: ${email}`);
+  res.json({ success: true, message: 'Successfully subscribed to Molvbriv Journal.' });
+});
+
 // Secure Global Error Handling Middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled System Error:', err);

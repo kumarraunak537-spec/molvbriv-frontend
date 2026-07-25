@@ -564,3 +564,153 @@ CREATE INDEX IF NOT EXISTS email_logs_order_id_type_idx ON public.email_logs(ord
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shiprocket_sync_status TEXT DEFAULT 'Pending' CHECK (shiprocket_sync_status IN ('Pending', 'Created', 'Failed'));
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shiprocket_sync_error TEXT;
 
+-- ==================================================
+-- BLOG MANAGEMENT SYSTEM SCHEMA
+-- ==================================================
+
+-- 1. Blog Categories
+CREATE TABLE IF NOT EXISTS public.blog_categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  slug TEXT NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Blog Tags
+CREATE TABLE IF NOT EXISTS public.blog_tags (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  slug TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Blogs Table
+CREATE TABLE IF NOT EXISTS public.blogs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  title TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
+  excerpt TEXT,
+  content TEXT NOT NULL,
+  content_format TEXT DEFAULT 'html' CHECK (content_format IN ('html', 'markdown')),
+  featured_image TEXT,
+  gallery TEXT[] DEFAULT '{}',
+  category_id UUID REFERENCES public.blog_categories(id) ON DELETE SET NULL,
+  tags TEXT[] DEFAULT '{}',
+  author_name TEXT DEFAULT 'Molvbriv Editorial',
+  author_role TEXT DEFAULT 'Jewellery Stylist & Specialist',
+  author_avatar TEXT,
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'scheduled')),
+  scheduled_at TIMESTAMPTZ,
+  published_at TIMESTAMPTZ DEFAULT NOW(),
+  meta_title TEXT,
+  meta_description TEXT,
+  meta_keywords TEXT,
+  canonical_url TEXT,
+  faqs JSONB DEFAULT '[]'::jsonb,
+  reading_time_min INTEGER DEFAULT 3,
+  views_count INTEGER DEFAULT 0,
+  likes_count INTEGER DEFAULT 0,
+  is_featured BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. Blog Comments
+CREATE TABLE IF NOT EXISTS public.blog_comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  blog_id UUID NOT NULL REFERENCES public.blogs(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  author_name TEXT NOT NULL,
+  author_email TEXT NOT NULL,
+  comment TEXT NOT NULL,
+  status TEXT DEFAULT 'approved' CHECK (status IN ('approved', 'pending', 'spam')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. Blog Views (for analytics / view count)
+CREATE TABLE IF NOT EXISTS public.blog_views (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  blog_id UUID NOT NULL REFERENCES public.blogs(id) ON DELETE CASCADE,
+  ip_hash TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. Blog Likes
+CREATE TABLE IF NOT EXISTS public.blog_likes (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  blog_id UUID NOT NULL REFERENCES public.blogs(id) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(blog_id, session_id)
+);
+
+-- 7. Blog Related Products Junction
+CREATE TABLE IF NOT EXISTS public.blog_related_products (
+  blog_id UUID NOT NULL REFERENCES public.blogs(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (blog_id, product_id)
+);
+
+-- INDEXES
+CREATE INDEX IF NOT EXISTS blogs_slug_idx ON public.blogs(slug);
+CREATE INDEX IF NOT EXISTS blogs_status_pub_idx ON public.blogs(status, published_at DESC);
+CREATE INDEX IF NOT EXISTS blogs_category_id_idx ON public.blogs(category_id);
+CREATE INDEX IF NOT EXISTS blogs_tags_gin_idx ON public.blogs USING GIN(tags);
+CREATE INDEX IF NOT EXISTS blog_comments_blog_id_idx ON public.blog_comments(blog_id);
+CREATE INDEX IF NOT EXISTS blog_related_products_blog_id_idx ON public.blog_related_products(blog_id);
+
+-- RLS POLICIES
+ALTER TABLE public.blog_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blog_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blogs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blog_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blog_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blog_likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blog_related_products ENABLE ROW LEVEL SECURITY;
+
+-- Public Read Policies
+DROP POLICY IF EXISTS "Blog categories viewable by everyone" ON public.blog_categories;
+CREATE POLICY "Blog categories viewable by everyone" ON public.blog_categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Blog tags viewable by everyone" ON public.blog_tags;
+CREATE POLICY "Blog tags viewable by everyone" ON public.blog_tags FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Published blogs viewable by everyone" ON public.blogs;
+CREATE POLICY "Published blogs viewable by everyone" ON public.blogs FOR SELECT USING (status = 'published' OR (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin')));
+
+DROP POLICY IF EXISTS "Approved blog comments viewable by everyone" ON public.blog_comments;
+CREATE POLICY "Approved blog comments viewable by everyone" ON public.blog_comments FOR SELECT USING (status = 'approved');
+
+DROP POLICY IF EXISTS "Blog related products viewable by everyone" ON public.blog_related_products;
+CREATE POLICY "Blog related products viewable by everyone" ON public.blog_related_products FOR SELECT USING (true);
+
+-- Admin Full Access Policies
+DROP POLICY IF EXISTS "Admins full access to blog categories" ON public.blog_categories;
+CREATE POLICY "Admins full access to blog categories" ON public.blog_categories FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins full access to blog tags" ON public.blog_tags;
+CREATE POLICY "Admins full access to blog tags" ON public.blog_tags FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins full access to blogs" ON public.blogs;
+CREATE POLICY "Admins full access to blogs" ON public.blogs FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins full access to blog comments" ON public.blog_comments;
+CREATE POLICY "Admins full access to blog comments" ON public.blog_comments FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+
+DROP POLICY IF EXISTS "Admins full access to blog related products" ON public.blog_related_products;
+CREATE POLICY "Admins full access to blog related products" ON public.blog_related_products FOR ALL USING (EXISTS (SELECT 1 FROM public.profiles WHERE profiles.id = auth.uid() AND profiles.role = 'admin'));
+
+-- Public Insert Policies for Views, Likes, and Comments
+DROP POLICY IF EXISTS "Anyone can record a blog view" ON public.blog_views;
+CREATE POLICY "Anyone can record a blog view" ON public.blog_views FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can like a blog post" ON public.blog_likes;
+CREATE POLICY "Anyone can like a blog post" ON public.blog_likes FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Anyone can post a blog comment" ON public.blog_comments;
+CREATE POLICY "Anyone can post a blog comment" ON public.blog_comments FOR INSERT WITH CHECK (true);
+
+

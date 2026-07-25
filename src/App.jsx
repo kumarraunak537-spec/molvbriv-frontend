@@ -20,6 +20,8 @@ const ShippingReturnsPage = lazy(() => import('./pages/ShippingReturnsPage.jsx')
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage.jsx'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage.jsx'))
 const ProfilePage = lazy(() => import('./pages/ProfilePage.jsx'))
+const BlogListPage = lazy(() => import('./pages/BlogListPage.jsx'))
+const BlogDetailPage = lazy(() => import('./pages/BlogDetailPage.jsx'))
 import { CartProvider } from './context/CartContext.jsx'
 import { analytics } from './services/analytics'
 
@@ -66,6 +68,8 @@ function App() {
             <Route path="/all-products" element={<AllProductsPage />} />
             <Route path="/new-arrivals" element={<NewArrivalsPage />} />
             <Route path="/product/:id" element={<ProductPage />} />
+            <Route path="/blog" element={<BlogListPage />} />
+            <Route path="/blog/:slug" element={<BlogDetailPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/buy-now" element={<BuyNowPage />} />
             <Route path="/login" element={<LoginPage />} />

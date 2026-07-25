@@ -11,6 +11,7 @@ export default function Footer({ variant = 'default' }) {
         <div className="space-y-6">
           <h4 className="text-white font-bold text-xs uppercase tracking-[0.2em]">Customer Care</h4>
           <ul className="space-y-4">
+            <li><Link to="/blog" className="text-white/60 hover:text-white transition-colors text-sm font-manrope tracking-wide">Journal & Blog</Link></li>
             <li><Link to="/shipping-returns" className="text-white/60 hover:text-white transition-colors text-sm font-manrope tracking-wide">Shipping & Returns</Link></li>
             <li><Link to="/privacy-policy" className="text-white/60 hover:text-white transition-colors text-sm font-manrope tracking-wide">Privacy Policy</Link></li>
             <li><Link to="/terms-of-service" className="text-white/60 hover:text-white transition-colors text-sm font-manrope tracking-wide">Terms of Service</Link></li>

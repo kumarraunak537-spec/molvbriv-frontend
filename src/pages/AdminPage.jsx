@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase, clearFrontendCache } from '../supabaseClient';
+import AdminBlogManager from '../components/admin/AdminBlogManager';
 import './AdminPage.css';
 
 export default function AdminPage() {
@@ -665,6 +666,7 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
     collections: 'Collections',
     add: 'Add Product',
     customize: 'Customize Product',
+    blog: 'Blog Management',
     orders: 'View Orders',
     reviews: 'Review Management',
     settings: 'Website Settings'
@@ -863,6 +865,12 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
               Customize Product
             </div>
 
+            <div className="nl">CONTENT & SEO</div>
+            <div className={`ni ${activePage === 'blog' ? 'active' : ''}`} onClick={() => nav('blog')}>
+              <svg className="nic" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 2.5h10A1.5 1.5 0 0 1 14.5 4v9.5A1.5 1.5 0 0 1 13 15H3M3 2.5A1.5 1.5 0 0 0 1.5 4v9.5A1.5 1.5 0 0 0 3 15M3 2.5v12.5M5.5 5.5h6M5.5 8.5h6M5.5 11.5h4" /></svg>
+              Blog Management
+            </div>
+
             <div className="nl">SALES</div>
             <div className={`ni ${activePage === 'orders' ? 'active' : ''}`} onClick={() => nav('orders')}>
               <svg className="nic" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1.5" y="3" width="13" height="11" rx="1" /><path d="M5 3V2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1M4 8h8M4 11h5" /></svg>
@@ -944,6 +952,11 @@ Solution: If you are on the live site, ensure the VITE_API_BASE_URL or VITE_API_
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* BLOG MANAGEMENT */}
+            <div className={`pg ${activePage === 'blog' ? 'active' : ''}`}>
+              <AdminBlogManager showToast={showToast} productsData={productsData} />
             </div>
 
             {/* ALL PRODUCTS */}

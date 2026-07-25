@@ -2,57 +2,123 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.molvbriv.in</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/collections</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/all-products</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/new-arrivals</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/blog</loc>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/about</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/shipping-returns</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/privacy-policy</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/terms-of-service</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/track-order</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/e2062c08-b88f-4b30-85d1-852b479b4fec</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/a9f654b5-bd5c-45e4-9dbd-4eb26d141cf6</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/3da048a0-c5bd-46b0-967f-ff0d7dd9fee4</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/69d9c1d9-a0f7-4dd1-bb8f-d12f616565f3</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/d72a17c7-9a89-4182-85c1-d6cc57be469e</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/24662665-eaf6-4be2-9db8-da93978527e6</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/b87678bc-c641-4a88-9a53-022934b375f1</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/caa8663e-9c3a-4240-8cf9-90b3356ee629</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/44901c74-cdc5-43ab-8f18-0147c6dda941</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/product/d825a687-3063-46ab-88ea-383687eec0db</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/product/dc147ee4-beaf-4eeb-8016-2932f1d39ae4</loc>
@@ -63,12 +129,6 @@
   <url>
     <loc>https://www.molvbriv.in/product/ad8f6781-0df8-48ab-8ea6-7760640e0c59</loc>
     <lastmod>2026-06-18</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://www.molvbriv.in/product/a5185ff8-5e3f-43c9-9391-3616831a5776</loc>
-    <lastmod>2026-06-17</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
@@ -85,26 +145,50 @@
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://www.molvbriv.in/blog/how-to-clean-silver-jewellery</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/blog/5-timeless-ways-to-style-statement-jhumkas</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
     <loc>https://www.molvbriv.in/collections?category=Jhumka</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/collections?category=Earrings</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/collections?tag=Limited%20release</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.molvbriv.in/collections?tag=Most%20popular</loc>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/collections?tag=Most%20viewed</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.molvbriv.in/collections?tag=Best%20seller</loc>
-    <lastmod>2026-06-28</lastmod>
+    <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>

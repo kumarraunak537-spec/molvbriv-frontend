@@ -56,6 +56,7 @@ export default function Navbar() {
     { label: 'All Products', path: '/all-products' },
     { label: 'Collections', path: '/collections' },
     { label: 'New Arrivals', path: '/new-arrivals' },
+    { label: 'Blog & Journal', path: '/blog' },
     { label: 'About', path: '/about' },
     { label: 'Track Order', path: '/track-order' },
     ...(isLoggedIn ? [
