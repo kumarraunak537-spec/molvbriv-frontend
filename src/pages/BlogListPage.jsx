@@ -7,6 +7,7 @@ import BlogCard from '../components/blog/BlogCard';
 import NewsletterBlock from '../components/blog/NewsletterBlock';
 import { supabase } from '../supabaseClient';
 import { MOCK_BLOGS, MOCK_BLOG_CATEGORIES, MOCK_BLOG_TAGS } from '../data/mockBlogs';
+import { updateSEO } from '../utils/seo';
 
 export default function BlogListPage() {
   const location = useLocation();
@@ -36,20 +37,33 @@ export default function BlogListPage() {
     setSearchQuery(searchParam);
   }, [location.search]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    updateSEO({
+      title: "Molvbriv Journal — Stories of Heritage & Fine Craftsmanship",
+      description: "Explore curated jewellery styling advice, sterling silver care guides, and behind-the-scenes artisan craftsmanship stories from Molvbriv.",
+      canonicalUrl: "https://www.molvbriv.in/blog",
+      schema: {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "Molvbriv Journal",
+        "description": "Stories of Heritage & Fine Craftsmanship",
+        "url": "https://www.molvbriv.in/blog"
+      }
+    });
+  }, []);
+
   // Load published blogs from Supabase
   useEffect(() => {
     async function fetchBlogData() {
       setLoading(true);
       try {
-        // 1. Fetch Categories
         const { data: catData } = await supabase.from('blog_categories').select('*').order('name');
         if (catData && catData.length > 0) setCategories(catData);
 
-        // 2. Fetch Tags
         const { data: tagData } = await supabase.from('blog_tags').select('*').order('name');
         if (tagData && tagData.length > 0) setTags(tagData);
 
-        // 3. Fetch Published Blogs
         const { data: blogData, error: blogErr } = await supabase
           .from('blogs')
           .select('*, blog_categories(name)')
@@ -63,7 +77,6 @@ export default function BlogListPage() {
           }));
           setBlogs(mappedBlogs);
         } else {
-          // Fallback to defaults if DB tables not populated yet
           setBlogs(MOCK_BLOGS);
         }
       } catch (err) {
@@ -80,16 +93,13 @@ export default function BlogListPage() {
   // Filtered & Searched Blogs computation
   const filteredBlogs = useMemo(() => {
     return blogs.filter(blog => {
-      // Category filter
       const categoryMatch = selectedCategory === 'all' || 
         (blog.category_name && blog.category_name.toLowerCase() === selectedCategory.toLowerCase()) ||
         (blog.category_id && blog.category_id === selectedCategory);
 
-      // Tag filter
       const tagMatch = selectedTag === 'all' || 
         (Array.isArray(blog.tags) && blog.tags.some(t => t.toLowerCase() === selectedTag.toLowerCase()));
 
-      // Search query filter
       const searchMatch = !searchQuery.trim() || 
         blog.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (blog.excerpt && blog.excerpt.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -123,31 +133,31 @@ export default function BlogListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-on-surface flex flex-col font-body">
+    <div className="bg-background text-on-background selection:bg-secondary/20 font-body">
       <SEOHead
-        customTitle="Molvbriv Journal | Fine Jewellery Care, Styling & Artisan Heritage"
+        customTitle="Molvbriv Journal — Stories of Heritage & Fine Craftsmanship"
         customDescription="Discover expert guides on cleaning sterling silver jewellery, traditional Jhumka styling, and artisan jewellery craftsmanship."
         canonicalUrl="https://www.molvbriv.in/blog"
       />
 
       <Navbar />
 
-      <main className="flex-1 pt-24 pb-16">
-        {/* HERO SECTION */}
-        <section className="bg-gradient-to-b from-surface-container-low via-background to-background py-12 md:py-16 border-b border-surface-variant/40">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-            <span className="text-xs font-headline font-semibold uppercase tracking-widest text-secondary">
+      <div className="pt-24 md:pt-24 min-h-screen">
+        {/* HERO SECTION matching Molvbriv Header Style */}
+        <section className="py-16 md:py-24 px-5 md:px-12 bg-surface border-b border-black/5">
+          <div className="max-w-7xl mx-auto text-center space-y-4">
+            <span className="text-secondary tracking-[0.3em] uppercase text-[10px] font-bold block">
               MOLVBRIV JOURNAL
             </span>
-            <h1 className="font-playfair text-3xl md:text-5xl font-bold text-on-surface tracking-tight">
+            <h1 className="text-3xl md:text-5xl font-manrope text-primary leading-tight">
               Stories of Heritage & Fine Craftsmanship
             </h1>
-            <p className="font-body text-sm md:text-base text-on-surface-variant/80 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-on-surface-variant font-body leading-relaxed max-w-2xl mx-auto text-sm md:text-base">
               Explore curated styling advice, timeless silver maintenance guides, and behind-the-scenes glimpses into our artisanal jewellery process.
             </p>
 
-            {/* SEARCH BAR */}
-            <div className="max-w-xl mx-auto pt-4">
+            {/* SEARCH INPUT matching HomePage Input Style */}
+            <div className="max-w-xl mx-auto pt-6">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -155,14 +165,6 @@ export default function BlogListPage() {
                 }}
                 className="relative flex items-center"
               >
-                <svg
-                  className="w-5 h-5 absolute left-4 text-on-surface-variant/60 pointer-events-none"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
                 <input
                   type="text"
                   value={searchQuery}
@@ -170,259 +172,210 @@ export default function BlogListPage() {
                     setSearchQuery(e.target.value);
                     updateFilters(selectedCategory, selectedTag, e.target.value);
                   }}
-                  placeholder="Search articles by keyword, topic, or tag..."
-                  className="w-full pl-12 pr-10 py-3.5 rounded-full bg-surface border border-surface-variant/70 text-sm shadow-xs focus:outline-none focus:border-secondary focus:ring-1 focus:ring-secondary transition-all"
+                  placeholder="Search journal stories..."
+                  className="w-full bg-surface-container-low border-none focus:ring-1 focus:ring-secondary py-3.5 md:py-4 px-6 pr-12 text-sm text-primary placeholder-on-surface-variant/60"
                 />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => updateFilters(selectedCategory, selectedTag, '')}
-                    className="absolute right-4 text-on-surface-variant/60 hover:text-on-surface"
-                  >
-                    ✕
-                  </button>
-                )}
+                <button
+                  type="submit"
+                  className="absolute right-4 text-primary opacity-60 hover:opacity-100"
+                >
+                  <span className="material-symbols-outlined text-lg">search</span>
+                </button>
               </form>
             </div>
           </div>
         </section>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-          {/* FEATURED BANNER (Only on page 1 when no strict search filter active) */}
-          {currentPage === 1 && !searchQuery && selectedCategory === 'all' && selectedTag === 'all' && featuredBlog && (
-            <div className="mb-12 rounded-2xl overflow-hidden bg-surface border border-surface-variant/60 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-0 group">
-              <div className="lg:col-span-7 relative aspect-[16/10] lg:aspect-auto overflow-hidden bg-surface-container">
-                <img
-                  src={featuredBlog.featured_image}
-                  alt={featuredBlog.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                />
-                <span className="absolute top-4 left-4 bg-secondary text-on-secondary text-xs font-headline font-semibold uppercase tracking-wider px-3.5 py-1 rounded-full">
-                  Featured Story
-                </span>
-              </div>
+        {/* FEATURED CAMPAIGN SERIES (Identical to HomePage FeaturedSeries Layout) */}
+        {currentPage === 1 && !searchQuery && selectedCategory === 'all' && selectedTag === 'all' && featuredBlog && (
+          <section className="bg-surface-container-low py-16 md:py-24 px-5 md:px-12 overflow-hidden border-b border-black/5">
+            <div className="max-w-7xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-16 items-center">
+                {/* Left Text */}
+                <div className="md:col-span-5 space-y-8">
+                  <div className="space-y-4">
+                    <span className="text-secondary tracking-[0.3em] uppercase text-[10px] font-bold">
+                      Featured Story
+                    </span>
+                    <h2 className="text-3xl md:text-5xl font-manrope text-primary leading-tight">
+                      {featuredBlog.title}
+                    </h2>
+                    <p className="text-on-surface-variant font-body leading-relaxed max-w-sm text-sm">
+                      {featuredBlog.excerpt}
+                    </p>
+                  </div>
 
-              <div className="lg:col-span-5 p-6 md:p-10 flex flex-col justify-center bg-surface">
-                <div className="text-xs text-on-surface-variant/70 font-label flex items-center gap-2 mb-2">
-                  <span className="text-secondary font-semibold uppercase">{featuredBlog.category_name || 'Guide'}</span>
-                  <span>•</span>
-                  <span>{featuredBlog.reading_time_min || 4} min read</span>
-                </div>
-
-                <h2 className="font-playfair text-2xl md:text-3xl font-bold text-on-surface group-hover:text-secondary transition-colors mb-4">
-                  <Link to={`/blog/${featuredBlog.slug}`}>
-                    {featuredBlog.title}
-                  </Link>
-                </h2>
-
-                <p className="font-body text-sm text-on-surface-variant/80 line-clamp-3 mb-6 leading-relaxed">
-                  {featuredBlog.excerpt}
-                </p>
-
-                <div className="flex items-center justify-between pt-4 border-t border-surface-variant/40 mt-auto">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-primary text-on-primary text-xs flex items-center justify-center font-bold">
-                      {(featuredBlog.author_name || 'M').charAt(0)}
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-on-surface">{featuredBlog.author_name}</div>
-                      <div className="text-[10px] text-on-surface-variant/60">{featuredBlog.author_role}</div>
-                    </div>
+                  <div className="flex items-center gap-4 text-xs font-manrope text-primary">
+                    <span className="font-semibold">{featuredBlog.author_name || 'Molvbriv Editorial'}</span>
+                    <span>•</span>
+                    <span className="text-secondary font-semibold">{featuredBlog.reading_time_min || 4} min read</span>
                   </div>
 
                   <Link
                     to={`/blog/${featuredBlog.slug}`}
-                    className="inline-flex items-center text-xs font-headline font-semibold px-4 py-2 rounded-full bg-primary text-on-primary hover:bg-primary-container transition-colors"
+                    className="inline-block border-b border-secondary pb-1 text-secondary tracking-widest uppercase text-xs hover:tracking-[0.2em] transition-all font-semibold"
                   >
-                    Read Story &rarr;
+                    Read Full Campaign Story &rarr;
                   </Link>
+                </div>
+
+                {/* Right Asymmetric Image Showcase */}
+                <div className="md:col-span-7 relative">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-4 pt-8">
+                      <img
+                        loading="lazy"
+                        className="w-full aspect-[4/5] object-cover rounded-sm shadow-md"
+                        alt={featuredBlog.title}
+                        src={featuredBlog.featured_image || '/hero-poster.jpg'}
+                      />
+                      <div className="p-6 bg-surface-container-highest border border-black/5">
+                        <span className="font-manrope italic text-primary text-xs md:text-sm block">
+                          "{featuredBlog.excerpt?.slice(0, 90)}..."
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <img
+                        loading="lazy"
+                        className="w-full aspect-[4/6] object-cover shadow-xl rounded-sm"
+                        alt="Editorial Detail"
+                        src={featuredBlog.gallery?.[0] || featuredBlog.featured_image}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          )}
+          </section>
+        )}
 
-          {/* CATEGORIES TABS & TAG PILLS */}
-          <div className="space-y-4 mb-10 pb-6 border-b border-surface-variant/40">
-            {/* Category Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-              <button
-                onClick={() => updateFilters('all', selectedTag, searchQuery)}
-                className={`px-4 py-2 rounded-full text-xs font-headline font-semibold tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer ${
-                  selectedCategory === 'all'
-                    ? 'bg-primary text-on-primary shadow-xs'
-                    : 'bg-surface-container hover:bg-surface-container-high text-on-surface-variant'
-                }`}
-              >
-                All Categories
-              </button>
+        {/* MAIN ARTICLES CONTAINER */}
+        <section className="py-12 md:py-20 px-5 md:px-12 bg-surface">
+          <div className="max-w-7xl mx-auto">
+            {/* CATEGORY FILTER BAR */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 pb-6 border-b border-black/5">
+              <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 scrollbar-none">
+                <button
+                  onClick={() => updateFilters('all', selectedTag, searchQuery)}
+                  className={`px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors cursor-pointer ${
+                    selectedCategory === 'all'
+                      ? 'bg-primary text-white'
+                      : 'bg-surface-container-low text-on-surface-variant hover:text-primary'
+                  }`}
+                >
+                  All Stories
+                </button>
 
-              {categories.map((cat) => {
-                const isActive = selectedCategory.toLowerCase() === cat.slug.toLowerCase() || selectedCategory.toLowerCase() === cat.name.toLowerCase();
-                return (
-                  <button
-                    key={cat.id || cat.slug}
-                    onClick={() => updateFilters(cat.slug, selectedTag, searchQuery)}
-                    className={`px-4 py-2 rounded-full text-xs font-headline font-semibold tracking-wider uppercase transition-all whitespace-nowrap cursor-pointer ${
-                      isActive
-                        ? 'bg-primary text-on-primary shadow-xs'
-                        : 'bg-surface-container hover:bg-surface-container-high text-on-surface-variant'
-                    }`}
-                  >
-                    {cat.name}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Tag Pills */}
-            {tags.length > 0 && (
-              <div className="flex items-center flex-wrap gap-2 pt-1">
-                <span className="text-xs font-headline font-semibold text-on-surface-variant/60 mr-1">
-                  Topics:
-                </span>
-                {tags.map((t) => {
-                  const isActive = selectedTag.toLowerCase() === t.slug.toLowerCase() || selectedTag.toLowerCase() === t.name.toLowerCase();
+                {categories.map((cat) => {
+                  const isActive = selectedCategory.toLowerCase() === cat.slug.toLowerCase() || selectedCategory.toLowerCase() === cat.name.toLowerCase();
                   return (
                     <button
-                      key={t.id || t.slug}
-                      onClick={() => updateFilters(selectedCategory, isActive ? 'all' : t.slug, searchQuery)}
-                      className={`px-3 py-1 rounded-md text-[11px] font-label transition-all cursor-pointer ${
+                      key={cat.id || cat.slug}
+                      onClick={() => updateFilters(cat.slug, selectedTag, searchQuery)}
+                      className={`px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-bold transition-colors cursor-pointer whitespace-nowrap ${
                         isActive
-                          ? 'bg-secondary text-on-secondary font-semibold'
-                          : 'bg-surface-variant/50 hover:bg-surface-variant text-on-surface-variant'
+                          ? 'bg-primary text-white'
+                          : 'bg-surface-container-low text-on-surface-variant hover:text-primary'
                       }`}
                     >
-                      #{t.name}
+                      {cat.name}
                     </button>
                   );
                 })}
               </div>
-            )}
-          </div>
 
-          {/* ARTICLES GRID & SIDEBAR */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Main Articles List */}
-            <div className="lg:col-span-8">
-              {loading ? (
-                <div className="py-20 text-center space-y-3">
-                  <div className="w-8 h-8 border-3 border-secondary/30 border-t-secondary rounded-full animate-spin mx-auto"></div>
-                  <p className="text-xs text-on-surface-variant/70">Loading articles...</p>
-                </div>
-              ) : paginatedBlogs.length === 0 ? (
-                <div className="py-16 text-center bg-surface-container-low rounded-2xl border border-surface-variant/50 p-8 space-y-4">
-                  <svg className="w-12 h-12 text-on-surface-variant/40 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-                  </svg>
-                  <h3 className="font-playfair text-xl font-bold text-on-surface">No Articles Found</h3>
-                  <p className="text-xs text-on-surface-variant/70 max-w-sm mx-auto">
-                    We couldn't find any stories matching your filter. Try adjusting your search query or choosing another topic.
-                  </p>
-                  <button
-                    onClick={() => updateFilters('all', 'all', '')}
-                    className="px-4 py-2 rounded-full bg-secondary text-on-secondary text-xs font-headline font-semibold hover:bg-tertiary transition-colors cursor-pointer"
-                  >
-                    Reset Filters
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {paginatedBlogs.map((blog) => (
-                    <BlogCard key={blog.id || blog.slug} blog={blog} />
-                  ))}
-                </div>
-              )}
-
-              {/* PAGINATION */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-12 pt-8 border-t border-surface-variant/40">
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    className="px-3.5 py-2 rounded-lg border border-surface-variant text-xs font-headline font-semibold hover:bg-surface-container disabled:opacity-40 transition-colors cursor-pointer"
-                  >
-                    &larr; Previous
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`w-9 h-9 rounded-lg text-xs font-headline font-semibold transition-colors cursor-pointer ${
-                        currentPage === pageNum
-                          ? 'bg-primary text-on-primary'
-                          : 'hover:bg-surface-container text-on-surface-variant'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-
-                  <button
-                    disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    className="px-3.5 py-2 rounded-lg border border-surface-variant text-xs font-headline font-semibold hover:bg-surface-container disabled:opacity-40 transition-colors cursor-pointer"
-                  >
-                    Next &rarr;
-                  </button>
+              {/* Tag Filters */}
+              {tags.length > 0 && (
+                <div className="flex items-center flex-wrap gap-2">
+                  <span className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold mr-1">
+                    Topics:
+                  </span>
+                  {tags.map((t) => {
+                    const isActive = selectedTag.toLowerCase() === t.slug.toLowerCase() || selectedTag.toLowerCase() === t.name.toLowerCase();
+                    return (
+                      <button
+                        key={t.id || t.slug}
+                        onClick={() => updateFilters(selectedCategory, isActive ? 'all' : t.slug, searchQuery)}
+                        className={`px-3 py-1 text-[10px] uppercase tracking-wider transition-all cursor-pointer font-bold ${
+                          isActive
+                            ? 'bg-secondary text-white'
+                            : 'bg-surface-container-low text-on-surface-variant hover:bg-secondary/20'
+                        }`}
+                      >
+                        #{t.name}
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
 
-            {/* SIDEBAR */}
-            <aside className="lg:col-span-4 space-y-8">
-              {/* Popular Articles Widget */}
-              <div className="bg-surface-container-low p-6 rounded-2xl border border-surface-variant/50 space-y-4">
-                <h4 className="font-playfair text-lg font-bold text-on-surface pb-2 border-b border-surface-variant/40">
-                  Popular Reads
-                </h4>
-                <div className="space-y-4">
-                  {blogs.slice(0, 3).map((popularBlog, idx) => (
-                    <Link
-                      key={popularBlog.id || idx}
-                      to={`/blog/${popularBlog.slug}`}
-                      className="group flex gap-3 items-start"
-                    >
-                      <span className="font-playfair text-2xl font-bold text-secondary/40 group-hover:text-secondary transition-colors">
-                        0{idx + 1}
-                      </span>
-                      <div>
-                        <h5 className="font-headline font-semibold text-xs text-on-surface group-hover:text-secondary transition-colors line-clamp-2 leading-snug">
-                          {popularBlog.title}
-                        </h5>
-                        <span className="text-[10px] text-on-surface-variant/60 font-label">
-                          {popularBlog.reading_time_min || 3} min read
-                        </span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+            {/* ARTICLES GRID */}
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <div className="w-10 h-10 border-4 border-secondary border-t-transparent rounded-full animate-spin"></div>
               </div>
-
-              {/* Newsletter Block in Sidebar */}
-              <div className="bg-primary text-on-primary p-6 rounded-2xl space-y-3">
-                <h4 className="font-playfair text-lg font-bold">Stay Inspired</h4>
-                <p className="text-xs text-surface-variant/80 leading-relaxed">
-                  Subscribe to receive new jewellery care guides & luxury styling tips directly in your inbox.
+            ) : paginatedBlogs.length === 0 ? (
+              <div className="text-center py-20 bg-surface-container-low rounded-sm border border-dashed border-black/10">
+                <p className="text-on-surface-variant italic mb-4">
+                  No stories found matching your filter criteria.
                 </p>
-                <Link
-                  to="#newsletter"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-                  }}
-                  className="block text-center py-2.5 px-4 rounded-xl bg-secondary text-on-secondary font-headline text-xs font-semibold hover:bg-tertiary transition-colors"
+                <button
+                  onClick={() => updateFilters('all', 'all', '')}
+                  className="bg-primary text-white px-8 py-3 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors cursor-pointer"
                 >
-                  Subscribe Now
-                </Link>
+                  Reset Filters
+                </button>
               </div>
-            </aside>
-          </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
+                {paginatedBlogs.map((blog) => (
+                  <BlogCard key={blog.id || blog.slug} blog={blog} />
+                ))}
+              </div>
+            )}
 
-          {/* NEWSLETTER BANNER */}
-          <NewsletterBlock />
-        </div>
-      </main>
+            {/* PAGINATION */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-16 pt-8 border-t border-black/5">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className="px-6 py-3 bg-surface-container-low text-primary text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-primary hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                >
+                  &larr; Previous
+                </button>
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`w-10 h-10 text-xs font-manrope font-bold transition-colors cursor-pointer ${
+                      currentPage === pageNum
+                        ? 'bg-primary text-white'
+                        : 'bg-surface-container-low text-on-surface-variant hover:bg-primary hover:text-white'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className="px-6 py-3 bg-surface-container-low text-primary text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-primary hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                >
+                  Next &rarr;
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* NEWSLETTER */}
+        <NewsletterBlock />
+      </div>
 
       <Footer />
     </div>

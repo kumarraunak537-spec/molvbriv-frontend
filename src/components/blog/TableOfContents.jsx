@@ -3,7 +3,7 @@ import { extractHeadings } from '../../utils/blogUtils';
 
 /**
  * TableOfContents Component
- * Renders interactive sticky table of contents outline with active heading highlighting during page scroll.
+ * Derived directly from Molvbriv sidebar filter widgets.
  */
 export default function TableOfContents({ content }) {
   const [headings, setHeadings] = useState([]);
@@ -56,31 +56,29 @@ export default function TableOfContents({ content }) {
   };
 
   return (
-    <nav className="bg-surface-container-low/80 backdrop-blur-xs p-5 rounded-xl border border-surface-variant/50 sticky top-28 mb-8">
-      <div className="flex items-center gap-2 mb-3 pb-2 border-b border-surface-variant/40">
-        <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h10M4 18h7" />
-        </svg>
-        <h4 className="font-headline text-xs uppercase tracking-widest font-bold text-on-surface">
+    <nav className="bg-surface-container-low p-6 border border-black/5 sticky top-28 mb-8">
+      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-black/5">
+        <span className="material-symbols-outlined text-secondary text-sm">format_list_bulleted</span>
+        <h4 className="font-manrope text-[10px] uppercase tracking-[0.2em] font-bold text-primary">
           Table of Contents
         </h4>
       </div>
 
-      <ul className="space-y-2 text-xs font-body max-h-[60vh] overflow-y-auto pr-1">
+      <ul className="space-y-2.5 text-xs font-body max-h-[60vh] overflow-y-auto pr-1">
         {headings.map((heading) => {
           const isActive = activeId === heading.id;
           return (
             <li
               key={heading.id}
-              style={{ paddingLeft: heading.level === 3 ? '1rem' : '0rem' }}
+              style={{ paddingLeft: heading.level === 3 ? '0.75rem' : '0rem' }}
             >
               <a
                 href={`#${heading.id}`}
                 onClick={(e) => scrollToHeading(e, heading.id)}
-                className={`block transition-all duration-200 py-1 border-l-2 pl-2.5 ${
+                className={`block transition-all duration-300 py-1 border-l-2 pl-3 ${
                   isActive
-                    ? 'border-secondary font-semibold text-secondary transform translate-x-1'
-                    : 'border-transparent text-on-surface-variant/70 hover:text-on-surface hover:border-surface-variant'
+                    ? 'border-secondary font-bold text-secondary transform translate-x-1'
+                    : 'border-transparent text-on-surface-variant hover:text-primary hover:border-black/20'
                 }`}
               >
                 {heading.text}

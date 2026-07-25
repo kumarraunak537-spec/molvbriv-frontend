@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../supabaseClient';
 import { useCart } from '../../context/CartContext';
 
 /**
  * RelatedProducts Component
- * Displays shop products referenced inside or related to the blog article.
+ * Derived directly from AllProductsPage product grid.
  */
 export default function RelatedProducts({ productIds = [], categoryName }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function loadRelatedProducts() {
@@ -21,21 +22,20 @@ export default function RelatedProducts({ productIds = [], categoryName }) {
         if (productIds && productIds.length > 0) {
           query = query.in('id', productIds);
         } else if (categoryName) {
-          query = query.ilike('category', `%${categoryName}%`).limit(3);
+          query = query.ilike('category', `%${categoryName}%`).limit(4);
         } else {
-          query = query.order('created_at', { ascending: false }).limit(3);
+          query = query.order('created_at', { ascending: false }).limit(4);
         }
 
         const { data, error } = await query;
         if (!error && data && data.length > 0) {
           setProducts(data);
         } else {
-          // Fallback fetch if specific filter returned empty
           const { data: fallbackData } = await supabase
             .from('products')
             .select('*')
             .eq('status', 'live')
-            .limit(3);
+            .limit(4);
           if (fallbackData) setProducts(fallbackData);
         }
       } catch (err) {
@@ -48,85 +48,91 @@ export default function RelatedProducts({ productIds = [], categoryName }) {
     loadRelatedProducts();
   }, [productIds, categoryName]);
 
+  const handleQuickShop = (e, product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToCart({
+      id: product.id,
+      name: product.title,
+      price: product.price,
+      description: product.description || '',
+      image: (product.images && product.images[0]) || 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop',
+    });
+    navigate('/cart');
+  };
+
   if (loading || products.length === 0) return null;
 
   return (
-    <section className="my-12 p-6 md:p-8 bg-surface-container-low/70 rounded-2xl border border-surface-variant/50">
-      <div className="flex items-center justify-between mb-6 pb-3 border-b border-surface-variant/40">
-        <div>
-          <span className="text-xs font-headline font-semibold uppercase tracking-widest text-secondary">
-            Featured In This Article
-          </span>
-          <h3 className="font-playfair text-2xl font-bold text-on-surface mt-1">
-            Shop Related Jewellery
-          </h3>
+    <section className="py-12 md:py-16 border-t border-black/5 bg-surface">
+      <div className="max-w-7xl mx-auto px-5 md:px-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-12 gap-4">
+          <div>
+            <span className="text-secondary tracking-[0.3em] uppercase text-[10px] font-bold block mb-2">
+              Featured In Story
+            </span>
+            <h2 className="text-2xl md:text-3xl font-manrope text-primary">
+              Shop Related Pieces
+            </h2>
+          </div>
+          <Link
+            to="/all-products"
+            className="inline-block border-b border-secondary pb-1 text-secondary tracking-widest uppercase text-xs hover:tracking-[0.2em] transition-all font-semibold"
+          >
+            Explore Catalogue &rarr;
+          </Link>
         </div>
-        <Link
-          to="/all-products"
-          className="text-xs font-headline font-semibold text-secondary hover:text-tertiary flex items-center gap-1"
-        >
-          View Collection &rarr;
-        </Link>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {products.map((product) => {
-          const imgUrl = Array.isArray(product.images) && product.images.length > 0
-            ? product.images[0]
-            : 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&q=80&w=400';
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+          {products.map((product) => {
+            const imgUrl = Array.isArray(product.images) && product.images.length > 0
+              ? product.images[0]
+              : 'https://images.unsplash.com/photo-1515562141589-67f0d954ca94?w=600&h=700&fit=crop';
 
-          return (
-            <div
-              key={product.id}
-              className="bg-surface rounded-xl overflow-hidden border border-surface-variant/40 hover:border-secondary/50 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col"
-            >
-              <Link to={`/product/${product.id}`} className="block relative aspect-square overflow-hidden bg-surface-container">
-                <img
-                  src={imgUrl}
-                  alt={product.title}
-                  loading="lazy"
-                  className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-500"
-                />
-              </Link>
-
-              <div className="p-4 flex flex-col flex-1">
-                <h4 className="font-headline font-semibold text-sm text-on-surface line-clamp-1 mb-1">
-                  <Link to={`/product/${product.id}`} className="hover:text-secondary transition-colors">
-                    {product.title}
+            return (
+              <div key={product.id} className="group cursor-pointer">
+                <div className="relative overflow-hidden mb-6 bg-surface-container-low aspect-[3/4]">
+                  <Link to={`/product/${product.id}`}>
+                    <img
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      alt={product.title}
+                      src={imgUrl}
+                    />
                   </Link>
-                </h4>
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="font-headline font-bold text-sm text-primary">
-                    ₹{Number(product.price).toLocaleString('en-IN')}
-                  </span>
-                  {product.compare_price && Number(product.compare_price) > Number(product.price) && (
-                    <span className="text-xs text-on-surface-variant/60 line-through">
-                      ₹{Number(product.compare_price).toLocaleString('en-IN')}
-                    </span>
+                  {product.tags && product.tags.length > 0 && (
+                    <div className="absolute top-4 left-4 bg-white/90 px-3 py-1 text-[10px] uppercase tracking-tighter text-black font-bold font-manrope">
+                      {product.tags[0]}
+                    </div>
                   )}
+                  <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-500 bg-white/40 backdrop-blur-md">
+                    <button
+                      onClick={(e) => handleQuickShop(e, product)}
+                      className="w-full bg-primary text-white py-3 text-[10px] uppercase tracking-widest hover:bg-[#765931] transition-colors font-bold cursor-pointer"
+                    >
+                      Quick Shop
+                    </button>
+                  </div>
                 </div>
 
-                <div className="mt-auto flex gap-2">
-                  <Link
-                    to={`/product/${product.id}`}
-                    className="flex-1 text-center py-2 px-3 rounded-lg border border-primary text-primary text-xs font-headline font-semibold hover:bg-primary hover:text-on-primary transition-colors"
-                  >
-                    View Details
-                  </Link>
-                  <button
-                    onClick={() => addToCart(product, 1)}
-                    className="py-2 px-3 rounded-lg bg-secondary text-on-secondary text-xs font-headline font-semibold hover:bg-tertiary transition-colors flex items-center justify-center"
-                    title="Add to Cart"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                    </svg>
-                  </button>
-                </div>
+                <Link to={`/product/${product.id}`} className="text-center block">
+                  <h3 className="text-primary font-body font-semibold text-sm mb-1 group-hover:text-secondary transition-colors">
+                    {product.title}
+                  </h3>
+                  <div className="flex items-center justify-center gap-2">
+                    <p className="text-secondary font-manrope text-lg">
+                      ₹{Number(product.price || 0).toLocaleString()}
+                    </p>
+                    {product.compare_price && Number(product.compare_price) > Number(product.price) && (
+                      <p className="text-on-surface-variant font-manrope text-sm line-through opacity-60">
+                        ₹{Number(product.compare_price).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </Link>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </section>
   );

@@ -3,7 +3,7 @@ import { supabase } from '../../supabaseClient';
 
 /**
  * BlogComments Component
- * Interactive comments section with comment listing, user submission, and validation.
+ * Inherits exact Molvbriv typography, inputs, buttons, and card borders.
  */
 export default function BlogComments({ blogId }) {
   const [comments, setComments] = useState([]);
@@ -51,7 +51,7 @@ export default function BlogComments({ blogId }) {
         author_name: name.trim(),
         author_email: email.trim(),
         comment: commentText.trim(),
-        status: 'approved' // Default auto-approve for seamless UX
+        status: 'approved'
       };
 
       const { data, error } = await supabase.from('blog_comments').insert([newComment]).select();
@@ -78,35 +78,33 @@ export default function BlogComments({ blogId }) {
   };
 
   return (
-    <section className="my-12 pt-8 border-t border-surface-variant/50">
-      <h3 className="font-playfair text-2xl font-bold text-on-surface mb-6">
-        Discussion & Reader Thoughts ({comments.length})
+    <section className="my-12 pt-8 border-t border-black/5">
+      <h3 className="font-manrope text-xl md:text-2xl text-primary mb-6">
+        Reader Discussion ({comments.length})
       </h3>
 
       {/* Comment Form */}
-      <form onSubmit={handleSubmit} className="bg-surface-container-low p-6 rounded-xl border border-surface-variant/40 mb-8 space-y-4">
-        <h4 className="font-headline text-sm font-semibold text-on-surface uppercase tracking-wider">
-          Leave a Comment
-        </h4>
+      <form onSubmit={handleSubmit} className="bg-surface-container-low p-6 border border-black/5 mb-8 space-y-4">
+        <span className="text-secondary tracking-[0.3em] uppercase text-[10px] font-bold block">
+          Share Your Perspective
+        </span>
 
         {errorMsg && (
-          <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200">
+          <div className="p-3 bg-red-50 text-red-700 text-xs border border-red-200">
             {errorMsg}
           </div>
         )}
 
         {submitted && (
-          <div className="p-3 bg-emerald-50 text-emerald-800 text-xs rounded-lg border border-emerald-200 flex items-center gap-2">
-            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-            </svg>
+          <div className="p-3 bg-[#1F3D2B]/10 text-primary text-xs border border-primary/20 flex items-center gap-2 font-medium">
+            <span className="material-symbols-outlined text-sm">done</span>
             <span>Thank you! Your comment has been published.</span>
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-label uppercase tracking-wider text-on-surface-variant mb-1">
+            <label className="block text-[10px] font-manrope uppercase tracking-widest text-primary font-bold mb-1">
               Name *
             </label>
             <input
@@ -115,12 +113,12 @@ export default function BlogComments({ blogId }) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Your full name"
-              className="w-full px-3.5 py-2 rounded-lg bg-surface border border-surface-variant text-sm focus:outline-none focus:border-secondary transition-colors"
+              className="w-full bg-surface border border-black/10 py-3 px-4 text-xs text-primary focus:ring-1 focus:ring-secondary focus:outline-none"
             />
           </div>
           <div>
-            <label className="block text-xs font-label uppercase tracking-wider text-on-surface-variant mb-1">
-              Email * (Will not be published)
+            <label className="block text-[10px] font-manrope uppercase tracking-widest text-primary font-bold mb-1">
+              Email *
             </label>
             <input
               type="email"
@@ -128,13 +126,13 @@ export default function BlogComments({ blogId }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-3.5 py-2 rounded-lg bg-surface border border-surface-variant text-sm focus:outline-none focus:border-secondary transition-colors"
+              className="w-full bg-surface border border-black/10 py-3 px-4 text-xs text-primary focus:ring-1 focus:ring-secondary focus:outline-none"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-label uppercase tracking-wider text-on-surface-variant mb-1">
+          <label className="block text-[10px] font-manrope uppercase tracking-widest text-primary font-bold mb-1">
             Comment *
           </label>
           <textarea
@@ -142,36 +140,36 @@ export default function BlogComments({ blogId }) {
             required
             value={commentText}
             onChange={(e) => setCommentText(e.target.value)}
-            placeholder="Share your thoughts or ask a question about this article..."
-            className="w-full px-3.5 py-2 rounded-lg bg-surface border border-surface-variant text-sm focus:outline-none focus:border-secondary transition-colors resize-y"
+            placeholder="Write your comment..."
+            className="w-full bg-surface border border-black/10 py-3 px-4 text-xs text-primary focus:ring-1 focus:ring-secondary focus:outline-none resize-y"
           ></textarea>
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-6 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-headline font-semibold hover:bg-primary-container transition-colors disabled:opacity-50 cursor-pointer"
+          className="bg-primary text-white px-8 py-3.5 text-[10px] uppercase tracking-[0.2em] font-bold hover:bg-secondary transition-colors duration-500 disabled:opacity-50 cursor-pointer"
         >
-          {isSubmitting ? 'Posting Comment...' : 'Post Comment'}
+          {isSubmitting ? 'Posting...' : 'Post Comment'}
         </button>
       </form>
 
       {/* Comments List */}
       <div className="space-y-4">
         {comments.length === 0 ? (
-          <p className="text-sm text-on-surface-variant/70 italic">
-            Be the first to share your thoughts on this article!
+          <p className="text-xs text-on-surface-variant italic">
+            Be the first to share your thoughts on this story.
           </p>
         ) : (
           comments.map((c) => (
-            <div key={c.id} className="p-4 rounded-xl bg-surface border border-surface-variant/40 space-y-1.5">
+            <div key={c.id} className="p-4 bg-surface-container-low border border-black/5 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="font-headline font-semibold text-sm text-on-surface">{c.author_name}</span>
-                <span className="text-xs text-on-surface-variant/60 font-label">
+                <span className="font-manrope font-semibold text-xs text-primary">{c.author_name}</span>
+                <span className="text-[10px] text-on-surface-variant font-manrope">
                   {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>
-              <p className="text-xs text-on-surface-variant/90 font-body leading-relaxed whitespace-pre-line">
+              <p className="text-xs text-on-surface-variant font-body leading-relaxed whitespace-pre-line">
                 {c.comment}
               </p>
             </div>
